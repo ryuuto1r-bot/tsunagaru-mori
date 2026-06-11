@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   CalendarDays,
   CheckCircle2,
+  Download,
   Flame,
   History,
   Layers,
@@ -131,7 +132,7 @@ function App() {
     <div className={cn("min-h-screen", themeClass(settings.theme))}>
       <main
         className={cn(
-          "mx-auto grid min-h-screen w-full max-w-7xl lg:grid-cols-[1.15fr_0.85fr]",
+          "mx-auto grid min-h-screen w-full max-w-[1680px] xl:grid-cols-[minmax(0,1fr)_340px]",
           settings.compact ? "gap-3 p-2 sm:p-3 lg:p-4" : "gap-4 p-3 sm:p-4 lg:p-6",
         )}
       >
@@ -240,7 +241,7 @@ function App() {
           </Tabs>
         </section>
 
-        <aside className="grid h-fit gap-4 lg:sticky lg:top-6">
+        <aside className="grid h-fit gap-4 xl:sticky xl:top-6">
           <Card className="border-white/70 bg-card/92 shadow-soft backdrop-blur">
             <CardHeader>
               <CardTitle>今日の成長</CardTitle>
@@ -355,8 +356,8 @@ function ConnectedForestBoard({
   const completedCount = scopedTasks.filter((task) => task.completed).length;
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-      <aside className="grid min-h-[620px] content-start gap-3 rounded-lg border bg-background/80 p-4">
+    <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+      <aside className="grid content-start gap-3 rounded-lg border bg-background/80 p-4 xl:min-h-[640px]">
         <div className="flex items-center gap-2 text-primary">
           <TreePine className="h-6 w-6" />
           <h2 className="text-2xl font-black tracking-normal">つながる森</h2>
@@ -366,6 +367,7 @@ function ConnectedForestBoard({
           <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="種を探す" />
         </label>
         <Button variant="secondary" size="sm" onClick={() => exportForest(tasks)}>
+          <Download className="h-4 w-4" />
           出力
         </Button>
         <Input value={notes} onChange={(event) => onNotes(event.target.value)} placeholder="メモ 任意" />
@@ -406,7 +408,7 @@ function ConnectedForestBoard({
         </div>
       </aside>
 
-      <section className="relative min-h-[620px] overflow-hidden rounded-lg border bg-[linear-gradient(to_right,rgba(91,114,99,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(91,114,99,0.12)_1px,transparent_1px)] bg-[size:56px_56px]">
+      <section className="relative min-h-[640px] overflow-hidden rounded-lg border bg-[linear-gradient(to_right,rgba(91,114,99,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(91,114,99,0.12)_1px,transparent_1px)] bg-[size:56px_56px]">
         <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-emerald-50/35 to-amber-100/40" />
         <div className="absolute left-4 right-4 top-4 z-30 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
@@ -454,7 +456,7 @@ function ConnectedForestBoard({
           <GraphSeedNode key={node.task.id} node={node} onComplete={onComplete} onDelete={onDelete} />
         ))}
 
-        <div className="absolute bottom-4 left-5 right-5 z-20 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.75fr)]">
+        <div className="absolute bottom-4 left-5 right-5 z-20 grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.72fr)]">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {grownTrees.map((tree) => (
               <BoardTree key={tree.group} group={tree.group} points={tree.points} level={tree.level} />
@@ -533,21 +535,21 @@ function GraphSeedNode({ node, onComplete, onDelete }: { node: GraphNode; onComp
 
 function BoardTree({ group, points, level }: { group: string; points: number; level: number }) {
   const leaves = 12 + level * 6;
-  const trunkHeight = 54 + level * 16;
-  const canopySize = 70 + level * 12;
+  const trunkHeight = 42 + level * 13;
+  const canopySize = 56 + level * 10;
 
   return (
-    <div className="relative grid h-40 place-items-end text-center">
-      <div className="absolute bottom-1 h-5 w-28 rounded-[100%] bg-slate-500/14 blur-sm" />
-      <div className="absolute bottom-3 w-5 rounded-t-full bg-gradient-to-r from-stone-800 via-amber-800 to-stone-700" style={{ height: trunkHeight }} />
+    <div className="relative grid h-36 min-w-0 place-items-end overflow-hidden text-center">
+      <div className="absolute bottom-1 h-5 w-24 rounded-[100%] bg-slate-500/14 blur-sm" />
+      <div className="absolute bottom-3 w-4 rounded-t-full bg-gradient-to-r from-stone-800 via-amber-800 to-stone-700" style={{ height: trunkHeight }} />
       <div className="absolute" style={{ bottom: trunkHeight - 5, width: canopySize, height: canopySize * 0.72 }}>
         {Array.from({ length: leaves }).map((_, index) => (
           <span
             key={index}
             className="absolute rounded-full bg-emerald-500/75 shadow-sm"
             style={{
-              width: 20 + (index % 4) * 5,
-              height: 18 + (index % 5) * 4,
+              width: 16 + (index % 4) * 4,
+              height: 15 + (index % 5) * 3,
               left: `${8 + ((index * 23) % 70)}%`,
               top: `${4 + ((index * 31) % 62)}%`,
               background: index % 3 ? "rgba(69, 160, 75, 0.72)" : "rgba(184, 224, 174, 0.74)",
