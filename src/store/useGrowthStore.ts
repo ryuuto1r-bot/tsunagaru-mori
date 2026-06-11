@@ -6,6 +6,7 @@ export type ThemeMode = "morning" | "forest" | "night";
 
 export type Task = {
   id: string;
+  parentId?: string;
   title: string;
   notes: string;
   difficulty: Difficulty;
@@ -23,12 +24,14 @@ export type Settings = {
 type GrowthStore = {
   tasks: Task[];
   settings: Settings;
-  addTask: (task: Pick<Task, "title" | "notes" | "difficulty">) => void;
+  addTask: (task: NewTaskInput) => void;
   completeTask: (id: string) => void;
   deleteTask: (id: string) => void;
   resetAll: () => void;
   updateSettings: (settings: Partial<Settings>) => void;
 };
+
+type NewTaskInput = Pick<Task, "title" | "notes" | "difficulty"> & { parentId?: string };
 
 export const difficultyPoints: Record<Difficulty, number> = {
   easy: 8,
@@ -53,6 +56,15 @@ const sampleTasks: Task[] = [
     completed: false,
     createdAt: new Date().toISOString(),
   },
+  {
+    id: "sample-3",
+    parentId: "sample-2",
+    title: "参考資料を1つ読む",
+    notes: "卒研メモの中に入る小タスク",
+    difficulty: "easy",
+    completed: false,
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 export const useGrowthStore = create<GrowthStore>()(
@@ -69,6 +81,7 @@ export const useGrowthStore = create<GrowthStore>()(
           tasks: [
             {
               id: crypto.randomUUID(),
+              parentId: task.parentId,
               title: task.title.trim(),
               notes: task.notes.trim(),
               difficulty: task.difficulty,
@@ -86,7 +99,21 @@ export const useGrowthStore = create<GrowthStore>()(
               : task,
           ),
         })),
-      deleteTask: (id) => set((state) => ({ tasks: state.tasks.filter((task) => task.id !== id) })),
+      deleteTask: (id) =>
+        set((state) => {
+          const deleting = new Set([id]);
+          let changed = true;
+          while (changed) {
+            changed = false;
+            state.tasks.forEach((task) => {
+              if (task.parentId && deleting.has(task.parentId) && !deleting.has(task.id)) {
+                deleting.add(task.id);
+                changed = true;
+              }
+            });
+          }
+          return { tasks: state.tasks.filter((task) => !deleting.has(task.id)) };
+        }),
       resetAll: () => set({ tasks: [], settings: { theme: "morning", compact: false, showCelebration: true } }),
       updateSettings: (settings) => set((state) => ({ settings: { ...state.settings, ...settings } })),
     }),
