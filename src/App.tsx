@@ -6,9 +6,13 @@ import {
   CheckCircle2,
   Flame,
   History,
+  Layers,
   Leaf,
+  Link2,
+  MapPin,
   Plus,
   RotateCcw,
+  Search,
   Settings,
   SlidersHorizontal,
   Sprout,
@@ -36,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TreeIllustration } from "@/components/TreeIllustration";
 import {
   currentStage,
+  dateKey,
   difficultyPoints,
   groupHistory,
   growthPoints,
@@ -59,12 +64,39 @@ const difficultyMeta: Record<Difficulty, { label: string; hint: string; classNam
   hard: { label: "深い", hint: "+22", className: "bg-sky-100 text-sky-800" },
 };
 
+type ForestScope = "today" | "month" | "all";
+
+type GraphNode = {
+  task: Task;
+  group: string;
+  x: number;
+  y: number;
+  size: number;
+  points: number;
+};
+
+const graphPositions = [
+  { x: 50, y: 32 },
+  { x: 68, y: 34 },
+  { x: 34, y: 36 },
+  { x: 78, y: 48 },
+  { x: 27, y: 50 },
+  { x: 50, y: 61 },
+  { x: 66, y: 60 },
+  { x: 36, y: 66 },
+  { x: 18, y: 43 },
+  { x: 86, y: 43 },
+  { x: 22, y: 68 },
+  { x: 80, y: 69 },
+] as const;
+
 function App() {
   const { tasks, settings, addTask, completeTask, deleteTask, resetAll, updateSettings } = useGrowthStore();
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [celebrate, setCelebrate] = useState(false);
+  const [forestScope, setForestScope] = useState<ForestScope>("today");
 
   const pendingTasks = tasks.filter((task) => !task.completed);
   const completedTasks = tasks.filter((task) => task.completed);
@@ -131,9 +163,11 @@ function App() {
                 </Sheet>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-4">
-              <TreePanel stage={stage} points={points} streak={streak} todayCount={todayCount} recentDays={recentDays} celebrate={celebrate} />
-              <TaskComposer
+            <CardContent>
+              <ConnectedForestBoard
+                tasks={tasks}
+                scope={forestScope}
+                onScope={setForestScope}
                 title={title}
                 notes={notes}
                 difficulty={difficulty}
@@ -141,6 +175,11 @@ function App() {
                 onNotes={setNotes}
                 onDifficulty={setDifficulty}
                 onSubmit={submitTask}
+                onComplete={finishTask}
+                onDelete={deleteTask}
+                points={points}
+                todayCount={todayCount}
+                streak={streak}
               />
             </CardContent>
           </Card>
@@ -265,6 +304,387 @@ function TreePanel({
       </div>
     </div>
   );
+}
+
+function ConnectedForestBoard({
+  tasks,
+  scope,
+  onScope,
+  title,
+  notes,
+  difficulty,
+  onTitle,
+  onNotes,
+  onDifficulty,
+  onSubmit,
+  onComplete,
+  onDelete,
+  points,
+  todayCount,
+  streak,
+}: {
+  tasks: Task[];
+  scope: ForestScope;
+  onScope: (scope: ForestScope) => void;
+  title: string;
+  notes: string;
+  difficulty: Difficulty;
+  onTitle: (value: string) => void;
+  onNotes: (value: string) => void;
+  onDifficulty: (value: Difficulty) => void;
+  onSubmit: () => void;
+  onComplete: (id: string) => void;
+  onDelete: (id: string) => void;
+  points: number;
+  todayCount: number;
+  streak: number;
+}) {
+  const [query, setQuery] = useState("");
+  const [activeGroup, setActiveGroup] = useState("all");
+  const scopedTasks = filterTasksByScope(tasks, scope);
+  const groups = groupTasksForBoard(scopedTasks);
+  const searchedTasks = scopedTasks.filter((task) => {
+    const q = query.trim().toLowerCase();
+    const matchesQuery = !q || `${task.title} ${task.notes}`.toLowerCase().includes(q);
+    const matchesGroup = activeGroup === "all" || deriveTaskGroup(task) === activeGroup;
+    return matchesQuery && matchesGroup;
+  });
+  const graphNodes = buildGraphNodes(searchedTasks);
+  const links = buildGraphLinks(graphNodes);
+  const grownTrees = buildGrownTrees(scopedTasks);
+  const completedCount = scopedTasks.filter((task) => task.completed).length;
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <aside className="grid min-h-[620px] content-start gap-3 rounded-lg border bg-background/80 p-4">
+        <div className="flex items-center gap-2 text-primary">
+          <TreePine className="h-6 w-6" />
+          <h2 className="text-2xl font-black tracking-normal">つながる森</h2>
+        </div>
+        <label className="relative block">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="種を探す" />
+        </label>
+        <Button variant="secondary" size="sm" onClick={() => exportForest(tasks)}>
+          出力
+        </Button>
+        <Input value={notes} onChange={(event) => onNotes(event.target.value)} placeholder="メモ 任意" />
+        <button
+          className={cn(
+            "flex items-center justify-between rounded-md border p-3 text-left font-bold",
+            activeGroup === "all" ? "border-primary bg-primary/10 text-primary" : "bg-card",
+          )}
+          onClick={() => setActiveGroup("all")}
+        >
+          <span>すべての種</span>
+          <Badge variant="outline">{scopedTasks.length}</Badge>
+        </button>
+        <div className="grid max-h-[410px] gap-2 overflow-auto pr-1">
+          {groups.map((group) => (
+            <button
+              key={group.name}
+              className={cn(
+                "grid gap-2 rounded-md border bg-card p-3 text-left",
+                activeGroup === group.name && "border-primary bg-primary/8",
+              )}
+              onClick={() => setActiveGroup(group.name)}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate font-black">{group.name}</span>
+                <Badge variant="outline">{group.points}</Badge>
+              </div>
+              <div className="grid gap-1 pl-2 text-sm font-bold text-muted-foreground">
+                {group.tasks.slice(0, 4).map((task) => (
+                  <span key={task.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate">{task.title}</span>
+                    {task.completed && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+                  </span>
+                ))}
+              </div>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <section className="relative min-h-[620px] overflow-hidden rounded-lg border bg-[linear-gradient(to_right,rgba(91,114,99,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(91,114,99,0.12)_1px,transparent_1px)] bg-[size:56px_56px]">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-emerald-50/35 to-amber-100/40" />
+        <div className="absolute left-4 right-4 top-4 z-30 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <MetricPill icon={<MapPin className="h-4 w-4" />} label={scopeLabel(scope)} />
+            <MetricPill icon={<Sprout className="h-4 w-4" />} label={String(scopedTasks.length)} />
+            <MetricPill icon={<TreePine className="h-4 w-4" />} label={String(completedCount)} />
+            <MetricPill icon={<Link2 className="h-4 w-4" />} label={String(links.length)} />
+            <MetricPill icon={<Layers className="h-4 w-4" />} label={String(groups.length)} />
+          </div>
+          <div className="flex rounded-full border bg-white/90 p-1 shadow-sm">
+            {(["today", "month", "all"] as ForestScope[]).map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={scope === item}
+                className={cn(
+                  "h-9 rounded-full px-4 text-sm font-black transition-colors",
+                  scope === item ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )}
+                onClick={() => onScope(item)}
+              >
+                {scopeButtonLabel(item)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 z-10 h-full w-full">
+          {links.map((link) => (
+            <path
+              key={`${link.from.task.id}-${link.to.task.id}`}
+              d={`M ${link.from.x} ${link.from.y} C ${(link.from.x + link.to.x) / 2} ${link.from.y - 8}, ${(link.from.x + link.to.x) / 2} ${link.to.y + 8}, ${link.to.x} ${link.to.y}`}
+              fill="none"
+              stroke="rgba(83,94,88,0.34)"
+              strokeDasharray="0.8 1.1"
+              strokeLinecap="round"
+              strokeWidth={link.strong ? 0.34 : 0.22}
+            />
+          ))}
+        </svg>
+
+        <div className="absolute inset-x-0 bottom-0 z-10 h-44 bg-gradient-to-t from-amber-100/90 via-emerald-50/70 to-transparent" />
+
+        {graphNodes.map((node) => (
+          <GraphSeedNode key={node.task.id} node={node} onComplete={onComplete} onDelete={onDelete} />
+        ))}
+
+        <div className="absolute bottom-4 left-5 right-5 z-20 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.75fr)]">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {grownTrees.map((tree) => (
+              <BoardTree key={tree.group} group={tree.group} points={tree.points} level={tree.level} />
+            ))}
+          </div>
+          <div className="self-end rounded-full border bg-white/88 p-2 shadow-soft backdrop-blur">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <Input
+                value={title}
+                onChange={(event) => onTitle(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && onSubmit()}
+                className="rounded-full border-transparent bg-white px-5 text-base"
+                placeholder="種を入力"
+              />
+              <Button onClick={onSubmit} className="rounded-full px-6">
+                <Plus className="h-4 w-4" />
+                植える
+              </Button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 px-1">
+              {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
+                <Button key={key} variant={difficulty === key ? "default" : "outline"} size="sm" className="rounded-full" onClick={() => onDifficulty(key)}>
+                  {difficultyMeta[key].label}
+                  <span className="text-xs opacity-80">{difficultyMeta[key].hint}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {!graphNodes.length && (
+          <div className="absolute inset-0 z-20 grid place-items-center px-6 text-center">
+            <div className="rounded-lg border bg-white/88 p-5 shadow-soft">
+              <p className="font-black">種がまだありません</p>
+              <p className="text-sm text-muted-foreground">下の入力から最初の種を植えられます。</p>
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function GraphSeedNode({ node, onComplete, onDelete }: { node: GraphNode; onComplete: (id: string) => void; onDelete: (id: string) => void }) {
+  const completed = node.task.completed;
+
+  return (
+    <div className="pointer-events-none absolute z-20 grid -translate-x-1/2 -translate-y-1/2 place-items-center gap-1" style={{ left: `${node.x}%`, top: `${node.y}%` }}>
+      <button
+        type="button"
+        className={cn(
+          "pointer-events-auto relative z-10 grid place-items-center rounded-full border-2 border-white text-center font-black shadow-soft transition hover:scale-105",
+          completed ? "bg-gradient-to-br from-emerald-300 via-primary to-emerald-800 text-emerald-950" : "bg-gradient-to-br from-emerald-50 via-emerald-200 to-emerald-400 text-primary",
+        )}
+        style={{ width: `${node.size}px`, height: `${node.size}px` }}
+        onPointerDown={(event) => {
+          if (!completed && event.button === 0) {
+            event.preventDefault();
+            onComplete(node.task.id);
+          }
+        }}
+        onClick={() => !completed && onComplete(node.task.id)}
+        aria-label={completed ? `森の種 ${node.task.title}は完了済み` : `森の種 ${node.task.title}を完了`}
+      >
+        <span className="max-w-[72%] truncate text-sm">{shortTitle(node.task.title)}</span>
+      </button>
+      <div className="pointer-events-none flex max-w-[150px] items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 backdrop-blur">
+        <span className="truncate text-xs font-black">{node.task.title}</span>
+        <button type="button" className="pointer-events-auto text-muted-foreground hover:text-destructive" onClick={() => onDelete(node.task.id)} aria-label={`森の種 ${node.task.title}を削除`}>
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BoardTree({ group, points, level }: { group: string; points: number; level: number }) {
+  const leaves = 12 + level * 6;
+  const trunkHeight = 54 + level * 16;
+  const canopySize = 70 + level * 12;
+
+  return (
+    <div className="relative grid h-40 place-items-end text-center">
+      <div className="absolute bottom-1 h-5 w-28 rounded-[100%] bg-slate-500/14 blur-sm" />
+      <div className="absolute bottom-3 w-5 rounded-t-full bg-gradient-to-r from-stone-800 via-amber-800 to-stone-700" style={{ height: trunkHeight }} />
+      <div className="absolute" style={{ bottom: trunkHeight - 5, width: canopySize, height: canopySize * 0.72 }}>
+        {Array.from({ length: leaves }).map((_, index) => (
+          <span
+            key={index}
+            className="absolute rounded-full bg-emerald-500/75 shadow-sm"
+            style={{
+              width: 20 + (index % 4) * 5,
+              height: 18 + (index % 5) * 4,
+              left: `${8 + ((index * 23) % 70)}%`,
+              top: `${4 + ((index * 31) % 62)}%`,
+              background: index % 3 ? "rgba(69, 160, 75, 0.72)" : "rgba(184, 224, 174, 0.74)",
+            }}
+          />
+        ))}
+      </div>
+      <Badge variant="outline" className="absolute bottom-0 bg-white/80">
+        {group} v{Math.max(1, Math.ceil(points / 30))}
+      </Badge>
+    </div>
+  );
+}
+
+function MetricPill({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-full border bg-white/90 px-4 py-2 font-black text-primary shadow-sm">
+      {icon}
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function filterTasksByScope(tasks: Task[], scope: ForestScope) {
+  if (scope === "all") return tasks;
+
+  const today = dateKey(new Date());
+  const month = today.slice(0, 7);
+
+  return tasks.filter((task) => {
+    const key = dateKey(task.completedAt ?? task.createdAt);
+    return scope === "today" ? key === today : key.startsWith(month);
+  });
+}
+
+function groupTasksForBoard(tasks: Task[]) {
+  const groups = new Map<string, { name: string; tasks: Task[]; points: number }>();
+
+  tasks.forEach((task) => {
+    const name = deriveTaskGroup(task);
+    const current = groups.get(name) ?? { name, tasks: [], points: 0 };
+    current.tasks.push(task);
+    current.points += task.completed ? difficultyPoints[task.difficulty] : 0;
+    groups.set(name, current);
+  });
+
+  return Array.from(groups.values()).sort((a, b) => b.points - a.points || b.tasks.length - a.tasks.length);
+}
+
+function buildGraphNodes(tasks: Task[]): GraphNode[] {
+  return tasks.slice(0, graphPositions.length).map((task, index) => {
+    const position = graphPositions[index];
+    const points = task.completed ? difficultyPoints[task.difficulty] : Math.round(difficultyPoints[task.difficulty] * 0.35);
+    const difficultySize = task.difficulty === "hard" ? 18 : task.difficulty === "medium" ? 10 : 4;
+    return {
+      task,
+      group: deriveTaskGroup(task),
+      x: position.x,
+      y: position.y,
+      points,
+      size: Math.min(116, 52 + points * 1.2 + difficultySize),
+    };
+  });
+}
+
+function buildGraphLinks(nodes: GraphNode[]) {
+  const links: { from: GraphNode; to: GraphNode; strong: boolean }[] = [];
+  const seen = new Set<string>();
+
+  function addLink(from: GraphNode, to: GraphNode, strong: boolean) {
+    const key = [from.task.id, to.task.id].sort().join(":");
+    if (seen.has(key)) return;
+    seen.add(key);
+    links.push({ from, to, strong });
+  }
+
+  nodes.forEach((node, index) => {
+    if (index > 0) addLink(nodes[index - 1], node, false);
+    const sameGroup = nodes.find((candidate, candidateIndex) => candidateIndex < index && candidate.group === node.group);
+    if (sameGroup) addLink(sameGroup, node, true);
+  });
+
+  return links;
+}
+
+function buildGrownTrees(tasks: Task[]) {
+  const groups = groupTasksForBoard(tasks);
+  const trees = groups
+    .map((group) => ({
+      group: group.name,
+      points: group.points || group.tasks.length * 8,
+      level: Math.max(1, Math.min(4, Math.ceil((group.points || group.tasks.length * 8) / 32))),
+    }))
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 4);
+
+  return trees.length ? trees : [{ group: "最初の種", points: 8, level: 1 }];
+}
+
+function deriveTaskGroup(task: Task) {
+  const text = `${task.title} ${task.notes}`.toLowerCase();
+  if (/朝|morning|routine|ルーティン|ストレッチ/.test(text)) return "朝のルーティン";
+  if (/英語|english|単語|word/.test(text)) return "英語";
+  if (/読書|本|book|読む/.test(text)) return "読書";
+  if (/勉強|学習|数学|卒研|study/.test(text)) return "勉強";
+  if (/買い|買物|買い物|shop/.test(text)) return "買い物リスト";
+  if (/新規|project|プロジェクト|作る|開発/.test(text)) return "新規プロジェクト";
+  if (task.difficulty === "hard") return "深い集中";
+  if (task.difficulty === "easy") return "小さな習慣";
+  return "つながる種";
+}
+
+function shortTitle(title: string) {
+  return title.length > 5 ? `${title.slice(0, 4)}...` : title;
+}
+
+function scopeLabel(scope: ForestScope) {
+  if (scope === "month") return "今月の森";
+  if (scope === "all") return "すべての森";
+  return "今日の森";
+}
+
+function scopeButtonLabel(scope: ForestScope) {
+  if (scope === "month") return "今月";
+  if (scope === "all") return "全体";
+  return "今日";
+}
+
+function exportForest(tasks: Task[]) {
+  const payload = JSON.stringify({ exportedAt: new Date().toISOString(), tasks }, null, 2);
+  const blob = new Blob([payload], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `tsunagaru-mori-${dateKey(new Date())}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function TaskComposer({
