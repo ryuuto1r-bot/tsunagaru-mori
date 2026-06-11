@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 94 28% 96%;
+    --foreground: 150 18% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 150 18% 17%;
+    --primary: 142 49% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 92 28% 88%;
+    --secondary-foreground: 148 28% 24%;
+    --muted: 92 22% 90%;
+    --muted-foreground: 150 10% 43%;
+    --accent: 34 84% 85%;
+    --accent-foreground: 28 50% 25%;
+    --destructive: 2 66% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 92 18% 82%;
+    --input: 92 18% 82%;
+    --ring: 142 49% 36%;
+    --radius: 0.5rem;
+  }
+
+  .theme-night {
+    --background: 155 25% 10%;
+    --foreground: 88 28% 92%;
+    --card: 154 24% 14%;
+    --card-foreground: 88 28% 92%;
+    --primary: 142 45% 48%;
+    --primary-foreground: 155 25% 10%;
+    --secondary: 153 20% 20%;
+    --secondary-foreground: 88 28% 88%;
+    --muted: 153 20% 18%;
+    --muted-foreground: 90 14% 70%;
+    --accent: 34 55% 28%;
+    --accent-foreground: 40 80% 88%;
+    --border: 153 18% 24%;
+    --input: 153 18% 24%;
+  }
+
+  .theme-forest {
+    --background: 116 24% 93%;
+    --foreground: 142 26% 15%;
+    --card: 90 30% 98%;
+    --primary: 136 54% 28%;
+    --secondary: 118 30% 86%;
+    --muted: 118 25% 88%;
+    --accent: 43 80% 84%;
+    --border: 118 20% 80%;
+  }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(250, 204, 21, 0.16), transparent 24rem),
+      radial-gradient(circle at 84% 10%, rgba(125, 211, 252, 0.18), transparent 22rem),
+      hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+}
