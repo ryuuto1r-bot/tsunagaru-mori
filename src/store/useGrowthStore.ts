@@ -123,6 +123,16 @@ export function currentStage(points: number) {
   return { ...stages[index], index, progress: Math.max(0, Math.min(100, progress)), next };
 }
 
+export type DayGrowth = {
+  date: string;
+  day: number;
+  points: number;
+  count: number;
+  stage: ReturnType<typeof currentStage>;
+  isToday: boolean;
+  isFuture: boolean;
+};
+
 function padDatePart(value: number) {
   return String(value).padStart(2, "0");
 }
@@ -135,6 +145,46 @@ export function dateKey(value: string | Date) {
 export function todayCompleted(tasks: Task[]) {
   const today = dateKey(new Date());
   return tasks.filter((task) => task.completedAt && dateKey(task.completedAt) === today).length;
+}
+
+export function completedTasksForDate(tasks: Task[], key: string) {
+  return tasks.filter((task) => task.completedAt && dateKey(task.completedAt) === key);
+}
+
+export function dailyGrowth(tasks: Task[], date: Date): DayGrowth {
+  const key = dateKey(date);
+  const completed = completedTasksForDate(tasks, key);
+  const points = completed.reduce((sum, task) => sum + difficultyPoints[task.difficulty], 0);
+  const today = dateKey(new Date());
+  return {
+    date: key,
+    day: date.getDate(),
+    points,
+    count: completed.length,
+    stage: currentStage(points),
+    isToday: key === today,
+    isFuture: key > today,
+  };
+}
+
+export function monthForest(tasks: Task[], baseDate = new Date()) {
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  return Array.from({ length: daysInMonth }, (_, index) => {
+    const date = new Date(year, month, index + 1, 12, 0, 0, 0);
+    return dailyGrowth(tasks, date);
+  });
+}
+
+export function recentDailyGrowth(tasks: Task[], days = 10) {
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - (days - index - 1));
+    return dailyGrowth(tasks, date);
+  });
 }
 
 export function streakDays(tasks: Task[]) {

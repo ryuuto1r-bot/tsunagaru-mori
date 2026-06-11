@@ -39,9 +39,12 @@ import {
   difficultyPoints,
   groupHistory,
   growthPoints,
+  monthForest,
+  recentDailyGrowth,
   stages,
   streakDays,
   todayCompleted,
+  type DayGrowth,
   type Difficulty,
   type Settings as StoreSettings,
   type Task,
@@ -70,6 +73,8 @@ function App() {
   const todayCount = todayCompleted(tasks);
   const streak = streakDays(tasks);
   const history = groupHistory(tasks);
+  const forestDays = monthForest(tasks);
+  const recentDays = recentDailyGrowth(tasks);
 
   const completionRate = tasks.length ? Math.round((completedTasks.length / tasks.length) * 100) : 0;
   const stageChanged = stage.progress >= 95 || stage.index === stages.length - 1;
@@ -127,7 +132,7 @@ function App() {
               </div>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <TreePanel stage={stage} points={points} streak={streak} todayCount={todayCount} celebrate={celebrate} />
+              <TreePanel stage={stage} points={points} streak={streak} todayCount={todayCount} recentDays={recentDays} celebrate={celebrate} />
               <TaskComposer
                 title={title}
                 notes={notes}
@@ -141,8 +146,9 @@ function App() {
           </Card>
 
           <Tabs defaultValue="today" className="min-w-0">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="today">メイン</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="today">今日</TabsTrigger>
+              <TabsTrigger value="forest">森</TabsTrigger>
               <TabsTrigger value="tree">木</TabsTrigger>
               <TabsTrigger value="history">履歴</TabsTrigger>
               <TabsTrigger value="settings">設定</TabsTrigger>
@@ -150,6 +156,10 @@ function App() {
 
             <TabsContent value="today">
               <TaskLists pending={pendingTasks} completed={completedTasks} onComplete={finishTask} onDelete={deleteTask} />
+            </TabsContent>
+
+            <TabsContent value="forest">
+              <ForestView days={forestDays} recentDays={recentDays} />
             </TabsContent>
 
             <TabsContent value="tree">
@@ -224,12 +234,14 @@ function TreePanel({
   points,
   streak,
   todayCount,
+  recentDays,
   celebrate,
 }: {
   stage: ReturnType<typeof currentStage>;
   points: number;
   streak: number;
   todayCount: number;
+  recentDays: DayGrowth[];
   celebrate: boolean;
 }) {
   return (
@@ -249,6 +261,7 @@ function TreePanel({
           <MiniStat icon={<CheckCircle2 className="h-4 w-4" />} label="今日" value={todayCount} />
           <MiniStat icon={<Flame className="h-4 w-4" />} label="連続" value={streak} />
         </div>
+        <GrowthPulse days={recentDays} />
       </div>
     </div>
   );
@@ -272,26 +285,24 @@ function TaskComposer({
   onSubmit: () => void;
 }) {
   return (
-    <Card className="border-dashed bg-background/75">
-      <CardContent className="grid gap-3 p-4">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <Input value={title} onChange={(event) => onTitle(event.target.value)} placeholder="今日育てたいタスク" onKeyDown={(event) => event.key === "Enter" && onSubmit()} />
-          <Button onClick={onSubmit}>
-            <Plus className="h-4 w-4" />
-            追加
+    <div className="grid gap-3 rounded-md border border-dashed bg-background/75 p-4">
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        <Input value={title} onChange={(event) => onTitle(event.target.value)} placeholder="今日育てたいタスク" onKeyDown={(event) => event.key === "Enter" && onSubmit()} />
+        <Button onClick={onSubmit}>
+          <Plus className="h-4 w-4" />
+          追加
+        </Button>
+      </div>
+      <Textarea value={notes} onChange={(event) => onNotes(event.target.value)} placeholder="メモ 任意" />
+      <div className="flex flex-wrap gap-2">
+        {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
+          <Button key={key} variant={difficulty === key ? "default" : "outline"} size="sm" onClick={() => onDifficulty(key)}>
+            {difficultyMeta[key].label}
+            <span className="text-xs opacity-80">{difficultyMeta[key].hint}</span>
           </Button>
-        </div>
-        <Textarea value={notes} onChange={(event) => onNotes(event.target.value)} placeholder="メモ 任意" />
-        <div className="flex flex-wrap gap-2">
-          {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
-            <Button key={key} variant={difficulty === key ? "default" : "outline"} size="sm" onClick={() => onDifficulty(key)}>
-              {difficultyMeta[key].label}
-              <span className="text-xs opacity-80">{difficultyMeta[key].hint}</span>
-            </Button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -411,6 +422,145 @@ function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string
       <p className="text-2xl font-black">{value}</p>
     </div>
   );
+}
+
+function GrowthPulse({ days }: { days: DayGrowth[] }) {
+  const maxPoints = Math.max(1, ...days.map((day) => day.points));
+
+  return (
+    <div className="grid gap-2 rounded-md border bg-background/70 p-3">
+      <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+        <span>直近10日</span>
+        <span>{days.reduce((sum, day) => sum + day.count, 0)}件</span>
+      </div>
+      <div className="flex h-14 items-end gap-1">
+        {days.map((day) => (
+          <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1" title={`${day.date}: ${day.count}件`}>
+            <motion.div
+              className={cn(
+                "w-full rounded-t-sm",
+                day.points ? "bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.22)]" : "bg-muted",
+                day.isToday && "ring-2 ring-accent",
+              )}
+              initial={{ height: 4 }}
+              animate={{ height: `${Math.max(4, (day.points / maxPoints) * 42)}px` }}
+              transition={{ type: "spring", stiffness: 110, damping: 18 }}
+            />
+            <span className={cn("text-[10px] leading-none text-muted-foreground", day.isToday && "font-black text-foreground")}>{day.day}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ForestView({ days, recentDays }: { days: DayGrowth[]; recentDays: DayGrowth[] }) {
+  const activeDays = days.filter((day) => day.count > 0).length;
+  const monthPoints = days.reduce((sum, day) => sum + day.points, 0);
+  const bestDay = days.reduce<DayGrowth | undefined>((best, day) => (!best || day.points > best.points ? day : best), undefined);
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+      <Card className="shadow-soft">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <TreePine className="h-5 w-5 text-primary" />
+              今月の森
+            </CardTitle>
+            <Badge variant="warm">{monthLabel(days)}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid grid-cols-3 gap-2">
+            <MiniStat icon={<CalendarDays className="h-4 w-4" />} label="育った日" value={activeDays} />
+            <MiniStat icon={<Leaf className="h-4 w-4" />} label="月の成長" value={monthPoints} />
+            <MiniStat icon={<Flame className="h-4 w-4" />} label="最高" value={bestDay?.points ?? 0} />
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {days.map((day) => (
+              <MiniDayTree key={day.date} day={day} />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-soft">
+        <CardHeader className="pb-3">
+          <CardTitle>成長リズム</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          <GrowthPulse days={recentDays} />
+          <div className="grid grid-cols-2 gap-2">
+            {recentDays.slice(-4).map((day) => (
+              <div key={day.date} className="rounded-md border bg-background/70 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-bold text-muted-foreground">{day.day}日</span>
+                  <Badge variant={day.count ? "default" : "outline"}>{day.count}</Badge>
+                </div>
+                <MiniDayTree day={day} compact />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MiniDayTree({ day, compact = false }: { day: DayGrowth; compact?: boolean }) {
+  const stageIndex = day.points ? Math.max(1, day.stage.index) : 0;
+  const trunkHeight = compact ? 18 + stageIndex * 4 : 20 + stageIndex * 6;
+  const canopySize = compact ? 18 + stageIndex * 5 : 22 + stageIndex * 7;
+
+  return (
+    <div
+      className={cn(
+        "group grid min-w-0 place-items-center gap-1 rounded-md border bg-background/70 p-1.5",
+        day.isToday && "border-primary bg-primary/8",
+        day.isFuture && "opacity-40",
+      )}
+      title={`${day.date} ${day.count}件 ${day.points}成長`}
+      aria-label={`${day.date} ${day.count}件 ${day.points}成長`}
+    >
+      <div className={cn("relative w-full", compact ? "h-14" : "h-16")}>
+        <div className="absolute inset-x-2 bottom-1 h-2 rounded-[100%] bg-emerald-950/10 blur-[1px]" />
+        {day.points ? (
+          <>
+            <motion.div
+              className="absolute bottom-2 left-1/2 w-2 -translate-x-1/2 rounded-t-full bg-gradient-to-r from-amber-900 via-amber-700 to-stone-700"
+              initial={{ height: 4 }}
+              animate={{ height: trunkHeight }}
+            />
+            <motion.div
+              className={cn(
+                "absolute left-1/2 rounded-full shadow-[inset_0_6px_10px_rgba(255,255,255,0.22),0_6px_12px_rgba(22,101,52,0.18)]",
+                day.stage.index >= 5 ? "bg-gradient-to-br from-orange-100 via-emerald-400 to-emerald-800" : "bg-gradient-to-br from-lime-200 via-emerald-500 to-emerald-800",
+              )}
+              style={{
+                bottom: `${trunkHeight - 2}px`,
+                width: `${canopySize}px`,
+                height: `${canopySize * 0.82}px`,
+                marginLeft: `${canopySize / -2}px`,
+              }}
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+            />
+          </>
+        ) : (
+          <div className="absolute bottom-2 left-1/2 h-3 w-4 -translate-x-1/2 rounded-[100%] bg-amber-900/70" />
+        )}
+      </div>
+      {!compact && <span className={cn("text-[10px] font-bold leading-none text-muted-foreground", day.isToday && "text-foreground")}>{day.day}</span>}
+    </div>
+  );
+}
+
+function monthLabel(days: DayGrowth[]) {
+  const firstDay = days[0]?.date;
+  if (!firstDay) return "";
+  const [, month] = firstDay.split("-");
+  return `${Number(month)}月`;
 }
 
 function HistoryView({ history }: { history: Record<string, Task[]> }) {
