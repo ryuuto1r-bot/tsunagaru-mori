@@ -1431,40 +1431,11 @@ function TaskScreen({
       </section>
 
       <aside className="grid h-fit gap-4">
-        <Card className="overflow-hidden border-[#ded8c8] bg-[#fffdf7]/82 shadow-[0_18px_48px_rgba(38,49,38,0.08)] backdrop-blur dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_18px_48px_rgba(0,0,0,0.25)]">
-          <CardHeader className="border-b border-[#e9e2d3]/80 bg-[radial-gradient(circle_at_50%_0%,rgba(221,235,203,0.9),transparent_44%)] pb-3 dark:border-white/10 dark:bg-[radial-gradient(circle_at_50%_0%,rgba(73,105,73,0.34),transparent_48%)]">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-[#263126] dark:text-[#eef4e8]">
-                  <TreePine className="h-4 w-4 fill-[#4e7d45] text-[#4e7d45]" />
-                  今日の木
-                </CardTitle>
-                <CardDescription className="font-semibold dark:text-[#a8b8a2]">{todayNode.count}/{todayNode.todoCount} 実った</CardDescription>
-              </div>
-              <Button variant="outline" size="sm" className="rounded-md border-[#d9d3c5] bg-white/72 font-black text-[#4e7d45] dark:border-white/10 dark:bg-white/[0.08] dark:text-[#a7df9e]" onClick={() => setActiveView("forest")}>
-                森へ
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-4 p-4">
-            <div className="mx-auto w-56 max-w-full rounded-md border border-[#e0d9ca] bg-[linear-gradient(180deg,#f8f6ed,#eef3e6)] p-3 shadow-inner dark:border-white/10 dark:bg-[linear-gradient(180deg,#18251f,#0f1916)]">
-              <TodoFruitTree celebrate={false} node={todayNode} />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <TreeTinyStat label="進捗" value={`${todayProgress}%`} />
-              <TreeTinyStat label="芽" value={todayNode.buds.length} />
-              <TreeTinyStat label="実" value={todayNode.fruits.length} />
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#e5e0d3] dark:bg-white/10">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-[#95b17e] via-[#4e7d45] to-[#d1a63b]"
-                initial={false}
-                animate={{ width: `${todayProgress}%` }}
-                transition={{ type: "spring", stiffness: 120, damping: 20 }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <TodayTreeCard
+          node={todayNode}
+          progress={todayProgress}
+          onForest={() => setActiveView("forest")}
+        />
 
         <Card className="border-[#ded8c8] bg-[#fffdf7]/86 shadow-[0_18px_48px_rgba(38,49,38,0.08)] backdrop-blur dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_18px_48px_rgba(0,0,0,0.25)]">
           <CardHeader className="pb-3">
@@ -1596,6 +1567,112 @@ function TaskOverviewBand({
         </div>
       </div>
     </section>
+  );
+}
+
+function TodayTreeCard({ node, onForest, progress }: { node: ForestMapNode; onForest: () => void; progress: number }) {
+  const growthLevel = treeGrowthLevel(node);
+  const stageLabel = todayTreeStageLabel(growthLevel, node.count, node.todoCount);
+  const fruits = node.fruits.slice(0, 4);
+  const buds = node.buds.slice(0, 3);
+  const progressStyle = {
+    background: `conic-gradient(#4e7d45 ${progress * 3.6}deg, rgba(226, 222, 206, 0.92) 0deg)`,
+  };
+
+  return (
+    <Card className="overflow-hidden border-[#d8d1c2] bg-[#fffdf7]/90 shadow-[0_22px_60px_rgba(38,49,38,0.12)] backdrop-blur dark:border-white/10 dark:bg-[#121c18]/84 dark:shadow-[0_22px_60px_rgba(0,0,0,0.32)]">
+      <CardHeader className="relative overflow-hidden border-b border-[#e6dfd0]/90 bg-[linear-gradient(135deg,#fffaf0_0%,#eef5e8_58%,#e2ecda_100%)] pb-3 dark:border-white/10 dark:bg-[linear-gradient(135deg,#18251f_0%,#13231b_58%,#0e1714_100%)]">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-[#d8e8c6]/85 blur-2xl dark:bg-[#4f8b55]/28" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2 text-[#263126] dark:text-[#eef4e8]">
+              <span className="grid h-9 w-9 place-items-center rounded-md bg-[#e3eadb] text-[#4e7d45] shadow-inner dark:bg-[#203326] dark:text-[#a7df9e]">
+                <TreePine className="h-5 w-5 fill-current" />
+              </span>
+              <span className="grid min-w-0">
+                <span className="text-base font-black leading-tight">今日の木</span>
+                <span className="text-[11px] font-black text-[#74806f] dark:text-[#9fb19a]">{node.count}/{node.todoCount} 実った</span>
+              </span>
+            </CardTitle>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 font-semibold dark:text-[#a8b8a2]">
+              <Badge className="rounded-full bg-[#426f3d] px-2.5 py-0.5 text-white shadow-none">{stageLabel}</Badge>
+              <span className="text-xs text-[#6d7869] dark:text-[#a8b8a2]">完了したtodoだけ育つ</span>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="h-9 shrink-0 rounded-md border-[#d3cabb] bg-white/76 font-black text-[#4e7d45] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/[0.08] dark:text-[#a7df9e]" onClick={onForest}>
+            森へ
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent className="grid gap-3 p-3">
+        <div className="relative min-h-[292px] overflow-hidden rounded-md border border-[#ddd6c8] bg-[linear-gradient(180deg,#fbf7eb_0%,#eef4e7_58%,#dfe8d4_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] dark:border-white/10 dark:bg-[linear-gradient(180deg,#182620_0%,#132019_58%,#0d1714_100%)]">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(96,113,91,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(96,113,91,0.08)_1px,transparent_1px)] bg-[size:44px_44px]" />
+          <div className="pointer-events-none absolute left-1/2 top-4 h-28 w-28 -translate-x-1/2 rounded-full bg-[#fff1b8]/64 blur-2xl dark:bg-[#7bb26c]/20" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-24 w-full rounded-t-[50%] bg-[linear-gradient(180deg,rgba(181,194,156,0.35),rgba(126,145,98,0.52))] dark:bg-[linear-gradient(180deg,rgba(49,76,55,0.4),rgba(25,44,32,0.62))]" />
+
+          <div className="absolute right-3 top-3 grid h-16 w-16 place-items-center rounded-full bg-white/78 p-1 shadow-[0_12px_28px_rgba(53,74,48,0.12)] dark:bg-[#13201c]/82" style={progressStyle}>
+            <div className="grid h-full w-full place-items-center rounded-full bg-[#fffdf7] text-center dark:bg-[#12201a]">
+              <span className="text-sm font-black tabular-nums text-[#31503a] dark:text-[#dff2d9]">{progress}%</span>
+            </div>
+          </div>
+
+          <motion.div
+            className="relative z-10 mx-auto mt-4 w-[min(84%,292px)]"
+            initial={false}
+            animate={{ y: node.count ? [0, -2, 0] : 0 }}
+            transition={{ duration: 3.6, ease: "easeInOut", repeat: node.count ? Infinity : 0 }}
+          >
+            <TodoFruitTree celebrate={false} node={node} />
+          </motion.div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <TreeTinyStat label="段階" value={stageLabel} />
+          <TreeTinyStat label="芽" value={node.buds.length} />
+          <TreeTinyStat label="実" value={node.fruits.length} />
+        </div>
+
+        <div className="grid gap-2 rounded-md border border-[#e2dbcd] bg-white/58 p-2.5 dark:border-white/10 dark:bg-white/[0.045]">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-black text-[#536050] dark:text-[#d9e8d3]">実の意味</p>
+            <div className="flex items-center gap-2 text-[10px] font-black text-[#687365] dark:text-[#a8b8a2]">
+              {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
+                <span key={key} className="inline-flex items-center gap-1">
+                  <span className={cn("rounded-full border", miniFruitClassName(key))} />
+                  {difficultyMeta[key].label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            {fruits.length > 0 ? (
+              fruits.map((fruit, index) => (
+                <div key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-md bg-[#f7f3ea]/82 px-2 py-1.5 text-xs font-bold text-[#546052] dark:bg-white/[0.055] dark:text-[#cbd9c4]">
+                  <span className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
+                  <span className="truncate">{fruit.title}</span>
+                  <span className="text-[10px] font-black text-[#74806f] dark:text-[#9fb19a]">{difficultyMeta[fruit.difficulty].label}</span>
+                </div>
+              ))
+            ) : (
+              buds.map((bud, index) => (
+                <div key={`${bud.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-md bg-[#f7f3ea]/72 px-2 py-1.5 text-xs font-bold text-[#65715f] dark:bg-white/[0.045] dark:text-[#b7c7b1]">
+                  <span className={cn("rounded-full border shadow-[0_1px_4px_rgba(75,96,67,0.14)]", miniBudClassName(bud.difficulty))} />
+                  <span className="truncate">{bud.title}</span>
+                  <span className="text-[10px] font-black text-[#7b8576] dark:text-[#9fb19a]">芽</span>
+                </div>
+              ))
+            )}
+            {!fruits.length && !buds.length && (
+              <div className="rounded-md bg-[#f7f3ea]/72 px-2 py-2 text-center text-xs font-bold text-[#74806f] dark:bg-white/[0.045] dark:text-[#9fb19a]">
+                todoを植えると芽が出ます
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -2403,6 +2480,16 @@ function treeGrowthLevel(node: ForestMapNode) {
   if (node.points >= 55 || node.count >= 3) return 3;
   if (node.points >= 20 || node.count >= 1) return 2;
   return node.todoCount > 0 ? 1 : 0;
+}
+
+function todayTreeStageLabel(level: number, fruits: number, todos: number) {
+  if (todos === 0) return "空き地";
+  if (fruits >= 8 || level >= 5) return "花の木";
+  if (level >= 4) return "大樹";
+  if (level >= 3) return "若木";
+  if (level >= 2) return "苗木";
+  if (level >= 1) return "芽";
+  return "種";
 }
 
 function difficultyBadgeClassName(difficulty: Difficulty) {
