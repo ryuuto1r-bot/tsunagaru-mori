@@ -52,6 +52,14 @@
     --border: 118 20% 80%;
   }
 
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     min-height: 100vh;
     background:

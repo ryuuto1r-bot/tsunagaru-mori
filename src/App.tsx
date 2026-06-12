@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { AnimatePresence, motion } from "motion/react";
-import * as THREE from "three";
 import {
   Archive,
-  CalendarCheck,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
@@ -20,7 +18,6 @@ import {
   RotateCcw,
   Search,
   Settings,
-  Sparkles,
   Sprout,
   Target,
   Trash2,
@@ -63,6 +60,8 @@ import {
 } from "@/store/useGrowthStore";
 import { cn } from "@/lib/utils";
 
+const LazyForestWorldLayer = lazy(() => import("@/components/ForestWorldLayer"));
+
 type AppView = "tasks" | "forest" | "history" | "settings";
 type ForestScope = "today" | "month" | "all";
 type TimeTone = "morning" | "day" | "evening" | "night";
@@ -103,16 +102,6 @@ type ForestMapNode = {
   y: number;
   featured?: boolean;
   future?: boolean;
-};
-
-type DragState = {
-  dragging: boolean;
-  lastX: number;
-  lastY: number;
-  yaw: number;
-  pitch: number;
-  distance: number;
-  pinchDistance: number | null;
 };
 
 const difficultyMeta: Record<Difficulty, { label: string; hint: string; className: string }> = {
@@ -204,9 +193,12 @@ function App() {
   const [parentId, setParentId] = useState("");
   const [celebrateId, setCelebrateId] = useState<string | null>(null);
   const [rewardToast, setRewardToast] = useState<RewardToast | null>(null);
+  const [fruitFlight, setFruitFlight] = useState<RewardToast | null>(null);
   const [forestMemoryMode, setForestMemoryMode] = useState(false);
   const knownCompletedTaskIdsRef = useRef<Set<string> | null>(null);
   const previousPointsRef = useRef(0);
+  const rewardTimerRef = useRef<number | null>(null);
+  const fruitFlightTimerRef = useRef<number | null>(null);
 
   const groups = useMemo(() => groupTasksByProject(tasks), [tasks]);
   const scopedTasks = useMemo(
@@ -232,6 +224,13 @@ function App() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (rewardTimerRef.current) window.clearTimeout(rewardTimerRef.current);
+      if (fruitFlightTimerRef.current) window.clearTimeout(fruitFlightTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     const completedIds = new Set(tasks.filter((task) => task.completed).map((task) => task.id));
     if (!knownCompletedTaskIdsRef.current) {
       knownCompletedTaskIdsRef.current = completedIds;
@@ -251,8 +250,12 @@ function App() {
         stageLabel: afterStage.label,
         leveledUp: afterStage.index > beforeStage.index,
       };
+      if (rewardTimerRef.current) window.clearTimeout(rewardTimerRef.current);
+      if (fruitFlightTimerRef.current) window.clearTimeout(fruitFlightTimerRef.current);
       setRewardToast(reward);
-      window.setTimeout(() => setRewardToast((current) => (current?.id === reward.id ? null : current)), 2400);
+      setFruitFlight(reward);
+      rewardTimerRef.current = window.setTimeout(() => setRewardToast(null), 2400);
+      fruitFlightTimerRef.current = window.setTimeout(() => setFruitFlight(null), 1050);
     }
 
     knownCompletedTaskIdsRef.current = completedIds;
@@ -309,10 +312,10 @@ function App() {
             />
           )}
 
-          <div className={cn("min-w-0 bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)] transition-all duration-500 dark:bg-[linear-gradient(180deg,#121c19_0%,#0d1413_100%)]", !forestImmersive && "border-l border-[#e5e1d7] dark:border-white/10")}>
+          <div className={cn("min-w-0 bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)] pb-20 transition-all duration-500 dark:bg-[linear-gradient(180deg,#121c19_0%,#0d1413_100%)] md:pb-0", !forestImmersive && "border-l border-[#e5e1d7] dark:border-white/10")}>
             <Tabs value={activeView} onValueChange={(value) => setActiveView(value as AppView)} className="flex min-h-full flex-col">
               <header className={cn("flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8", forestImmersive && "pointer-events-none max-h-0 min-h-0 overflow-hidden border-b-0 px-0 py-0 opacity-0")}>
-                <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner dark:border-white/10 dark:bg-white/[0.06] dark:text-[#b9c7b4] md:flex md:w-auto md:justify-start md:gap-1.5">
+                <TabsList className="hidden h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner dark:border-white/10 dark:bg-white/[0.06] dark:text-[#b9c7b4] md:flex md:w-auto md:justify-start md:gap-1.5">
                   {appTabs.map((tab) => (
                     <TabsTrigger
                       key={tab.value}
@@ -382,10 +385,13 @@ function App() {
               <TabsContent value="settings" className="m-0 flex-1 outline-none">
                 <SettingsScreen resetAll={resetAll} settings={settings} updateSettings={updateSettings} />
               </TabsContent>
+
             </Tabs>
           </div>
         </section>
       </main>
+      <MobileTabBar activeView={activeView} hidden={forestImmersive} onView={setActiveView} />
+      <FruitFlightOverlay reward={fruitFlight} />
       <GameRewardOverlay reward={rewardToast} />
     </div>
   );
@@ -537,6 +543,43 @@ function AppSidebar({
   );
 }
 
+function MobileTabBar({
+  activeView,
+  hidden,
+  onView,
+}: {
+  activeView: AppView;
+  hidden: boolean;
+  onView: (view: AppView) => void;
+}) {
+  if (hidden) return null;
+
+  return (
+    <nav className="fixed inset-x-3 bottom-3 z-[95] grid h-16 grid-cols-[repeat(4,minmax(0,1fr))] gap-1 rounded-md border border-[#ddd8cc] bg-[#fffdf7]/92 p-1.5 text-[#6d746c] shadow-[0_18px_45px_rgba(28,41,30,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#121c18]/92 dark:text-[#b9c7b4] md:hidden" aria-label="アプリの画面切り替え">
+      {appTabs.map((tab) => {
+        const active = activeView === tab.value;
+        return (
+          <button
+            key={tab.value}
+            type="button"
+            className={cn(
+              "grid h-full min-w-0 content-center justify-items-center gap-0.5 rounded-md border border-transparent px-1 text-[10px] font-black transition",
+              active
+                ? "border-[#d8d2c4] bg-[#e8efe2] text-[#2f4530] shadow-[0_8px_18px_rgba(38,49,38,0.08)] dark:border-white/10 dark:bg-white/[0.12] dark:text-[#f0f6e9]"
+                : "text-[#6d746c] hover:bg-[#f0efe8] dark:text-[#b9c7b4] dark:hover:bg-white/[0.08]",
+            )}
+            aria-current={active ? "page" : undefined}
+            onClick={() => onView(tab.value)}
+          >
+            {tab.icon}
+            <span className="max-w-full truncate">{tab.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 function ProjectButton({
   active,
   count,
@@ -576,13 +619,13 @@ function ProjectButton({
 
 function ScopeToggle({ scope, onScope }: { scope: ForestScope; onScope: (scope: ForestScope) => void }) {
   return (
-    <div className="grid w-full grid-cols-3 rounded-md border border-[#ded9cd] bg-[#fbfaf5] p-1 md:flex md:w-auto">
+    <div className="grid w-full grid-cols-[repeat(3,minmax(0,1fr))] rounded-md border border-[#ded9cd] bg-[#fbfaf5] p-1 md:flex md:w-auto">
       {(["today", "month", "all"] as ForestScope[]).map((item) => (
         <button
           key={item}
           type="button"
           className={cn(
-            "h-9 rounded-md px-4 text-sm font-bold transition",
+            "h-9 min-w-0 rounded-md px-3 text-sm font-bold transition md:px-4",
             scope === item ? "bg-[#4e7d45] text-white shadow-sm" : "text-[#61705e] hover:bg-[#eef0e7]",
           )}
           onClick={() => onScope(item)}
@@ -634,7 +677,48 @@ function TopStatusPill({
   );
 }
 
+function FruitFlightOverlay({ reward }: { reward: RewardToast | null }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!reward) {
+      setVisible(false);
+      return undefined;
+    }
+    setVisible(true);
+    const timer = window.setTimeout(() => setVisible(false), 1050);
+    return () => window.clearTimeout(timer);
+  }, [reward]);
+
+  return (
+    <AnimatePresence>
+      {reward && visible && (
+        <motion.div className="pointer-events-none fixed inset-0 z-[118] overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div
+            className={cn(
+              "absolute left-[30%] top-[58%] rounded-full border shadow-[0_16px_32px_rgba(120,83,28,0.24)]",
+              fruitFlightClassName(reward.difficulty),
+            )}
+            initial={{ x: "-22vw", y: "12vh", scale: 0.62, opacity: 0, rotate: -22 }}
+            animate={{ x: ["-22vw", "-5vw", "28vw"], y: ["12vh", "-6vh", "-18vh"], scale: [0.62, 1.22, 0.82], opacity: [0, 1, 0], rotate: 180 }}
+            transition={{ duration: 0.95, ease: "easeOut" }}
+          >
+            <span className="absolute -right-1 -top-1 h-2 w-3 rounded-full bg-[#7da66d] shadow-sm" />
+          </motion.div>
+          <motion.div
+            className="absolute left-[58%] top-[30%] h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#fff0b4]/70 bg-[radial-gradient(circle,rgba(255,239,173,0.7),transparent_64%)]"
+            initial={{ opacity: 0, scale: 0.25 }}
+            animate={{ opacity: [0, 0.85, 0], scale: [0.25, 1.15, 1.65] }}
+            transition={{ delay: 0.42, duration: 0.68, ease: "easeOut" }}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function GameRewardOverlay({ reward }: { reward: RewardToast | null }) {
+  const [visible, setVisible] = useState(false);
   const burst = [
     { x: -148, y: -42, size: 8, delay: 0.02 },
     { x: -112, y: 38, size: 11, delay: 0.08 },
@@ -646,9 +730,19 @@ function GameRewardOverlay({ reward }: { reward: RewardToast | null }) {
     { x: -24, y: 92, size: 10, delay: 0.14 },
   ];
 
+  useEffect(() => {
+    if (!reward) {
+      setVisible(false);
+      return undefined;
+    }
+    setVisible(true);
+    const timer = window.setTimeout(() => setVisible(false), 2400);
+    return () => window.clearTimeout(timer);
+  }, [reward]);
+
   return (
     <AnimatePresence>
-      {reward && (
+      {reward && visible && (
         <motion.div
           className="pointer-events-none fixed inset-0 z-[120] grid place-items-center px-4"
           initial={{ opacity: 0 }}
@@ -768,14 +862,16 @@ function ForestScreen({
   return (
     <div className={cn("grid min-h-[calc(100vh-6.5rem)] lg:grid-rows-[minmax(0,1fr)_auto]", memoryMode && "min-h-screen lg:grid-rows-[minmax(0,1fr)]")}>
       <section className={cn("relative min-h-[620px] touch-none overflow-hidden select-none", forestSurfaceClass(timeTone), memoryMode && "min-h-screen")}>
-        <ForestWorldLayer
-          control={worldControl}
-          controlNonce={worldControlNonce}
-          mapNodes={mapNodes}
-          scope={scope}
-          timeTone={timeTone}
-          onMemoryMode={setMemoryMode}
-        />
+        <Suspense fallback={<ForestWorldFallback timeTone={timeTone} />}>
+          <LazyForestWorldLayer
+            control={worldControl}
+            controlNonce={worldControlNonce}
+            mapNodes={mapNodes}
+            scope={scope}
+            timeTone={timeTone}
+            onMemoryMode={setMemoryMode}
+          />
+        </Suspense>
         <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(104,120,104,0.09)_1px,transparent_1px),linear-gradient(to_bottom,rgba(104,120,104,0.09)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
         <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(245,246,238,0.04)_52%,rgba(225,219,203,0.12))] transition-opacity duration-500", memoryMode && "opacity-0")} />
         <div className={cn("pointer-events-none absolute left-4 top-4 z-40 rounded-md border border-[#e0dacd] bg-[#fbfaf5]/86 px-4 py-3 shadow-sm backdrop-blur transition-opacity duration-500", memoryMode && "opacity-0")}>
@@ -832,235 +928,20 @@ function ForestScreen({
   );
 }
 
-function ForestWorldLayer({
-  control,
-  controlNonce,
-  mapNodes,
-  onMemoryMode,
-  scope,
-  timeTone,
-}: {
-  control: WorldControl | null;
-  controlNonce: number;
-  mapNodes: ForestMapNode[];
-  onMemoryMode: (enabled: boolean) => void;
-  scope: ForestScope;
-  timeTone: TimeTone;
-}) {
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const onMemoryModeRef = useRef(onMemoryMode);
-  const controlRef = useRef<{ control: WorldControl | null; nonce: number }>({ control: null, nonce: 0 });
-
-  useEffect(() => {
-    onMemoryModeRef.current = onMemoryMode;
-  }, [onMemoryMode]);
-
-  useEffect(() => {
-    controlRef.current = { control, nonce: controlNonce };
-  }, [control, controlNonce]);
-
-  useEffect(() => {
-    const currentHost = hostRef.current;
-    if (!currentHost) return undefined;
-    const hostElement: HTMLDivElement = currentHost;
-
-    const palette = worldPalette(timeTone);
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(palette.fog, palette.fogDensity);
-
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = timeTone === "night" ? 1.18 : 1.08;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
-    renderer.domElement.className = "h-full w-full touch-none";
-    hostElement.appendChild(renderer.domElement);
-
-    const world = new THREE.Group();
-    scene.add(world);
-
-    const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(34, 96),
-      new THREE.MeshStandardMaterial({ color: palette.ground, roughness: 0.9, metalness: 0.02 }),
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    world.add(ground);
-
-    const ambientLight = new THREE.AmbientLight(palette.ambient, palette.ambientIntensity);
-    scene.add(ambientLight);
-
-    const sun = new THREE.DirectionalLight(palette.sun, palette.sunIntensity);
-    sun.position.set(-10, 18, 12);
-    sun.castShadow = true;
-    sun.shadow.mapSize.width = 1024;
-    sun.shadow.mapSize.height = 1024;
-    scene.add(sun);
-
-    const fill = new THREE.DirectionalLight(palette.fill, 0.38);
-    fill.position.set(12, 7, -10);
-    scene.add(fill);
-
-    addWorldPaths(world, mapNodes, palette.path);
-    mapNodes.forEach((node) => world.add(createWorldTree(node, scope)));
-    addWorldSeeds(world, palette.seed);
-
-    const drag: DragState = {
-      dragging: false,
-      lastX: 0,
-      lastY: 0,
-      yaw: scope === "today" ? 0.18 : -0.38,
-      pitch: 0.18,
-      distance: scope === "today" ? 19 : 25,
-      pinchDistance: null,
-    };
-
-    function resize() {
-      const rect = hostElement.getBoundingClientRect();
-      const width = Math.max(1, rect.width);
-      const height = Math.max(1, rect.height);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height, false);
-    }
-
-    function updateCamera() {
-      const target = scope === "today" ? new THREE.Vector3(0.8, 2.9, 0.4) : new THREE.Vector3(0, 2.6, 0);
-      const height = 6.5 + drag.pitch * 9;
-      camera.position.set(Math.sin(drag.yaw) * drag.distance, height, Math.cos(drag.yaw) * drag.distance);
-      camera.lookAt(target);
-      onMemoryModeRef.current(drag.distance < 9.2);
-    }
-
-    function resetView() {
-      drag.yaw = scope === "today" ? 0.18 : -0.38;
-      drag.pitch = 0.18;
-      drag.distance = scope === "today" ? 19 : 25;
-      drag.pinchDistance = null;
-    }
-
-    let handledControlNonce = controlRef.current.nonce;
-    function applyControlSignal() {
-      const signal = controlRef.current;
-      if (!signal.control || signal.nonce === handledControlNonce) return;
-      handledControlNonce = signal.nonce;
-      if (signal.control === "zoom-in") {
-        drag.distance = Math.max(5.8, drag.distance - 8.8);
-      } else if (signal.control === "zoom-out") {
-        drag.distance = Math.min(34, drag.distance + 8.8);
-      } else {
-        resetView();
-      }
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      drag.dragging = true;
-      drag.lastX = event.clientX;
-      drag.lastY = event.clientY;
-      renderer.domElement.setPointerCapture(event.pointerId);
-    }
-
-    function handlePointerMove(event: PointerEvent) {
-      if (!drag.dragging) return;
-      const dx = event.clientX - drag.lastX;
-      const dy = event.clientY - drag.lastY;
-      drag.lastX = event.clientX;
-      drag.lastY = event.clientY;
-      drag.yaw -= dx * 0.006;
-      drag.pitch = Math.max(-0.08, Math.min(0.58, drag.pitch + dy * 0.003));
-    }
-
-    function handlePointerUp(event: PointerEvent) {
-      drag.dragging = false;
-      drag.pinchDistance = null;
-      if (renderer.domElement.hasPointerCapture(event.pointerId)) {
-        renderer.domElement.releasePointerCapture(event.pointerId);
-      }
-    }
-
-    function handleWheel(event: WheelEvent) {
-      event.preventDefault();
-      drag.distance = Math.max(5.8, Math.min(34, drag.distance + event.deltaY * 0.018));
-    }
-
-    function getTouchDistance(event: TouchEvent) {
-      const [a, b] = Array.from(event.touches);
-      if (!a || !b) return null;
-      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    }
-
-    function handleTouchMove(event: TouchEvent) {
-      if (event.touches.length !== 2) return;
-      event.preventDefault();
-      const distance = getTouchDistance(event);
-      if (!distance) return;
-      if (drag.pinchDistance !== null) {
-        drag.distance = Math.max(5.8, Math.min(34, drag.distance - (distance - drag.pinchDistance) * 0.045));
-      }
-      drag.pinchDistance = distance;
-    }
-
-    function handleTouchEnd() {
-      drag.pinchDistance = null;
-    }
-
-    let frameId = 0;
-    const animationStart = window.performance.now();
-    function animate() {
-      const elapsed = (window.performance.now() - animationStart) / 1000;
-      applyControlSignal();
-      world.rotation.y += (drag.yaw - world.rotation.y) * 0.08;
-      updateCamera();
-      world.children.forEach((child: THREE.Object3D, index: number) => {
-        if (!child.userData.floatTree) return;
-        child.position.y = Math.sin(elapsed * 0.9 + index) * 0.04;
-      });
-      renderer.render(scene, camera);
-      frameId = window.requestAnimationFrame(animate);
-    }
-
-    const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(hostElement);
-    resize();
-    animate();
-
-    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
-    renderer.domElement.addEventListener("pointermove", handlePointerMove);
-    renderer.domElement.addEventListener("pointerup", handlePointerUp);
-    renderer.domElement.addEventListener("pointercancel", handlePointerUp);
-    renderer.domElement.addEventListener("wheel", handleWheel, { passive: false });
-    renderer.domElement.addEventListener("touchmove", handleTouchMove, { passive: false });
-    renderer.domElement.addEventListener("touchend", handleTouchEnd);
-
-    return () => {
-      onMemoryModeRef.current(false);
-      window.cancelAnimationFrame(frameId);
-      resizeObserver.disconnect();
-      renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
-      renderer.domElement.removeEventListener("pointermove", handlePointerMove);
-      renderer.domElement.removeEventListener("pointerup", handlePointerUp);
-      renderer.domElement.removeEventListener("pointercancel", handlePointerUp);
-      renderer.domElement.removeEventListener("wheel", handleWheel);
-      renderer.domElement.removeEventListener("touchmove", handleTouchMove);
-      renderer.domElement.removeEventListener("touchend", handleTouchEnd);
-      disposeThreeScene(scene);
-      renderer.dispose();
-      renderer.domElement.remove();
-    };
-  }, [mapNodes, scope, timeTone]);
-
+function ForestWorldFallback({ timeTone }: { timeTone: TimeTone }) {
   return (
-    <div
-      ref={hostRef}
-      className={cn(
-        "absolute inset-0 z-0 cursor-grab overflow-hidden active:cursor-grabbing",
-        worldGradientClass(timeTone),
-      )}
-      aria-label="ドラッグとズームができる森の3Dワールド"
-    />
+    <div className={cn("absolute inset-0 z-0 grid place-items-center", forestSurfaceClass(timeTone))}>
+      <div className="grid justify-items-center gap-3 rounded-md border border-[#e0dacd] bg-[#fbfaf5]/78 px-5 py-4 text-[#41523f] shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#121c18]/76 dark:text-[#e7f1e1]">
+        <motion.span
+          className="grid h-12 w-12 place-items-center rounded-full border border-[#d8d2c4] bg-[#edf4e7] text-[#4e7d45] dark:border-white/10 dark:bg-white/[0.08] dark:text-[#a7df9e]"
+          animate={{ scale: [1, 1.08, 1], rotate: [0, -2, 2, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <TreePine className="h-6 w-6 fill-current" />
+        </motion.span>
+        <p className="text-sm font-black">森を読み込み中</p>
+      </div>
+    </div>
   );
 }
 
@@ -1641,8 +1522,8 @@ function TaskScreen({
   const parentCount = displayTasks.filter((task) => (children.get(task.id) ?? []).length > 0).length;
 
   return (
-    <div className={cn("grid gap-5 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_390px] lg:p-6 xl:p-8", compact && "gap-3 p-2 sm:p-3 lg:grid-cols-[minmax(0,1fr)_340px] lg:p-4 xl:p-5")}>
-      <section className={cn("grid min-w-0 content-start gap-4", compact && "gap-3")}>
+    <div className={cn("grid min-w-0 items-start gap-5 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_410px] lg:p-6 xl:p-8", compact && "gap-3 p-2 sm:p-3 lg:grid-cols-[minmax(0,1fr)_350px] lg:p-4 xl:p-5")}>
+      <section className={cn("order-2 grid min-w-0 content-start gap-4 lg:order-1", compact && "gap-3")}>
         <TaskOverviewBand
           compact={compact}
           completedCount={completedTasks.length}
@@ -1654,7 +1535,7 @@ function TaskScreen({
           todayNode={todayNode}
         />
 
-        <div className={cn("grid gap-3 rounded-md border border-[#e5dfd2] bg-[#fffdf8]/72 p-3 shadow-[0_14px_36px_rgba(38,49,38,0.06)] backdrop-blur dark:border-white/10 dark:bg-white/[0.05] md:grid-cols-[minmax(0,1fr)_auto] md:items-center", compact && "gap-2 p-2.5")}>
+        <div className={cn("rounded-md border border-[#e5dfd2] bg-[#fffdf8]/72 p-2.5 shadow-[0_10px_26px_rgba(38,49,38,0.05)] backdrop-blur dark:border-white/10 dark:bg-white/[0.05]", compact && "p-2")}>
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b9288]" />
             <Input
@@ -1664,11 +1545,6 @@ function TaskScreen({
               placeholder="タスクやメモを探す"
             />
           </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <TaskPill label="未完了" value={pendingTasks.length} />
-            <TaskPill label="実" value={todayNode.count} />
-            <TaskPill label="親" value={parentCount} />
-          </div>
         </div>
 
         <div className={cn("rounded-md border border-[#e4dfd4] bg-[#fffdf8]/66 p-2 shadow-[0_18px_48px_rgba(38,49,38,0.07)] backdrop-blur dark:border-white/10 dark:bg-white/[0.045] dark:shadow-[0_18px_48px_rgba(0,0,0,0.25)]", compact && "p-1.5")}>
@@ -1704,7 +1580,7 @@ function TaskScreen({
         </div>
       </section>
 
-      <aside className={cn("grid h-fit gap-4", compact && "gap-3")}>
+      <aside className={cn("order-1 grid h-fit min-w-0 gap-4 lg:order-2 lg:sticky lg:top-6", compact && "gap-3")}>
         <TodayTreeCard
           celebrate={treeCelebrate}
           compact={compact}
@@ -1742,13 +1618,13 @@ function TaskScreen({
                 </option>
               ))}
             </select>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
               {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
                 <button
                   key={key}
                   type="button"
                   className={cn(
-                    "grid gap-1 rounded-md border px-2 py-2 text-center text-xs font-black transition",
+                    "grid min-w-0 gap-1 rounded-md border px-2 py-2 text-center text-xs font-black transition",
                     difficulty === key
                       ? "border-[#4e7d45] bg-[#e6ecdf] text-[#334a31] shadow-[0_8px_18px_rgba(78,125,69,0.12)] dark:border-[#8ccf83] dark:bg-[#1d3a28] dark:text-[#e9f6e2]"
                       : "border-[#ddd8cc] bg-white/64 text-[#6a7467] hover:bg-white dark:border-white/10 dark:bg-white/[0.06] dark:text-[#c2d0bc] dark:hover:bg-white/[0.1]",
@@ -1797,51 +1673,48 @@ function TaskOverviewBand({
   todayNode: ForestMapNode;
 }) {
   return (
-    <section className={cn("relative overflow-hidden rounded-md border border-[#ded8c8] bg-[linear-gradient(135deg,#fffdf7_0%,#f2f4ea_52%,#e8efe2_100%)] p-4 shadow-[0_18px_48px_rgba(38,49,38,0.08)] backdrop-blur dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(27,39,34,0.92),rgba(15,24,21,0.96))] dark:shadow-[0_18px_54px_rgba(0,0,0,0.28)]", compact && "p-3")}>
-      <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#dbe8cd]/72 blur-3xl dark:bg-[#2f6841]/34" />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-20 w-full bg-[linear-gradient(90deg,rgba(112,141,94,0.08),transparent)]" />
-      <div className="relative grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+    <section className={cn("relative overflow-hidden rounded-md border border-[#ded8c8] bg-[#fffdf7]/82 p-3 shadow-[0_14px_34px_rgba(38,49,38,0.06)] backdrop-blur dark:border-white/10 dark:bg-white/[0.05]", compact && "p-2.5")}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#7fa86c] via-[#4e7d45] to-[#d1a63b]" />
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="rounded-full bg-[#e3eadb] px-3 py-1 text-[#3f5f3b] shadow-none dark:bg-[#243a2a] dark:text-[#bde8b3]">
+            <Badge className="rounded-full bg-[#e3eadb] px-2.5 py-0.5 text-[#3f5f3b] shadow-none dark:bg-[#243a2a] dark:text-[#bde8b3]">
               <Target className="mr-1 h-3.5 w-3.5" />
-              今日のフォーカス
+              今日
             </Badge>
             <span className="flex items-center gap-1 text-xs font-black text-[#71806d] dark:text-[#a8b8a2]">
               <Clock3 className="h-3.5 w-3.5" />
               {timeToneLabel(timeTone)}
             </span>
           </div>
-          <h2 className={cn("mt-3 text-2xl font-black tracking-normal text-[#263126] dark:text-[#eef4e8] sm:text-3xl", compact && "mt-2 text-xl sm:text-2xl")}>今日やることを実にする</h2>
-          <p className={cn("mt-1 max-w-2xl text-sm font-semibold text-[#6f786c] dark:text-[#b2c0ac]", compact && "text-xs")}>
-            親todoは幹、小todoは実。完了すると木に内容が残ります。
-          </p>
+          <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1">
+            <h2 className={cn("text-2xl font-black tracking-normal text-[#263126] dark:text-[#eef4e8]", compact && "text-xl")}>今日のタスク {progress}%</h2>
+            <span className="pb-1 text-xs font-black text-[#6f786c] dark:text-[#a8b8a2]">
+              {todayNode.count}/{todayNode.todoCount} 実った
+            </span>
+          </div>
         </div>
-        <Button className={cn("h-11 rounded-md bg-[#3f7b3b] px-4 font-black text-white shadow-[0_12px_28px_rgba(63,123,59,0.24)] hover:bg-[#356b32]", compact && "h-9 px-3 text-sm")} onClick={onForest}>
+        <Button variant="outline" className={cn("h-9 rounded-md border-[#d3cabb] bg-white/76 px-3 font-black text-[#4e7d45] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/[0.08] dark:text-[#a7df9e]", compact && "h-8 px-2.5 text-xs")} onClick={onForest}>
           <TreePine className="h-4 w-4" />
-          森を見る
+          森
         </Button>
       </div>
 
-      <div className={cn("relative mt-5 grid grid-cols-2 gap-3 md:grid-cols-4", compact && "mt-3 gap-2")}>
-        <OverviewStat compact={compact} icon={<ListTodo className="h-4 w-4" />} label="未完了" value={pendingCount} />
-        <OverviewStat compact={compact} icon={<CheckCircle2 className="h-4 w-4" />} label="完了済み" value={completedCount} />
-        <OverviewStat compact={compact} icon={<CalendarCheck className="h-4 w-4" />} label="今日の実" value={`${todayNode.count}/${todayNode.todoCount}`} />
-        <OverviewStat compact={compact} icon={<Sparkles className="h-4 w-4" />} label="親タスク" value={parentCount} />
-      </div>
-
-      <div className={cn("relative mt-4", compact && "mt-3")}>
-        <div className="mb-2 flex items-center justify-between text-xs font-black text-[#6d746c] dark:text-[#a8b8a2]">
-          <span>今日の成長ゲージ</span>
-          <span>{progress}%</span>
+      <div className={cn("mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center", compact && "gap-2")}>
+        <div>
+          <div className="h-2.5 overflow-hidden rounded-full bg-[#e2dece] shadow-inner dark:bg-white/10">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-[#8faf77] via-[#4e7d45] to-[#d1a63b]"
+              initial={false}
+              animate={{ width: `${progress}%` }}
+              transition={{ type: "spring", stiffness: 120, damping: 20 }}
+            />
+          </div>
         </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-[#e2dece] shadow-inner dark:bg-white/10">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-[#8faf77] via-[#4e7d45] to-[#d1a63b]"
-            initial={false}
-            animate={{ width: `${progress}%` }}
-            transition={{ type: "spring", stiffness: 120, damping: 20 }}
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <TaskPill label="未完了" value={pendingCount} />
+          <TaskPill label="完了" value={completedCount} />
+          <TaskPill label="親" value={parentCount} />
         </div>
       </div>
     </section>
@@ -1928,7 +1801,7 @@ function TodayTreeCard({
           </motion.div>
         </div>
 
-        <div className={cn("grid grid-cols-3 gap-2", compact && "gap-1.5")}>
+        <div className={cn("grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2", compact && "gap-1.5")}>
           <TreeTinyStat label="段階" value={stageLabel} />
           <TreeTinyStat label="芽" value={node.buds.length} />
           <TreeTinyStat label="実" value={node.fruits.length} />
@@ -1937,9 +1810,9 @@ function TodayTreeCard({
         <div className={cn("grid gap-2 rounded-md border border-[#e2dbcd] bg-white/58 p-2.5 dark:border-white/10 dark:bg-white/[0.045]", compact && "gap-1.5 p-2")}>
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-black text-[#536050] dark:text-[#d9e8d3]">実の意味</p>
-            <div className="flex items-center gap-2 text-[10px] font-black text-[#687365] dark:text-[#a8b8a2]">
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[10px] font-black text-[#687365] dark:text-[#a8b8a2]">
               {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
-                <span key={key} className="inline-flex items-center gap-1">
+                <span key={key} className="inline-flex min-w-0 items-center gap-1">
                   <span className={cn("rounded-full border", miniFruitClassName(key))} />
                   {difficultyMeta[key].label}
                 </span>
@@ -1977,18 +1850,6 @@ function TodayTreeCard({
   );
 }
 
-function OverviewStat({ compact = false, icon, label, value }: { compact?: boolean; icon: React.ReactNode; label: string; value: React.ReactNode }) {
-  return (
-    <div className={cn("rounded-md border border-white/80 bg-white/62 px-3 py-3 shadow-[0_10px_24px_rgba(38,49,38,0.06)] dark:border-white/10 dark:bg-white/[0.055]", compact && "px-2.5 py-2")}>
-      <div className="flex items-center gap-2 text-[#6b7567] dark:text-[#b2c0ac]">
-        <span className={cn("grid h-8 w-8 place-items-center rounded-md bg-[#eef3e8] text-[#4e7d45] dark:bg-[#203326] dark:text-[#a7df9e]", compact && "h-7 w-7")}>{icon}</span>
-        <span className="text-xs font-black">{label}</span>
-      </div>
-      <p className={cn("mt-2 text-xl font-black tabular-nums text-[#2f3b2f] dark:text-[#eef4e8] sm:text-2xl", compact && "mt-1 text-lg sm:text-xl")}>{value}</p>
-    </div>
-  );
-}
-
 function TaskPill({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <span className="inline-flex h-9 items-center gap-2 rounded-full border border-[#ded8c8] bg-white/74 px-3 text-xs font-black text-[#536050] dark:border-white/10 dark:bg-white/[0.06]">
@@ -2000,8 +1861,8 @@ function TaskPill({ label, value }: { label: string; value: React.ReactNode }) {
 
 function TreeTinyStat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-[#e5dfd2] bg-white/64 px-2 py-2 text-center dark:border-white/10 dark:bg-white/[0.06]">
-      <p className="text-[10px] font-black text-[#7b8278] dark:text-[#9fb19a]">{label}</p>
+    <div className="min-w-0 rounded-md border border-[#e5dfd2] bg-white/64 px-2 py-2 text-center dark:border-white/10 dark:bg-white/[0.06]">
+      <p className="truncate text-[10px] font-black text-[#7b8278] dark:text-[#9fb19a]">{label}</p>
       <p className="mt-0.5 text-base font-black tabular-nums text-[#334a31] dark:text-[#e8f5df]">{value}</p>
     </div>
   );
@@ -2328,296 +2189,6 @@ function toFruitTodos(tasks: Task[]): FruitTodo[] {
   }));
 }
 
-function addWorldPaths(world: THREE.Group, mapNodes: ForestMapNode[], color: number) {
-  if (mapNodes.length < 2) return;
-  const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.34 });
-  mapNodes.slice(1).forEach((node, index) => {
-    const from = nodeToWorldPosition(mapNodes[index]);
-    const to = nodeToWorldPosition(node);
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(from.x, 0.04, from.z),
-      new THREE.Vector3((from.x + to.x) / 2, 0.07, (from.z + to.z) / 2),
-      new THREE.Vector3(to.x, 0.04, to.z),
-    ]);
-    const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(28));
-    const line = new THREE.Line(geometry, material);
-    world.add(line);
-  });
-}
-
-function addWorldSeeds(world: THREE.Group, color: number) {
-  const material = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
-  for (let index = 0; index < 24; index += 1) {
-    const angle = index * 1.618;
-    const radius = 6 + (index % 8) * 2.8;
-    const seed = new THREE.Mesh(new THREE.SphereGeometry(0.045 + (index % 3) * 0.015, 8, 8), material);
-    seed.position.set(Math.cos(angle) * radius, 0.08, Math.sin(angle) * radius);
-    seed.castShadow = true;
-    world.add(seed);
-  }
-}
-
-function createWorldTree(node: ForestMapNode, scope: ForestScope) {
-  const group = new THREE.Group();
-  const position = nodeToWorldPosition(node);
-  const growthLevel = treeGrowthLevel(node);
-  const scale = node.featured ? 1.72 : Math.max(0.86, Math.min(1.42, 0.82 + node.count * 0.055 + node.todoCount * 0.045 + growthLevel * 0.07));
-  group.position.set(position.x, 0, position.z);
-  group.scale.setScalar(scope === "today" ? scale * 1.15 : scale);
-  group.userData.floatTree = true;
-
-  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x5f3c2c, roughness: 0.96 });
-  const barkMaterial = new THREE.MeshStandardMaterial({ color: 0x3f2b22, roughness: 0.96 });
-  const branchMaterial = new THREE.MeshStandardMaterial({ color: 0x78523c, roughness: 0.9 });
-  const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xf7f3e8, roughness: 0.86 });
-  const rimMaterial = new THREE.MeshStandardMaterial({ color: 0xe1dbcb, roughness: 0.82 });
-  const mossMaterial = new THREE.MeshStandardMaterial({ color: 0x57733f, roughness: 0.98 });
-  const mossHighlightMaterial = new THREE.MeshStandardMaterial({ color: 0x8ead6f, roughness: 0.96 });
-  const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0xc8c1b2, roughness: 0.88 });
-  const leafMaterials = [
-    new THREE.MeshStandardMaterial({ color: 0x8fb36f, roughness: 0.88 }),
-    new THREE.MeshStandardMaterial({ color: 0x6f9d5c, roughness: 0.9 }),
-    new THREE.MeshStandardMaterial({ color: 0x456f3a, roughness: 0.92 }),
-    new THREE.MeshStandardMaterial({ color: 0xaac992, roughness: 0.88 }),
-  ];
-  const leafHighlightMaterial = new THREE.MeshStandardMaterial({ color: 0xb6d09c, roughness: 0.82, transparent: true, opacity: 0.88 });
-
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.4, 0.12, 72), baseMaterial);
-  base.position.y = 0.06;
-  base.receiveShadow = true;
-  group.add(base);
-
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.12, 0.065, 12, 72), rimMaterial);
-  rim.rotation.x = Math.PI / 2;
-  rim.position.y = 0.17;
-  rim.castShadow = true;
-  rim.receiveShadow = true;
-  group.add(rim);
-
-  const moss = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.98, 0.08, 56), mossMaterial);
-  moss.position.y = 0.17;
-  moss.receiveShadow = true;
-  group.add(moss);
-
-  for (let index = 0; index < 10; index += 1) {
-    const angle = index * 2.17;
-    const radius = 0.16 + (index % 5) * 0.12;
-    const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.055 + (index % 3) * 0.018, 10, 8), index % 3 === 0 ? mossHighlightMaterial : mossMaterial);
-    tuft.position.set(Math.cos(angle) * radius, 0.23 + (index % 2) * 0.012, Math.sin(angle) * radius * 0.82);
-    tuft.scale.set(1.42, 0.42, 1.04);
-    tuft.castShadow = true;
-    tuft.receiveShadow = true;
-    group.add(tuft);
-  }
-
-  for (let index = 0; index < 5; index += 1) {
-    const angle = index * 1.34 + 0.2;
-    const stone = new THREE.Mesh(new THREE.SphereGeometry(0.055 + (index % 2) * 0.025, 10, 8), stoneMaterial);
-    stone.position.set(Math.cos(angle) * (0.55 + index * 0.035), 0.2, Math.sin(angle) * (0.38 + index * 0.03));
-    stone.scale.set(1.25, 0.42, 0.92);
-    stone.receiveShadow = true;
-    group.add(stone);
-  }
-
-  if (growthLevel <= 1 && node.count === 0) {
-    const seedMaterial = new THREE.MeshStandardMaterial({ color: 0x8f6c45, roughness: 0.72 });
-    const seed = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 14), seedMaterial);
-    seed.position.set(0.04, 0.33, 0.02);
-    seed.scale.set(1.12, 0.72, 0.9);
-    seed.castShadow = true;
-    group.add(seed);
-
-    if (node.todoCount > 0) {
-      [
-        { x: -0.12, rz: 0.78, color: 0x88ad70 },
-        { x: 0.14, rz: -0.72, color: 0x5f944f },
-      ].forEach((leaf) => {
-        const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 12), new THREE.MeshStandardMaterial({ color: leaf.color, roughness: 0.84 }));
-        mesh.position.set(leaf.x, 0.54, 0.02);
-        mesh.rotation.z = leaf.rz;
-        mesh.scale.set(1.35, 0.34, 0.82);
-        mesh.castShadow = true;
-        group.add(mesh);
-      });
-    }
-
-    return group;
-  }
-
-  const trunkHeight = 1.22 + Math.min(5, growthLevel) * 0.28 + Math.min(3, node.count) * 0.06;
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.265, trunkHeight, 18), trunkMaterial);
-  trunk.position.y = 0.18 + trunkHeight / 2;
-  trunk.rotation.z = -0.045;
-  trunk.castShadow = true;
-  group.add(trunk);
-
-  for (let index = 0; index < 5; index += 1) {
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.012, trunkHeight * 0.58, 0.014), barkMaterial);
-    const angle = index * 1.2;
-    ridge.position.set(Math.cos(angle) * 0.13, 0.38 + trunkHeight * 0.34, Math.sin(angle) * 0.09);
-    ridge.rotation.y = angle;
-    ridge.rotation.z = -0.045;
-    ridge.castShadow = true;
-    group.add(ridge);
-  }
-
-  [
-    { x: -0.38, y: trunkHeight * 0.72, z: 0.04, rz: 0.88, rx: 0.08, length: 0.9 },
-    { x: 0.4, y: trunkHeight * 0.78, z: -0.03, rz: -0.86, rx: -0.06, length: 0.86 },
-    { x: 0.08, y: trunkHeight * 0.92, z: -0.26, rz: -0.32, rx: 0.22, length: 0.76 },
-    { x: -0.12, y: trunkHeight * 0.86, z: 0.28, rz: 0.34, rx: -0.22, length: 0.7 },
-  ].forEach((branch) => {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.082, branch.length, 12), branchMaterial);
-    mesh.position.set(branch.x, branch.y, branch.z);
-    mesh.rotation.z = branch.rz;
-    mesh.rotation.x = branch.rx;
-    mesh.castShadow = true;
-    group.add(mesh);
-  });
-
-  const leafCenters = [
-    { x: -0.6, y: trunkHeight + 0.28, z: 0.02, size: 0.7, sx: 1.22, sy: 0.68, sz: 0.9 },
-    { x: 0.0, y: trunkHeight + 0.58, z: 0.06, size: 0.82, sx: 1.18, sy: 0.72, sz: 0.94 },
-    { x: 0.62, y: trunkHeight + 0.28, z: -0.06, size: 0.68, sx: 1.16, sy: 0.7, sz: 0.9 },
-    { x: -0.18, y: trunkHeight + 0.08, z: 0.43, size: 0.62, sx: 1.28, sy: 0.62, sz: 0.82 },
-    { x: 0.18, y: trunkHeight + 0.12, z: -0.42, size: 0.62, sx: 1.24, sy: 0.64, sz: 0.86 },
-    { x: -0.4, y: trunkHeight + 0.62, z: -0.16, size: 0.5, sx: 1.1, sy: 0.66, sz: 0.8 },
-    { x: 0.43, y: trunkHeight + 0.64, z: 0.14, size: 0.48, sx: 1.08, sy: 0.62, sz: 0.78 },
-    { x: 0.02, y: trunkHeight + 0.34, z: 0.54, size: 0.46, sx: 1.18, sy: 0.58, sz: 0.72 },
-  ];
-  const visibleLeafCount = Math.min(leafCenters.length, Math.max(3, growthLevel + 3 + (node.featured ? 1 : 0)));
-  leafCenters.slice(0, visibleLeafCount).forEach((leaf, index) => {
-    const particleCount = node.featured ? 13 : 9;
-    for (let particle = 0; particle < particleCount; particle += 1) {
-      const seed = Math.sin((index + 1) * 19.13 + (particle + 2) * 7.91) * 43758.5453;
-      const seedB = Math.sin((index + 4) * 13.73 + (particle + 6) * 5.31) * 24634.6345;
-      const seedC = Math.sin((index + 7) * 9.17 + (particle + 3) * 11.11) * 9731.113;
-      const rx = seed - Math.floor(seed);
-      const ry = seedB - Math.floor(seedB);
-      const rz = seedC - Math.floor(seedC);
-      const radius = leaf.size * (0.16 + (particle % 4) * 0.018);
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 10), leafMaterials[(index + particle) % leafMaterials.length]);
-      mesh.position.set(
-        leaf.x + (rx - 0.5) * leaf.size * leaf.sx * 1.25,
-        leaf.y + (ry - 0.5) * leaf.size * leaf.sy * 0.78,
-        leaf.z + (rz - 0.5) * leaf.size * leaf.sz * 1.08,
-      );
-      mesh.scale.set(1.42, 0.62 + (particle % 3) * 0.08, 1.02);
-      mesh.rotation.y = index * 0.38 + particle * 0.16;
-      mesh.rotation.z = (particle % 2 ? -1 : 1) * (0.18 + rx * 0.2);
-      mesh.castShadow = true;
-      group.add(mesh);
-    }
-
-    if (index < 4) {
-      const highlight = new THREE.Mesh(new THREE.SphereGeometry(leaf.size * 0.12, 12, 8), leafHighlightMaterial);
-      highlight.position.set(leaf.x - leaf.size * 0.15, leaf.y + leaf.size * 0.18, leaf.z + leaf.size * 0.32);
-      highlight.scale.set(1.8, 0.42, 0.72);
-      group.add(highlight);
-    }
-  });
-
-  node.fruits.slice(0, 12).forEach((fruit, index) => {
-    const fruitPosition = fruitWorldPosition(index, trunkHeight);
-    const radius = fruitRadius(fruit.difficulty);
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 20, 16),
-      new THREE.MeshStandardMaterial({
-        color: fruitColor(fruit.difficulty),
-        roughness: fruit.difficulty === "hard" ? 0.42 : 0.68,
-        metalness: fruit.difficulty === "hard" ? 0.18 : 0.02,
-        emissive: fruit.difficulty === "hard" ? 0x5c3f08 : 0x000000,
-        emissiveIntensity: fruit.difficulty === "hard" ? 0.12 : 0,
-      }),
-    );
-    mesh.position.set(fruitPosition.x, fruitPosition.y, fruitPosition.z);
-    mesh.castShadow = true;
-    group.add(mesh);
-
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, radius * 0.72, 8), branchMaterial);
-    stem.position.set(fruitPosition.x, fruitPosition.y + radius * 0.92, fruitPosition.z);
-    stem.rotation.z = 0.24;
-    stem.castShadow = true;
-    group.add(stem);
-
-    const shine = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.22, 10, 8), new THREE.MeshStandardMaterial({ color: 0xfff6d0, roughness: 0.45, transparent: true, opacity: 0.76 }));
-    shine.position.set(fruitPosition.x - radius * 0.34, fruitPosition.y + radius * 0.28, fruitPosition.z + radius * 0.42);
-    group.add(shine);
-  });
-
-  node.buds.slice(0, 8).forEach((bud, index) => {
-    const budPosition = fruitWorldPosition(index + node.fruits.length, trunkHeight);
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(fruitRadius(bud.difficulty) * 0.72, 14, 12),
-      new THREE.MeshStandardMaterial({ color: 0xddebd4, roughness: 0.88 }),
-    );
-    mesh.position.set(budPosition.x, budPosition.y, budPosition.z);
-    mesh.castShadow = true;
-    group.add(mesh);
-  });
-
-  if (growthLevel >= 5 || node.count >= 8) {
-    const flowerMaterials = [
-      new THREE.MeshStandardMaterial({ color: 0xfff0e4, roughness: 0.78 }),
-      new THREE.MeshStandardMaterial({ color: 0xf6d7ba, roughness: 0.78 }),
-    ];
-    for (let index = 0; index < 10; index += 1) {
-      const flowerPosition = fruitWorldPosition(index + 2, trunkHeight + 0.12);
-      const flower = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 10), flowerMaterials[index % flowerMaterials.length]);
-      flower.position.set(flowerPosition.x * 1.12, flowerPosition.y + 0.18, flowerPosition.z * 1.14);
-      flower.scale.set(1.4, 0.62, 1);
-      flower.castShadow = true;
-      group.add(flower);
-    }
-  }
-
-  return group;
-}
-
-function nodeToWorldPosition(node: ForestMapNode) {
-  return {
-    x: (node.x - 50) / 2.65,
-    z: (node.y - 50) / 2.65,
-  };
-}
-
-function fruitWorldPosition(index: number, trunkHeight: number) {
-  const source = fruitPositions[index % fruitPositions.length];
-  const layer = Math.floor(index / fruitPositions.length);
-  return {
-    x: (source.left - 50) * 0.024,
-    y: trunkHeight + 0.2 + (68 - source.top) * 0.018 - layer * 0.08,
-    z: ((index % 2 ? 1 : -1) * 0.24) + (source.top - 45) * 0.008,
-  };
-}
-
-function fruitRadius(difficulty: Difficulty) {
-  if (difficulty === "hard") return 0.18;
-  if (difficulty === "medium") return 0.135;
-  return 0.095;
-}
-
-function fruitColor(difficulty: Difficulty) {
-  if (difficulty === "hard") return 0xf3c544;
-  if (difficulty === "medium") return 0xd8893d;
-  return 0xc97939;
-}
-
-function disposeThreeScene(scene: THREE.Scene) {
-  scene.traverse((object) => {
-    const mesh = object as THREE.Mesh;
-    if (mesh.geometry) {
-      mesh.geometry.dispose();
-    }
-    const material = mesh.material;
-    if (Array.isArray(material)) {
-      material.forEach((item) => item.dispose());
-    } else if (material) {
-      material.dispose();
-    }
-  });
-}
-
 function groupTasksByProject(tasks: Task[]): ProjectGroup[] {
   const map = new Map<string, ProjectGroup>();
   tasks.forEach((task) => {
@@ -2708,70 +2279,6 @@ function forestSurfaceClass(tone: TimeTone) {
   return "bg-[#1c2824]";
 }
 
-function worldGradientClass(tone: TimeTone) {
-  if (tone === "morning") return "bg-[radial-gradient(circle_at_42%_20%,rgba(255,245,210,0.9),transparent_30%),linear-gradient(180deg,#ecf4df_0%,#f7f2e5_60%,#dfe8d5_100%)]";
-  if (tone === "day") return "bg-[radial-gradient(circle_at_48%_18%,rgba(255,255,255,0.72),transparent_28%),linear-gradient(180deg,#e8f2e7_0%,#f8f8ee_58%,#dfe9d7_100%)]";
-  if (tone === "evening") return "bg-[radial-gradient(circle_at_36%_22%,rgba(255,198,122,0.55),transparent_30%),linear-gradient(180deg,#f0dfcf_0%,#fbf2e7_58%,#d8dfcc_100%)]";
-  return "bg-[radial-gradient(circle_at_58%_18%,rgba(147,197,253,0.18),transparent_30%),linear-gradient(180deg,#101b1f_0%,#1d2c27_58%,#17221f_100%)]";
-}
-
-function worldPalette(tone: TimeTone) {
-  if (tone === "morning") {
-    return {
-      ambient: 0xfff7df,
-      ambientIntensity: 0.68,
-      fill: 0xb7d7b3,
-      fog: 0xe9f3dd,
-      fogDensity: 0.014,
-      ground: 0xc7daba,
-      path: 0x8a9882,
-      seed: 0x9aa681,
-      sun: 0xffe2a4,
-      sunIntensity: 1.02,
-    };
-  }
-  if (tone === "evening") {
-    return {
-      ambient: 0xffd7ad,
-      ambientIntensity: 0.5,
-      fill: 0xb2c0a4,
-      fog: 0xf1dfcb,
-      fogDensity: 0.015,
-      ground: 0xc9d1ac,
-      path: 0x9f8f74,
-      seed: 0xa39472,
-      sun: 0xffb36b,
-      sunIntensity: 0.86,
-    };
-  }
-  if (tone === "night") {
-    return {
-      ambient: 0x8fb4d9,
-      ambientIntensity: 0.26,
-      fill: 0x95b5c8,
-      fog: 0x17211f,
-      fogDensity: 0.024,
-      ground: 0x314333,
-      path: 0x93a393,
-      seed: 0x8fa58c,
-      sun: 0xb6d4ff,
-      sunIntensity: 0.46,
-    };
-  }
-  return {
-    ambient: 0xffffff,
-    ambientIntensity: 0.56,
-    fill: 0xc5dcb8,
-    fog: 0xe8f2e7,
-    fogDensity: 0.013,
-    ground: 0xc2d6b4,
-    path: 0x87947f,
-    seed: 0x96a37d,
-    sun: 0xfff5e6,
-    sunIntensity: 0.9,
-  };
-}
-
 function forestScopeTitle(scope: ForestScope) {
   if (scope === "month") return "今月の森";
   if (scope === "all") return "プロジェクトの森";
@@ -2804,6 +2311,12 @@ function miniFruitClassName(difficulty: Difficulty) {
   if (difficulty === "hard") return "h-4 w-4 border-[#ffec9a] bg-gradient-to-br from-[#fff5a6] via-[#e3b43e] to-[#9f6d18]";
   if (difficulty === "medium") return "h-3 w-3 border-[#f4d7a0] bg-gradient-to-br from-[#f7c86d] via-[#d8893d] to-[#955f2d]";
   return "h-2.5 w-2.5 border-[#e5b17b] bg-gradient-to-br from-[#f0bb78] via-[#cd8240] to-[#87582f]";
+}
+
+function fruitFlightClassName(difficulty: Difficulty) {
+  if (difficulty === "hard") return "h-9 w-9 border-[#fff0a8] bg-[radial-gradient(circle_at_32%_28%,#fff8bd,#e7b842_58%,#9d6a18)]";
+  if (difficulty === "medium") return "h-7 w-7 border-[#f6d49a] bg-[radial-gradient(circle_at_32%_28%,#ffe1a8,#d8893d_62%,#955f2d)]";
+  return "h-5 w-5 border-[#e5b17b] bg-[radial-gradient(circle_at_32%_28%,#f0bb78,#cd8240_62%,#87582f)]";
 }
 
 function miniBudClassName(difficulty: Difficulty) {
