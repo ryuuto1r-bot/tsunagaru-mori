@@ -5,6 +5,7 @@ import sharp from "sharp";
 const root = process.cwd();
 const iconPath = path.join(root, "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png");
 const splashDir = path.join(root, "ios/App/App/Assets.xcassets/Splash.imageset");
+const pwaDir = path.join(root, "public/pwa");
 
 const iconSvg = `
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -66,10 +67,17 @@ const splashSvg = `
 
 await fs.mkdir(path.dirname(iconPath), { recursive: true });
 await fs.mkdir(splashDir, { recursive: true });
+await fs.mkdir(pwaDir, { recursive: true });
 
 await sharp(Buffer.from(iconSvg)).png().resize(1024, 1024).toFile(iconPath);
 for (const name of ["splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"]) {
   await sharp(Buffer.from(splashSvg)).png().resize(2732, 2732).toFile(path.join(splashDir, name));
 }
 
-console.log("Generated iOS app icon and splash assets.");
+await sharp(Buffer.from(iconSvg)).png().resize(180, 180).toFile(path.join(pwaDir, "apple-touch-icon.png"));
+await sharp(Buffer.from(iconSvg)).png().resize(192, 192).toFile(path.join(pwaDir, "icon-192.png"));
+await sharp(Buffer.from(iconSvg)).png().resize(512, 512).toFile(path.join(pwaDir, "icon-512.png"));
+await sharp(Buffer.from(iconSvg)).png().resize(512, 512).toFile(path.join(pwaDir, "icon-maskable-512.png"));
+await sharp(Buffer.from(iconSvg)).png().resize(48, 48).toFile(path.join(pwaDir, "favicon-48.png"));
+
+console.log("Generated iOS and PWA app assets.");

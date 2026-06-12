@@ -41,6 +41,29 @@ npm run dev
 npm run build
 ```
 
+## Free iPhone Install as PWA
+
+App Storeを使わず、iPhoneのホーム画面にアプリのように追加できます。
+
+```bash
+npm run pwa:prepare
+```
+
+公開URLをiPhoneのSafariで開きます。
+
+```text
+https://ryuuto1r-bot.github.io/tsunagaru-mori/
+```
+
+Safariの共有ボタンから「ホーム画面に追加」を選ぶと、`つながる森` のアイコン付きで起動できます。
+
+PWA対応内容:
+
+- Web App Manifest
+- iPhone用 apple-touch-icon
+- theme color / standalone mode
+- Service Worker による基本オフラインキャッシュ
+
 ## iOS App
 
 ReactアプリをCapacitorでiOSアプリ化しています。

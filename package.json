@@ -8,6 +8,8 @@
     "build": "tsc -p tsconfig.json && vite build",
     "build:ios": "CAPACITOR=true npm run build",
     "ios:assets": "node scripts/generate-ios-assets.mjs",
+    "pwa:assets": "node scripts/generate-ios-assets.mjs",
+    "pwa:prepare": "npm run pwa:assets && npm run build",
     "ios:sync": "npm run build:ios && cap sync ios",
     "ios:prepare": "npm run ios:assets && npm run ios:sync",
     "ios:open": "npm run ios:prepare && cap open ios",
