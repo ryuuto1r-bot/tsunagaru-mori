@@ -199,9 +199,15 @@ function App() {
   }
 
   return (
-    <div className={cn("min-h-screen overflow-x-hidden text-[#263126] transition-colors duration-700", timeToneClass(timeTone), themeClass(settings.theme))}>
+    <div
+      className={cn(
+        "min-h-screen overflow-x-hidden text-[#263126] transition-colors duration-700 dark:text-[#eef4e8]",
+        timeToneClass(timeTone),
+        themeClass(settings.theme),
+      )}
+    >
       <main className="mx-auto min-h-screen w-full max-w-[1540px] p-2 sm:p-4 lg:p-5">
-        <section className="grid min-h-[calc(100vh-1rem)] overflow-hidden rounded-lg border border-white/75 bg-[#fbfaf5]/95 shadow-[0_28px_90px_rgba(31,47,34,0.18)] ring-1 ring-[#1f2d1e]/5 backdrop-blur lg:min-h-[calc(100vh-2.5rem)] lg:grid-cols-[292px_minmax(0,1fr)]">
+        <section className="grid min-h-[calc(100vh-1rem)] overflow-hidden rounded-lg border border-white/75 bg-[#fbfaf5]/95 shadow-[0_28px_90px_rgba(31,47,34,0.18)] ring-1 ring-[#1f2d1e]/5 backdrop-blur dark:border-white/10 dark:bg-[#101715]/94 dark:shadow-[0_28px_90px_rgba(0,0,0,0.42)] lg:min-h-[calc(100vh-2.5rem)] lg:grid-cols-[292px_minmax(0,1fr)]">
           <AppSidebar
             activeProject={activeProject}
             completionRate={completionRate}
@@ -212,15 +218,15 @@ function App() {
             todayCount={todayCount}
           />
 
-          <div className="min-w-0 border-l border-[#e5e1d7] bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)]">
+          <div className="min-w-0 border-l border-[#e5e1d7] bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)] dark:border-white/10 dark:bg-[linear-gradient(180deg,#121c19_0%,#0d1413_100%)]">
             <Tabs value={activeView} onValueChange={(value) => setActiveView(value as AppView)} className="flex min-h-full flex-col">
-              <header className="flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur md:flex-row md:items-center md:justify-between lg:px-8">
-                <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner md:flex md:w-auto md:justify-start md:gap-1.5">
+              <header className="flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8">
+                <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner dark:border-white/10 dark:bg-white/[0.06] dark:text-[#b9c7b4] md:flex md:w-auto md:justify-start md:gap-1.5">
                   {appTabs.map((tab) => (
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="gap-1 rounded-md border border-transparent px-2 py-2 text-xs font-black data-[state=active]:border-[#d8d2c4] data-[state=active]:bg-[#fffdf7] data-[state=active]:text-[#2f4530] data-[state=active]:shadow-[0_8px_18px_rgba(38,49,38,0.08)] sm:text-sm md:gap-2 md:px-4"
+                      className="gap-1 rounded-md border border-transparent px-2 py-2 text-xs font-black data-[state=active]:border-[#d8d2c4] data-[state=active]:bg-[#fffdf7] data-[state=active]:text-[#2f4530] data-[state=active]:shadow-[0_8px_18px_rgba(38,49,38,0.08)] dark:data-[state=active]:border-white/10 dark:data-[state=active]:bg-white/[0.12] dark:data-[state=active]:text-[#f0f6e9] sm:text-sm md:gap-2 md:px-4"
                     >
                       {tab.icon}
                       {tab.label}
@@ -316,28 +322,28 @@ function AppSidebar({
   ];
 
   return (
-    <aside className="hidden min-h-full bg-[linear-gradient(180deg,rgba(244,243,237,0.94),rgba(238,240,231,0.9))] px-4 py-5 lg:block">
-      <div className="rounded-md border border-white/80 bg-[#fffdf7]/72 p-4 shadow-[0_14px_34px_rgba(38,49,38,0.08)]">
+    <aside className="hidden min-h-full bg-[linear-gradient(180deg,rgba(244,243,237,0.94),rgba(238,240,231,0.9))] px-4 py-5 dark:bg-[linear-gradient(180deg,rgba(16,23,21,0.98),rgba(10,16,15,0.94))] lg:block">
+      <div className="rounded-md border border-white/80 bg-[#fffdf7]/72 p-4 shadow-[0_14px_34px_rgba(38,49,38,0.08)] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_14px_40px_rgba(0,0,0,0.25)]">
         <div className="flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-md bg-[#e2eadb] text-[#3f7b3b] shadow-inner">
+          <span className="grid h-11 w-11 place-items-center rounded-md bg-[#e2eadb] text-[#3f7b3b] shadow-inner dark:bg-[#1f3b2a] dark:text-[#86d184]">
             <TreePine className="h-7 w-7 fill-[#3f7b3b] text-[#3f7b3b]" />
           </span>
           <div className="min-w-0">
             <h1 className="truncate text-xl font-black tracking-normal">つながる森</h1>
-            <p className="text-xs font-bold text-[#6f786c]">todoが実になる庭</p>
+            <p className="text-xs font-bold text-[#6f786c] dark:text-[#a3b29d]">todoが実になる庭</p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 text-center">
-          <div className="rounded-md border border-[#e4dfd4] bg-white/58 px-3 py-2">
-            <p className="text-[10px] font-black text-[#7b8278]">今日</p>
-            <p className="text-lg font-black tabular-nums text-[#3f5f3b]">{todayCount}</p>
+          <div className="rounded-md border border-[#e4dfd4] bg-white/58 px-3 py-2 dark:border-white/10 dark:bg-white/[0.06]">
+            <p className="text-[10px] font-black text-[#7b8278] dark:text-[#9aac94]">今日</p>
+            <p className="text-lg font-black tabular-nums text-[#3f5f3b] dark:text-[#a7df9e]">{todayCount}</p>
           </div>
-          <div className="rounded-md border border-[#e4dfd4] bg-white/58 px-3 py-2">
-            <p className="text-[10px] font-black text-[#7b8278]">完了率</p>
-            <p className="text-lg font-black tabular-nums text-[#3f5f3b]">{completionRate}%</p>
+          <div className="rounded-md border border-[#e4dfd4] bg-white/58 px-3 py-2 dark:border-white/10 dark:bg-white/[0.06]">
+            <p className="text-[10px] font-black text-[#7b8278] dark:text-[#9aac94]">完了率</p>
+            <p className="text-lg font-black tabular-nums text-[#3f5f3b] dark:text-[#a7df9e]">{completionRate}%</p>
           </div>
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e4dfd4]">
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e4dfd4] dark:bg-white/10">
           <div className="h-full rounded-full bg-gradient-to-r from-[#88a871] via-[#4e7d45] to-[#d1a63b]" style={{ width: `${completionRate}%` }} />
         </div>
       </div>
@@ -347,18 +353,18 @@ function AppSidebar({
           <button
             key={item.id}
             className={cn(
-              "group flex h-12 items-center justify-between rounded-md border border-transparent px-3 text-left text-sm font-bold text-[#626a61] transition",
-              index === 0 ? "border-[#d7dece] bg-[#e9eee1] text-[#3f5f3b] shadow-sm" : "hover:border-[#e2decf] hover:bg-[#fbfaf5]/70",
+              "group flex h-12 items-center justify-between rounded-md border border-transparent px-3 text-left text-sm font-bold text-[#626a61] transition dark:text-[#b8c5b4]",
+              index === 0 ? "border-[#d7dece] bg-[#e9eee1] text-[#3f5f3b] shadow-sm dark:border-white/10 dark:bg-white/[0.08] dark:text-[#dff3d7]" : "hover:border-[#e2decf] hover:bg-[#fbfaf5]/70 dark:hover:border-white/10 dark:hover:bg-white/[0.06]",
             )}
             type="button"
           >
             <span className="flex min-w-0 items-center gap-3">
-              <span className={cn("grid h-8 w-8 place-items-center rounded-md bg-white/62 text-[#7a8375]", index === 0 && "bg-white text-[#3f7b3b]")}>
+              <span className={cn("grid h-8 w-8 place-items-center rounded-md bg-white/62 text-[#7a8375] dark:bg-white/[0.08] dark:text-[#9fb79c]", index === 0 && "bg-white text-[#3f7b3b] dark:bg-[#203d2a] dark:text-[#a7df9e]")}>
                 {item.icon}
               </span>
               <span className="truncate">{item.label}</span>
             </span>
-            <span className="rounded-full bg-white/64 px-2 py-0.5 text-xs font-black tabular-nums text-[#536050]">
+            <span className="rounded-full bg-white/64 px-2 py-0.5 text-xs font-black tabular-nums text-[#536050] dark:bg-white/[0.08] dark:text-[#d9e8d3]">
               {item.value}
               {item.suffix}
             </span>
@@ -369,7 +375,7 @@ function AppSidebar({
       <div className="my-6 h-px bg-[#e1ddd2]" />
 
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-[#7b8278]">プロジェクト</p>
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-[#7b8278] dark:text-[#9aac94]">プロジェクト</p>
         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-[#60715e] hover:bg-[#e9ece2]" onClick={() => onProject("all")}>
           <Plus className="h-4 w-4" />
         </Button>
@@ -389,7 +395,7 @@ function AppSidebar({
         ))}
       </div>
 
-      <Button variant="outline" className="mt-6 w-full justify-start rounded-md border-[#ddd8cc] bg-[#fffdf7]/70 font-bold text-[#52624f] shadow-sm hover:bg-white" onClick={onExport}>
+      <Button variant="outline" className="mt-6 w-full justify-start rounded-md border-[#ddd8cc] bg-[#fffdf7]/70 font-bold text-[#52624f] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/[0.06] dark:text-[#dce9d5] dark:hover:bg-white/[0.1]" onClick={onExport}>
         <Download className="h-4 w-4" />
         森データを出力
       </Button>
@@ -414,20 +420,20 @@ function ProjectButton({
   return (
     <button
       className={cn(
-        "grid gap-2 rounded-md border border-transparent px-3 py-2.5 text-left text-sm font-bold text-[#6b7369] transition hover:border-[#e2decf] hover:bg-[#fbfaf5]/70",
-        active && "border-[#d7dece] bg-[#e4e8dc] text-[#3f5f3b] shadow-sm",
+        "grid gap-2 rounded-md border border-transparent px-3 py-2.5 text-left text-sm font-bold text-[#6b7369] transition hover:border-[#e2decf] hover:bg-[#fbfaf5]/70 dark:text-[#b7c4b2] dark:hover:border-white/10 dark:hover:bg-white/[0.06]",
+        active && "border-[#d7dece] bg-[#e4e8dc] text-[#3f5f3b] shadow-sm dark:border-white/10 dark:bg-white/[0.08] dark:text-[#dcf2d7]",
       )}
       onClick={onClick}
       type="button"
     >
       <span className="flex min-w-0 items-center justify-between gap-3">
         <span className="flex min-w-0 items-center gap-2">
-          <ChevronRight className={cn("h-4 w-4 text-[#a2a99e] transition", active && "rotate-90 text-[#4e7d45]")} />
+          <ChevronRight className={cn("h-4 w-4 text-[#a2a99e] transition dark:text-[#758474]", active && "rotate-90 text-[#4e7d45] dark:text-[#a7df9e]")} />
           <span className="truncate">{label}</span>
         </span>
-        <span className="rounded-full bg-white/64 px-2 py-0.5 text-[11px] font-black tabular-nums text-[#5b744f]">{done ?? count}</span>
+        <span className="rounded-full bg-white/64 px-2 py-0.5 text-[11px] font-black tabular-nums text-[#5b744f] dark:bg-white/[0.08] dark:text-[#d9e8d3]">{done ?? count}</span>
       </span>
-      <span className="h-1.5 overflow-hidden rounded-full bg-[#e5e0d3]">
+      <span className="h-1.5 overflow-hidden rounded-full bg-[#e5e0d3] dark:bg-white/10">
         <span className="block h-full rounded-full bg-gradient-to-r from-[#8daa77] to-[#4e7d45]" style={{ width: `${Math.max(progress, active ? 8 : 0)}%` }} />
       </span>
     </button>
@@ -456,7 +462,7 @@ function ScopeToggle({ scope, onScope }: { scope: ForestScope; onScope: (scope: 
 
 function TopStatusPill({ completionRate, timeTone, todayCount }: { completionRate: number; timeTone: TimeTone; todayCount: number }) {
   return (
-    <div className="flex w-full items-center justify-between gap-2 rounded-md border border-[#ded9cd] bg-[#fffdf7]/82 px-3 py-2 text-sm font-black text-[#52624f] shadow-sm md:w-auto">
+    <div className="flex w-full items-center justify-between gap-2 rounded-md border border-[#ded9cd] bg-[#fffdf7]/82 px-3 py-2 text-sm font-black text-[#52624f] shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-[#dce9d5] md:w-auto">
       <span className="flex items-center gap-2">
         <CheckCircle2 className="h-4 w-4 text-[#4e7d45]" />
         今日 {todayCount}件
@@ -869,38 +875,135 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
   const fruits = node.fruits.slice(0, fruitPositions.length);
   const buds = node.buds.slice(0, 5);
   const empty = node.todoCount === 0;
-  const mature = node.featured || node.points >= 40 || fruits.length >= 3;
+  const growthLevel = treeGrowthLevel(node);
+  const mature = growthLevel >= 3;
+  const canopyScale = 0.66 + growthLevel * 0.08 + Math.min(fruits.length, 5) * 0.025;
+  const trunkHeight = 42 + growthLevel * 6;
+  const leafCount = empty ? 2 : Math.min(leafClusters.length, 2 + growthLevel);
   const openFruit = openFruitIndex === null ? undefined : fruits[openFruitIndex];
+  const treeSvgId = `tree-${node.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 
   return (
     <span className={cn("relative block aspect-square w-full", node.future && "opacity-45")}>
-      <span className="absolute bottom-[4%] left-[15%] h-[16%] w-[70%] rounded-[100%] bg-[#8d887b]/15 blur-[1px]" />
-      <span className="absolute bottom-[13%] left-[25%] h-[12%] w-[50%] rounded-[100%] border border-[#d8d0bf] bg-[#f5f2e9] shadow-[inset_0_2px_8px_rgba(255,255,255,0.8)]" />
-      <span
-        className={cn(
-          "absolute bottom-[20%] left-1/2 w-[10%] -translate-x-1/2 rounded-t-full bg-gradient-to-r from-[#5e3f2e] via-[#8a654d] to-[#4b3326]",
-          mature ? "h-[38%]" : "h-[28%]",
-        )}
-      />
-      <span className="absolute bottom-[28%] left-[43%] h-[24%] w-[7%] -rotate-[28deg] rounded-full bg-[#6b4a38]" />
-      <span className="absolute bottom-[30%] left-[51%] h-[26%] w-[7%] rotate-[31deg] rounded-full bg-[#6b4a38]" />
+      <motion.svg
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full overflow-visible drop-shadow-[0_14px_18px_rgba(47,75,42,0.14)]"
+        viewBox="0 0 160 160"
+        initial={false}
+        animate={{ scale: celebrate ? [1, 1.035, 1] : 1 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+      >
+        <defs>
+          <linearGradient id={`trunk-${treeSvgId}`} x1="55" x2="105" y1="128" y2="58" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#4f3426" />
+            <stop offset="0.48" stopColor="#8a654d" />
+            <stop offset="1" stopColor="#5e3f2e" />
+          </linearGradient>
+          <radialGradient id={`leaf-${treeSvgId}`} cx="42%" cy="22%" r="76%">
+            <stop offset="0" stopColor="#b7d8a5" />
+            <stop offset="0.48" stopColor="#6fa45b" />
+            <stop offset="1" stopColor="#3f783f" />
+          </radialGradient>
+          <radialGradient id={`base-${treeSvgId}`} cx="45%" cy="20%" r="68%">
+            <stop offset="0" stopColor="#fffef7" />
+            <stop offset="1" stopColor="#ded8c8" />
+          </radialGradient>
+          <filter id={`soft-shadow-${treeSvgId}`} x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="7" floodColor="#2f4a2d" floodOpacity="0.18" stdDeviation="5" />
+          </filter>
+        </defs>
 
-      <span className={cn("absolute left-[11%] top-[5%] h-[66%] w-[78%]", empty && "opacity-55")}>
-        {leafClusters.slice(0, mature ? leafClusters.length : 3).map((leaf, index) => (
-          <span
-            key={index}
-            className="absolute rounded-[48%] shadow-[inset_0_8px_14px_rgba(255,255,255,0.2),0_8px_18px_rgba(50,80,46,0.16)]"
-            style={{
-              left: `${leaf.left}%`,
-              top: `${leaf.top}%`,
-              width: `${leaf.width}%`,
-              height: `${leaf.height}%`,
-              background: leaf.color,
-              transform: `rotate(${index % 2 ? 11 : -9}deg)`,
-            }}
-          />
-        ))}
-      </span>
+        <ellipse cx="80" cy="142" rx="50" ry="8" fill="#5f6658" opacity="0.16" />
+        <ellipse cx="80" cy="132" rx="37" ry="9" fill={`url(#base-${treeSvgId})`} stroke="#d5cdba" strokeWidth="1.2" />
+        <ellipse cx="80" cy="128" rx="23" ry="5.2" fill="#544133" opacity="0.2" />
+
+        <motion.path
+          d={`M78 130 C75 ${118 - growthLevel * 2}, 77 ${96 - growthLevel * 3}, 80 ${130 - trunkHeight} C84 ${91 - growthLevel * 2}, 86 ${82 - growthLevel * 2}, 86 ${78 - growthLevel * 3}`}
+          fill="none"
+          stroke={`url(#trunk-${treeSvgId})`}
+          strokeLinecap="round"
+          strokeWidth={mature ? 13 : 10}
+          initial={{ pathLength: 0.18, opacity: 0.72 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 0.85, ease: "easeOut" }}
+        />
+        <motion.path
+          d="M81 94 C66 86, 56 78, 48 68"
+          fill="none"
+          stroke="#6b4a38"
+          strokeLinecap="round"
+          strokeWidth={mature ? 6 : 4}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: growthLevel >= 2 ? 1 : 0.35 }}
+          transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
+        />
+        <motion.path
+          d="M84 89 C99 80, 111 74, 120 63"
+          fill="none"
+          stroke="#73513d"
+          strokeLinecap="round"
+          strokeWidth={mature ? 6 : 4}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: growthLevel >= 2 ? 1 : 0.45 }}
+          transition={{ delay: 0.25, duration: 0.66, ease: "easeOut" }}
+        />
+        <motion.path
+          d="M83 79 C79 66, 82 56, 88 45"
+          fill="none"
+          stroke="#7a5742"
+          strokeLinecap="round"
+          strokeWidth={growthLevel >= 4 ? 5 : 3.5}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: growthLevel >= 3 ? 1 : 0.25 }}
+          transition={{ delay: 0.32, duration: 0.68, ease: "easeOut" }}
+        />
+
+        <motion.g
+          style={{ transformBox: "fill-box", transformOrigin: "center" }}
+          initial={{ opacity: 0.45, scale: 0.74 }}
+          animate={{
+            opacity: empty ? 0.56 : 1,
+            rotate: mature ? [0, -1.4, 1.1, 0] : 0,
+            scale: canopyScale,
+          }}
+          transition={{
+            opacity: { duration: 0.38 },
+            rotate: { duration: 4.8, ease: "easeInOut", repeat: Infinity },
+            scale: { duration: 0.55, ease: "easeOut" },
+          }}
+          filter={`url(#soft-shadow-${treeSvgId})`}
+        >
+          {[
+            { cx: 55, cy: 69, rx: 29, ry: 22, rotate: -18, opacity: 0.92 },
+            { cx: 79, cy: 53, rx: 32, ry: 24, rotate: 8, opacity: 0.98 },
+            { cx: 104, cy: 70, rx: 29, ry: 22, rotate: 18, opacity: 0.92 },
+            { cx: 72, cy: 82, rx: 31, ry: 22, rotate: 16, opacity: 0.9 },
+            { cx: 96, cy: 84, rx: 28, ry: 20, rotate: -14, opacity: 0.86 },
+          ]
+            .slice(0, leafCount)
+            .map((leaf, index) => (
+              <motion.ellipse
+                key={index}
+                cx={leaf.cx}
+                cy={leaf.cy}
+                fill={`url(#leaf-${treeSvgId})`}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: leaf.opacity, scale: 1 }}
+                rx={leaf.rx}
+                ry={leaf.ry}
+                style={{ transformBox: "fill-box", transformOrigin: "center", rotate: `${leaf.rotate}deg` }}
+                transition={{ delay: 0.16 + index * 0.05, type: "spring", stiffness: 140, damping: 16 }}
+              />
+            ))}
+        </motion.g>
+
+        {growthLevel <= 1 && (
+          <motion.g initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+            <path d="M80 101 C72 95, 66 91, 60 92 C64 101, 72 104, 80 101Z" fill="#75a95f" opacity="0.9" />
+            <path d="M84 98 C94 91, 103 89, 111 92 C106 101, 96 105, 84 98Z" fill="#5d984e" opacity="0.9" />
+          </motion.g>
+        )}
+      </motion.svg>
 
       {fruits.map((fruit, index) => {
         const position = fruitPositions[index];
@@ -950,18 +1053,18 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
       <AnimatePresence>
         {openFruit && (
           <motion.span
-            className="absolute left-1/2 top-[88%] z-50 grid max-h-44 w-56 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur"
+            className="absolute left-1/2 top-[88%] z-50 grid max-h-44 w-56 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96"
             initial={{ opacity: 0, y: -4, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.96 }}
             onClick={(event) => event.stopPropagation()}
           >
-            <span className="text-xs font-black text-[#2f3b2f]">実ったtodo</span>
+            <span className="text-xs font-black text-[#2f3b2f] dark:text-[#e8f5df]">実ったtodo</span>
             {node.fruits.map((fruit, index) => (
-              <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs font-semibold text-[#566055]">
+              <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs font-semibold text-[#566055] dark:text-[#c6d5bf]">
                 <span className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
                 <span className="truncate">{fruit.title}</span>
-                <span className="text-[10px] font-black text-[#71806d]">{difficultyMeta[fruit.difficulty].label}</span>
+                <span className="text-[10px] font-black text-[#71806d] dark:text-[#9fb19a]">{difficultyMeta[fruit.difficulty].label}</span>
               </span>
             ))}
           </motion.span>
@@ -1043,13 +1146,13 @@ function TaskScreen({
           todayNode={todayNode}
         />
 
-        <div className="grid gap-3 rounded-md border border-[#e5dfd2] bg-[#fffdf8]/72 p-3 shadow-[0_14px_36px_rgba(38,49,38,0.06)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <div className="grid gap-3 rounded-md border border-[#e5dfd2] bg-[#fffdf8]/72 p-3 shadow-[0_14px_36px_rgba(38,49,38,0.06)] backdrop-blur dark:border-white/10 dark:bg-white/[0.05] md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b9288]" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="h-11 rounded-md border-[#ddd8cc] bg-white/78 pl-9 font-semibold shadow-inner placeholder:text-[#9ca398]"
+              className="h-11 rounded-md border-[#ddd8cc] bg-white/78 pl-9 font-semibold shadow-inner placeholder:text-[#9ca398] dark:border-white/10 dark:bg-white/[0.08] dark:text-[#edf5e9] dark:placeholder:text-[#83927e]"
               placeholder="タスクやメモを探す"
             />
           </label>
@@ -1060,13 +1163,13 @@ function TaskScreen({
           </div>
         </div>
 
-        <div className="rounded-md border border-[#e4dfd4] bg-[#fffdf8]/66 p-2 shadow-[0_18px_48px_rgba(38,49,38,0.07)]">
+        <div className="rounded-md border border-[#e4dfd4] bg-[#fffdf8]/66 p-2 shadow-[0_18px_48px_rgba(38,49,38,0.07)] backdrop-blur dark:border-white/10 dark:bg-white/[0.045] dark:shadow-[0_18px_48px_rgba(0,0,0,0.25)]">
           <div className="flex flex-col gap-2 px-2 pb-3 pt-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#82907d]">Task Tree</p>
-              <h2 className="text-xl font-black text-[#263126]">今日やること</h2>
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#82907d] dark:text-[#93a88e]">Task Tree</p>
+              <h2 className="text-xl font-black text-[#263126] dark:text-[#eef4e8]">今日やること</h2>
             </div>
-            <Badge variant="outline" className="w-fit border-[#d9d3c5] bg-white/70 font-black text-[#536050]">
+            <Badge variant="outline" className="w-fit border-[#d9d3c5] bg-white/70 font-black text-[#536050] dark:border-white/10 dark:bg-white/[0.06] dark:text-[#d9e8d3]">
               {rootTasks.length}本の幹
             </Badge>
           </div>
@@ -1093,23 +1196,23 @@ function TaskScreen({
       </section>
 
       <aside className="grid h-fit gap-4">
-        <Card className="overflow-hidden border-[#ded8c8] bg-[#fffdf7]/82 shadow-[0_18px_48px_rgba(38,49,38,0.08)]">
-          <CardHeader className="border-b border-[#e9e2d3]/80 bg-[radial-gradient(circle_at_50%_0%,rgba(221,235,203,0.9),transparent_44%)] pb-3">
+        <Card className="overflow-hidden border-[#ded8c8] bg-[#fffdf7]/82 shadow-[0_18px_48px_rgba(38,49,38,0.08)] backdrop-blur dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_18px_48px_rgba(0,0,0,0.25)]">
+          <CardHeader className="border-b border-[#e9e2d3]/80 bg-[radial-gradient(circle_at_50%_0%,rgba(221,235,203,0.9),transparent_44%)] pb-3 dark:border-white/10 dark:bg-[radial-gradient(circle_at_50%_0%,rgba(73,105,73,0.34),transparent_48%)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <CardTitle className="flex items-center gap-2 text-[#263126]">
+                <CardTitle className="flex items-center gap-2 text-[#263126] dark:text-[#eef4e8]">
                   <TreePine className="h-4 w-4 fill-[#4e7d45] text-[#4e7d45]" />
                   今日の木
                 </CardTitle>
-                <CardDescription className="font-semibold">{todayNode.count}/{todayNode.todoCount} 実った</CardDescription>
+                <CardDescription className="font-semibold dark:text-[#a8b8a2]">{todayNode.count}/{todayNode.todoCount} 実った</CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="rounded-md border-[#d9d3c5] bg-white/72 font-black text-[#4e7d45]" onClick={() => setActiveView("forest")}>
+              <Button variant="outline" size="sm" className="rounded-md border-[#d9d3c5] bg-white/72 font-black text-[#4e7d45] dark:border-white/10 dark:bg-white/[0.08] dark:text-[#a7df9e]" onClick={() => setActiveView("forest")}>
                 森へ
               </Button>
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 p-4">
-            <div className="mx-auto w-56 max-w-full rounded-md border border-[#e0d9ca] bg-[linear-gradient(180deg,#f8f6ed,#eef3e6)] p-3 shadow-inner">
+            <div className="mx-auto w-56 max-w-full rounded-md border border-[#e0d9ca] bg-[linear-gradient(180deg,#f8f6ed,#eef3e6)] p-3 shadow-inner dark:border-white/10 dark:bg-[linear-gradient(180deg,#18251f,#0f1916)]">
               <TodoFruitTree celebrate={false} node={todayNode} />
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -1117,7 +1220,7 @@ function TaskScreen({
               <TreeTinyStat label="芽" value={todayNode.buds.length} />
               <TreeTinyStat label="実" value={todayNode.fruits.length} />
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#e5e0d3]">
+            <div className="h-2 overflow-hidden rounded-full bg-[#e5e0d3] dark:bg-white/10">
               <motion.div
                 className="h-full rounded-full bg-gradient-to-r from-[#95b17e] via-[#4e7d45] to-[#d1a63b]"
                 initial={false}
@@ -1128,25 +1231,25 @@ function TaskScreen({
           </CardContent>
         </Card>
 
-        <Card className="border-[#ded8c8] bg-[#fffdf7]/86 shadow-[0_18px_48px_rgba(38,49,38,0.08)]">
+        <Card className="border-[#ded8c8] bg-[#fffdf7]/86 shadow-[0_18px_48px_rgba(38,49,38,0.08)] backdrop-blur dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_18px_48px_rgba(0,0,0,0.25)]">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Sprout className="h-4 w-4 text-[#4e7d45]" />
               todoを植える
             </CardTitle>
-            <CardDescription>{selectedParentTitle ? `親: ${selectedParentTitle}` : "親タスクなし"}</CardDescription>
+            <CardDescription className="dark:text-[#a8b8a2]">{selectedParentTitle ? `親: ${selectedParentTitle}` : "親タスクなし"}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <Input
               value={title}
               onChange={(event) => onTitle(event.target.value)}
               onKeyDown={(event) => event.key === "Enter" && onSubmit()}
-              className="h-11 rounded-md border-[#ddd8cc] bg-white/80 font-semibold"
+              className="h-11 rounded-md border-[#ddd8cc] bg-white/80 font-semibold dark:border-white/10 dark:bg-white/[0.08] dark:text-[#edf5e9] dark:placeholder:text-[#83927e]"
               placeholder="タスク名"
             />
-            <Textarea value={notes} onChange={(event) => onNotes(event.target.value)} className="min-h-20 rounded-md border-[#ddd8cc] bg-white/80 font-medium" placeholder="メモ" />
+            <Textarea value={notes} onChange={(event) => onNotes(event.target.value)} className="min-h-20 rounded-md border-[#ddd8cc] bg-white/80 font-medium dark:border-white/10 dark:bg-white/[0.08] dark:text-[#edf5e9] dark:placeholder:text-[#83927e]" placeholder="メモ" />
             <select
-              className="h-11 rounded-md border border-[#ddd8cc] bg-white/80 px-3 text-sm font-semibold outline-none"
+              className="h-11 rounded-md border border-[#ddd8cc] bg-white/80 px-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-[#17221f] dark:text-[#edf5e9]"
               value={parentId}
               onChange={(event) => onParent(event.target.value)}
             >
@@ -1165,14 +1268,14 @@ function TaskScreen({
                   className={cn(
                     "grid gap-1 rounded-md border px-2 py-2 text-center text-xs font-black transition",
                     difficulty === key
-                      ? "border-[#4e7d45] bg-[#e6ecdf] text-[#334a31] shadow-[0_8px_18px_rgba(78,125,69,0.12)]"
-                      : "border-[#ddd8cc] bg-white/64 text-[#6a7467] hover:bg-white",
+                      ? "border-[#4e7d45] bg-[#e6ecdf] text-[#334a31] shadow-[0_8px_18px_rgba(78,125,69,0.12)] dark:border-[#8ccf83] dark:bg-[#1d3a28] dark:text-[#e9f6e2]"
+                      : "border-[#ddd8cc] bg-white/64 text-[#6a7467] hover:bg-white dark:border-white/10 dark:bg-white/[0.06] dark:text-[#c2d0bc] dark:hover:bg-white/[0.1]",
                   )}
                   onClick={() => onDifficulty(key)}
                 >
                   <span className={cn("mx-auto rounded-full border", miniFruitClassName(key))} />
                   <span>{difficultyMeta[key].label}</span>
-                  <span className="text-[10px] text-[#7b8278]">{difficultyMeta[key].hint}</span>
+                  <span className="text-[10px] text-[#7b8278] dark:text-[#9fb19a]">{difficultyMeta[key].hint}</span>
                 </button>
               ))}
             </div>
@@ -1210,23 +1313,23 @@ function TaskOverviewBand({
   todayNode: ForestMapNode;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-md border border-[#ded8c8] bg-[linear-gradient(135deg,#fffdf7_0%,#f2f4ea_52%,#e8efe2_100%)] p-4 shadow-[0_18px_48px_rgba(38,49,38,0.08)]">
-      <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#dbe8cd]/72 blur-3xl" />
+    <section className="relative overflow-hidden rounded-md border border-[#ded8c8] bg-[linear-gradient(135deg,#fffdf7_0%,#f2f4ea_52%,#e8efe2_100%)] p-4 shadow-[0_18px_48px_rgba(38,49,38,0.08)] backdrop-blur dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(27,39,34,0.92),rgba(15,24,21,0.96))] dark:shadow-[0_18px_54px_rgba(0,0,0,0.28)]">
+      <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#dbe8cd]/72 blur-3xl dark:bg-[#2f6841]/34" />
       <div className="pointer-events-none absolute bottom-0 left-0 h-20 w-full bg-[linear-gradient(90deg,rgba(112,141,94,0.08),transparent)]" />
       <div className="relative grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="rounded-full bg-[#e3eadb] px-3 py-1 text-[#3f5f3b] shadow-none">
+            <Badge className="rounded-full bg-[#e3eadb] px-3 py-1 text-[#3f5f3b] shadow-none dark:bg-[#243a2a] dark:text-[#bde8b3]">
               <Target className="mr-1 h-3.5 w-3.5" />
               今日のフォーカス
             </Badge>
-            <span className="flex items-center gap-1 text-xs font-black text-[#71806d]">
+            <span className="flex items-center gap-1 text-xs font-black text-[#71806d] dark:text-[#a8b8a2]">
               <Clock3 className="h-3.5 w-3.5" />
               {timeToneLabel(timeTone)}
             </span>
           </div>
-          <h2 className="mt-3 text-2xl font-black tracking-normal text-[#263126] sm:text-3xl">今日やることを実にする</h2>
-          <p className="mt-1 max-w-2xl text-sm font-semibold text-[#6f786c]">
+          <h2 className="mt-3 text-2xl font-black tracking-normal text-[#263126] dark:text-[#eef4e8] sm:text-3xl">今日やることを実にする</h2>
+          <p className="mt-1 max-w-2xl text-sm font-semibold text-[#6f786c] dark:text-[#b2c0ac]">
             親todoは幹、小todoは実。完了すると木に内容が残ります。
           </p>
         </div>
@@ -1244,11 +1347,11 @@ function TaskOverviewBand({
       </div>
 
       <div className="relative mt-4">
-        <div className="mb-2 flex items-center justify-between text-xs font-black text-[#6d746c]">
+        <div className="mb-2 flex items-center justify-between text-xs font-black text-[#6d746c] dark:text-[#a8b8a2]">
           <span>今日の成長ゲージ</span>
           <span>{progress}%</span>
         </div>
-        <div className="h-2.5 overflow-hidden rounded-full bg-[#e2dece] shadow-inner">
+        <div className="h-2.5 overflow-hidden rounded-full bg-[#e2dece] shadow-inner dark:bg-white/10">
           <motion.div
             className="h-full rounded-full bg-gradient-to-r from-[#8faf77] via-[#4e7d45] to-[#d1a63b]"
             initial={false}
@@ -1263,30 +1366,30 @@ function TaskOverviewBand({
 
 function OverviewStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-white/80 bg-white/62 px-3 py-3 shadow-[0_10px_24px_rgba(38,49,38,0.06)]">
-      <div className="flex items-center gap-2 text-[#6b7567]">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-[#eef3e8] text-[#4e7d45]">{icon}</span>
+    <div className="rounded-md border border-white/80 bg-white/62 px-3 py-3 shadow-[0_10px_24px_rgba(38,49,38,0.06)] dark:border-white/10 dark:bg-white/[0.055]">
+      <div className="flex items-center gap-2 text-[#6b7567] dark:text-[#b2c0ac]">
+        <span className="grid h-8 w-8 place-items-center rounded-md bg-[#eef3e8] text-[#4e7d45] dark:bg-[#203326] dark:text-[#a7df9e]">{icon}</span>
         <span className="text-xs font-black">{label}</span>
       </div>
-      <p className="mt-2 text-xl font-black tabular-nums text-[#2f3b2f] sm:text-2xl">{value}</p>
+      <p className="mt-2 text-xl font-black tabular-nums text-[#2f3b2f] dark:text-[#eef4e8] sm:text-2xl">{value}</p>
     </div>
   );
 }
 
 function TaskPill({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <span className="inline-flex h-9 items-center gap-2 rounded-full border border-[#ded8c8] bg-white/74 px-3 text-xs font-black text-[#536050]">
-      <span className="text-[#7b8278]">{label}</span>
-      <span className="tabular-nums text-[#31503a]">{value}</span>
+    <span className="inline-flex h-9 items-center gap-2 rounded-full border border-[#ded8c8] bg-white/74 px-3 text-xs font-black text-[#536050] dark:border-white/10 dark:bg-white/[0.06]">
+      <span className="text-[#7b8278] dark:text-[#9fb19a]">{label}</span>
+      <span className="tabular-nums text-[#31503a] dark:text-[#dff2d9]">{value}</span>
     </span>
   );
 }
 
 function TreeTinyStat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-[#e5dfd2] bg-white/64 px-2 py-2 text-center">
-      <p className="text-[10px] font-black text-[#7b8278]">{label}</p>
-      <p className="mt-0.5 text-base font-black tabular-nums text-[#334a31]">{value}</p>
+    <div className="rounded-md border border-[#e5dfd2] bg-white/64 px-2 py-2 text-center dark:border-white/10 dark:bg-white/[0.06]">
+      <p className="text-[10px] font-black text-[#7b8278] dark:text-[#9fb19a]">{label}</p>
+      <p className="mt-0.5 text-base font-black tabular-nums text-[#334a31] dark:text-[#e8f5df]">{value}</p>
     </div>
   );
 }
@@ -1314,14 +1417,14 @@ function NestedTaskRow({
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }}>
       <div
         className={cn(
-          "group relative grid gap-2 overflow-hidden rounded-md border border-[#e4dfd4] bg-white/78 p-3.5 shadow-[0_10px_26px_rgba(38,49,38,0.06)] transition hover:-translate-y-0.5 hover:border-[#d3dbc8] hover:bg-white hover:shadow-[0_16px_34px_rgba(38,49,38,0.1)]",
-          task.completed && "border-[#e1ded2] bg-[#f2f3eb]/82 text-[#7a8177] hover:bg-[#f5f5ef]",
+          "group relative grid gap-2 overflow-hidden rounded-md border border-[#e4dfd4] bg-white/78 p-3.5 shadow-[0_10px_26px_rgba(38,49,38,0.06)] transition hover:-translate-y-0.5 hover:border-[#d3dbc8] hover:bg-white hover:shadow-[0_16px_34px_rgba(38,49,38,0.1)] dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_10px_30px_rgba(0,0,0,0.18)] dark:hover:bg-white/[0.08]",
+          task.completed && "border-[#e1ded2] bg-[#f2f3eb]/82 text-[#7a8177] hover:bg-[#f5f5ef] dark:border-white/10 dark:bg-white/[0.035] dark:text-[#83927e] dark:hover:bg-white/[0.055]",
         )}
         style={{ marginLeft: depth ? Math.min(depth * 22, 58) : 0 }}
       >
         <span className={cn("absolute inset-y-0 left-0 w-1 bg-[#8caf77]", task.completed && "bg-[#c7cbbd]", task.difficulty === "hard" && "bg-[#d1a63b]")} />
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-md border border-[#ddd8cc] bg-[#fffdf7] shadow-inner">
+          <span className="grid h-9 w-9 place-items-center rounded-md border border-[#ddd8cc] bg-[#fffdf7] shadow-inner dark:border-white/10 dark:bg-white/[0.08]">
             <Checkbox
               aria-label={task.completed ? `${task.title}は完了済み` : `${task.title}を完了`}
               checked={task.completed}
@@ -1331,17 +1434,17 @@ function NestedTaskRow({
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className={cn("min-w-0 max-w-full truncate text-base font-black text-[#263126]", task.completed && "text-[#7a8177] line-through")}>{task.title}</p>
+              <p className={cn("min-w-0 max-w-full truncate text-base font-black text-[#263126] dark:text-[#eef4e8]", task.completed && "text-[#7a8177] line-through dark:text-[#83927e]")}>{task.title}</p>
               <DifficultyBadge difficulty={task.difficulty} />
               {!!childTasks.length && (
-                <Badge variant="outline" className="rounded-full border-[#d9d3c5] bg-[#fffdf7]/74 text-[#536050]">
+                <Badge variant="outline" className="rounded-full border-[#d9d3c5] bg-[#fffdf7]/74 text-[#536050] dark:border-white/10 dark:bg-white/[0.06] dark:text-[#d9e8d3]">
                   {childDone}/{childTasks.length}
                 </Badge>
               )}
             </div>
-            {task.notes && <p className="mt-1 line-clamp-2 text-sm text-[#777f75]">{task.notes}</p>}
+            {task.notes && <p className="mt-1 line-clamp-2 text-sm text-[#777f75] dark:text-[#a8b8a2]">{task.notes}</p>}
             {!!childTasks.length && (
-              <div className="mt-3 rounded-md border border-[#ebe5d7] bg-[#f8f7ef]/80 p-2.5">
+              <div className="mt-3 rounded-md border border-[#ebe5d7] bg-[#f8f7ef]/80 p-2.5 dark:border-white/10 dark:bg-white/[0.045]">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="h-9 w-1.5 rounded-full bg-gradient-to-b from-[#7b5944] via-[#5f4131] to-[#3f2d24]" />
@@ -1358,19 +1461,19 @@ function NestedTaskRow({
                       ))}
                     </div>
                   </div>
-                  <span className="shrink-0 text-xs font-black tabular-nums text-[#657160]">{childProgress}%</span>
+                  <span className="shrink-0 text-xs font-black tabular-nums text-[#657160] dark:text-[#a8b8a2]">{childProgress}%</span>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e1ddcf]">
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e1ddcf] dark:bg-white/10">
                   <div className="h-full rounded-full bg-gradient-to-r from-[#8faf77] to-[#d1a63b]" style={{ width: `${childProgress}%` }} />
                 </div>
               </div>
             )}
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-[#60715e] hover:bg-[#e9eee1]" onClick={() => onParent(task.id)} aria-label={`${task.title}に小タスクを追加`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-[#60715e] hover:bg-[#e9eee1] dark:text-[#a7c7a0] dark:hover:bg-white/[0.08]" onClick={() => onParent(task.id)} aria-label={`${task.title}に小タスクを追加`}>
               <Plus className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-[#a15d55] hover:bg-[#f3e3df]" onClick={() => onDelete(task.id)} aria-label={`${task.title}を削除`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-[#a15d55] hover:bg-[#f3e3df] dark:text-[#e08d83] dark:hover:bg-white/[0.08]" onClick={() => onDelete(task.id)} aria-label={`${task.title}を削除`}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -1405,19 +1508,19 @@ function HistoryScreen({ history }: { history: Record<string, Task[]> }) {
   return (
     <div className="grid gap-4 p-4 lg:p-8">
       <div>
-        <h2 className="text-2xl font-black">履歴</h2>
-        <p className="text-sm font-medium text-[#747a71]">完了したタスク</p>
+        <h2 className="text-2xl font-black dark:text-[#eef4e8]">履歴</h2>
+        <p className="text-sm font-medium text-[#747a71] dark:text-[#a8b8a2]">完了したタスク</p>
       </div>
       <div className="grid gap-3">
         {days.map(([day, tasks]) => (
-          <Card key={day} className="border-[#e4dfd4] bg-white/72 shadow-none">
+          <Card key={day} className="border-[#e4dfd4] bg-white/72 shadow-none dark:border-white/10 dark:bg-white/[0.055]">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle>{day}</CardTitle>
               <Badge variant="outline">{tasks.length}件</Badge>
             </CardHeader>
             <CardContent className="grid gap-2">
               {tasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between gap-3 rounded-md bg-[#f4f3ed] px-3 py-2 text-sm">
+                <div key={task.id} className="flex items-center justify-between gap-3 rounded-md bg-[#f4f3ed] px-3 py-2 text-sm dark:bg-white/[0.06]">
                   <span className="truncate font-semibold">{task.title}</span>
                   <Badge className={difficultyMeta[task.difficulty].className}>{difficultyMeta[task.difficulty].hint}</Badge>
                 </div>
@@ -1443,11 +1546,11 @@ function SettingsScreen({
   return (
     <div className="grid max-w-3xl gap-5 p-4 lg:p-8">
       <div>
-        <h2 className="text-2xl font-black">設定</h2>
-        <p className="text-sm font-medium text-[#747a71]">表示と保存データ</p>
+        <h2 className="text-2xl font-black dark:text-[#eef4e8]">設定</h2>
+        <p className="text-sm font-medium text-[#747a71] dark:text-[#a8b8a2]">表示と保存データ</p>
       </div>
 
-      <Card className="border-[#e4dfd4] bg-white/72 shadow-none">
+      <Card className="border-[#e4dfd4] bg-white/72 shadow-none dark:border-white/10 dark:bg-white/[0.055]">
         <CardContent className="grid gap-5 p-5">
           <div className="grid gap-2">
             <p className="text-sm font-bold">テーマ</p>
@@ -1459,11 +1562,11 @@ function SettingsScreen({
               ))}
             </div>
           </div>
-          <label className="flex items-center gap-3 rounded-md border border-[#e4dfd4] p-3">
+          <label className="flex items-center gap-3 rounded-md border border-[#e4dfd4] p-3 dark:border-white/10 dark:bg-white/[0.035]">
             <Checkbox checked={settings.showCelebration} onCheckedChange={(checked) => updateSettings({ showCelebration: Boolean(checked) })} />
             <span className="font-semibold">完了時の光</span>
           </label>
-          <label className="flex items-center gap-3 rounded-md border border-[#e4dfd4] p-3">
+          <label className="flex items-center gap-3 rounded-md border border-[#e4dfd4] p-3 dark:border-white/10 dark:bg-white/[0.035]">
             <Checkbox checked={settings.compact} onCheckedChange={(checked) => updateSettings({ compact: Boolean(checked) })} />
             <span className="font-semibold">コンパクト</span>
           </label>
@@ -1499,18 +1602,18 @@ function SettingsScreen({
 
 function MiniMetric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-[#e4dfd4] bg-[#fffdf7]/76 p-4 shadow-[0_12px_28px_rgba(38,49,38,0.06)]">
-      <p className="text-xs font-black text-[#747a71]">{label}</p>
-      <p className="mt-1 text-2xl font-black tabular-nums text-[#2f3b2f]">{value}</p>
+    <div className="rounded-md border border-[#e4dfd4] bg-[#fffdf7]/76 p-4 shadow-[0_12px_28px_rgba(38,49,38,0.06)] dark:border-white/10 dark:bg-white/[0.055]">
+      <p className="text-xs font-black text-[#747a71] dark:text-[#a8b8a2]">{label}</p>
+      <p className="mt-1 text-2xl font-black tabular-nums text-[#2f3b2f] dark:text-[#eef4e8]">{value}</p>
     </div>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="grid place-items-center rounded-md border border-dashed border-[#d9d3c5] bg-[#fffdf7]/58 p-8 text-center">
+    <div className="grid place-items-center rounded-md border border-dashed border-[#d9d3c5] bg-[#fffdf7]/58 p-8 text-center dark:border-white/10 dark:bg-white/[0.04]">
       <Sprout className="mb-2 h-6 w-6 text-[#8aa17e]" />
-      <p className="text-sm font-bold text-[#747a71]">{text}</p>
+      <p className="text-sm font-bold text-[#747a71] dark:text-[#a8b8a2]">{text}</p>
     </div>
   );
 }
@@ -1961,10 +2064,19 @@ function miniBudClassName(difficulty: Difficulty) {
   return "h-2.5 w-2.5 border-[#9bad91] bg-[#eef5e7]";
 }
 
+function treeGrowthLevel(node: ForestMapNode) {
+  if (node.future) return 1;
+  if (node.points >= 170 || node.count >= 8) return 5;
+  if (node.points >= 100 || node.count >= 5) return 4;
+  if (node.points >= 55 || node.count >= 3) return 3;
+  if (node.points >= 20 || node.count >= 1) return 2;
+  return node.todoCount > 0 ? 1 : 0;
+}
+
 function difficultyBadgeClassName(difficulty: Difficulty) {
-  if (difficulty === "hard") return "border-[#ead68a] bg-[#fff5c6] text-[#725313]";
-  if (difficulty === "medium") return "border-[#edcf9b] bg-[#fff0da] text-[#7a5128]";
-  return "border-[#d7c9b9] bg-[#f3efe7] text-[#5f684f]";
+  if (difficulty === "hard") return "border-[#ead68a] bg-[#fff5c6] text-[#725313] dark:border-[#d8bd52]/70 dark:bg-[#3a3218] dark:text-[#ffe89a]";
+  if (difficulty === "medium") return "border-[#edcf9b] bg-[#fff0da] text-[#7a5128] dark:border-[#b8793f]/60 dark:bg-[#332818] dark:text-[#ffc477]";
+  return "border-[#d7c9b9] bg-[#f3efe7] text-[#5f684f] dark:border-white/10 dark:bg-white/[0.06] dark:text-[#cbd9c4]";
 }
 
 function exportForest(tasks: Task[]) {
@@ -1980,7 +2092,7 @@ function exportForest(tasks: Task[]) {
 
 function themeClass(theme: ThemeMode) {
   if (theme === "forest") return "theme-forest";
-  if (theme === "night") return "theme-night";
+  if (theme === "night") return "theme-night dark bg-[radial-gradient(circle_at_72%_12%,rgba(91,139,108,0.2),transparent_32%),linear-gradient(135deg,#0b1211_0%,#14201d_52%,#08100f_100%)] text-[#eef4e8]";
   return "";
 }
 
