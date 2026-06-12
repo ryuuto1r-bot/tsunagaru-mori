@@ -148,6 +148,37 @@ const leafClusters = [
   { left: 40, top: 42, width: 45, height: 38, color: "rgba(74, 136, 66, 0.86)" },
 ] as const;
 
+const bonsaiLeafParticles = [
+  { cx: 49, cy: 70, rx: 12, ry: 8, rotate: -22, color: "#6f9c5e", opacity: 0.93 },
+  { cx: 57, cy: 61, rx: 12, ry: 8, rotate: -10, color: "#86b06f", opacity: 0.96 },
+  { cx: 68, cy: 55, rx: 13, ry: 9, rotate: 12, color: "#78a764", opacity: 0.98 },
+  { cx: 81, cy: 51, rx: 13, ry: 9, rotate: -6, color: "#9cc287", opacity: 0.96 },
+  { cx: 94, cy: 56, rx: 12, ry: 8, rotate: 20, color: "#6f9e5c", opacity: 0.96 },
+  { cx: 106, cy: 65, rx: 12, ry: 8, rotate: 24, color: "#5c8c50", opacity: 0.94 },
+  { cx: 39, cy: 81, rx: 11, ry: 7, rotate: -20, color: "#5f8f51", opacity: 0.9 },
+  { cx: 52, cy: 80, rx: 13, ry: 8, rotate: 10, color: "#82ac6a", opacity: 0.94 },
+  { cx: 66, cy: 76, rx: 12, ry: 8, rotate: -14, color: "#7ba667", opacity: 0.96 },
+  { cx: 80, cy: 73, rx: 13, ry: 8, rotate: 8, color: "#6e9f5c", opacity: 0.97 },
+  { cx: 94, cy: 77, rx: 12, ry: 8, rotate: -18, color: "#8ab573", opacity: 0.95 },
+  { cx: 108, cy: 80, rx: 11, ry: 7, rotate: 17, color: "#527f48", opacity: 0.91 },
+  { cx: 59, cy: 43, rx: 9, ry: 6, rotate: -18, color: "#a8ca95", opacity: 0.86 },
+  { cx: 72, cy: 38, rx: 10, ry: 6, rotate: 8, color: "#b6d6a2", opacity: 0.82 },
+  { cx: 86, cy: 39, rx: 10, ry: 6, rotate: -10, color: "#98bd82", opacity: 0.84 },
+  { cx: 101, cy: 45, rx: 9, ry: 6, rotate: 20, color: "#87ad72", opacity: 0.86 },
+  { cx: 44, cy: 94, rx: 10, ry: 6, rotate: 18, color: "#7ca662", opacity: 0.9 },
+  { cx: 58, cy: 94, rx: 11, ry: 7, rotate: -14, color: "#659556", opacity: 0.92 },
+  { cx: 73, cy: 91, rx: 12, ry: 7, rotate: 9, color: "#93ba7b", opacity: 0.94 },
+  { cx: 88, cy: 91, rx: 12, ry: 7, rotate: -9, color: "#78a462", opacity: 0.93 },
+  { cx: 102, cy: 94, rx: 10, ry: 6, rotate: 16, color: "#5b8b50", opacity: 0.9 },
+  { cx: 116, cy: 92, rx: 8, ry: 5, rotate: -12, color: "#8ab573", opacity: 0.84 },
+  { cx: 31, cy: 71, rx: 8, ry: 5, rotate: 8, color: "#83ad6c", opacity: 0.78 },
+  { cx: 119, cy: 70, rx: 8, ry: 5, rotate: -8, color: "#759f61", opacity: 0.78 },
+  { cx: 65, cy: 64, rx: 8, ry: 5, rotate: 22, color: "#c4dfb6", opacity: 0.64 },
+  { cx: 84, cy: 61, rx: 8, ry: 5, rotate: -18, color: "#d3e8c7", opacity: 0.58 },
+  { cx: 95, cy: 69, rx: 7, ry: 4, rotate: 18, color: "#bdd8aa", opacity: 0.6 },
+  { cx: 73, cy: 82, rx: 7, ry: 4, rotate: -14, color: "#b2d09c", opacity: 0.58 },
+] as const;
+
 function App() {
   const { tasks, settings, addTask, completeTask, deleteTask, resetAll, updateSettings } = useGrowthStore();
   const [timeTone, setTimeTone] = useState<TimeTone>(() => getTimeTone());
@@ -1112,9 +1143,10 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
   const empty = node.todoCount === 0;
   const growthLevel = treeGrowthLevel(node);
   const mature = growthLevel >= 3;
-  const canopyScale = 0.66 + growthLevel * 0.08 + Math.min(fruits.length, 5) * 0.025;
+  const seedOnly = growthLevel <= 1 && node.count === 0;
+  const canopyScale = 0.76 + growthLevel * 0.035 + Math.min(fruits.length, 5) * 0.012;
   const trunkHeight = 42 + growthLevel * 6;
-  const leafCount = empty ? 2 : Math.min(leafClusters.length, 2 + growthLevel);
+  const particleLeafCount = seedOnly ? 0 : Math.min(bonsaiLeafParticles.length, 10 + growthLevel * 4 + fruits.length);
   const openFruit = openFruitIndex === null ? undefined : fruits[openFruitIndex];
   const treeSvgId = `tree-${node.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 
@@ -1148,95 +1180,101 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
           </filter>
         </defs>
 
-        <ellipse cx="80" cy="142" rx="50" ry="8" fill="#5f6658" opacity="0.16" />
-        <ellipse cx="80" cy="132" rx="37" ry="9" fill={`url(#base-${treeSvgId})`} stroke="#d5cdba" strokeWidth="1.2" />
-        <ellipse cx="80" cy="128" rx="23" ry="5.2" fill="#544133" opacity="0.2" />
+        <ellipse cx="80" cy="143" rx="52" ry="8" fill="#5f6658" opacity="0.14" />
+        <ellipse cx="80" cy="133" rx="39" ry="10" fill={`url(#base-${treeSvgId})`} stroke="#d5cdba" strokeWidth="1.2" />
+        <ellipse cx="80" cy="128" rx="27" ry="7" fill="#557044" opacity="0.82" />
+        <ellipse cx="80" cy="126" rx="19" ry="4.6" fill="#27351f" opacity="0.18" />
+        {[58, 68, 92, 103].map((cx, index) => (
+          <ellipse key={`moss-${index}`} cx={cx} cy={128 + (index % 2)} rx={3.2} ry={1.8} fill="#d8d3c4" opacity="0.82" />
+        ))}
 
-        <motion.path
-          d={`M78 130 C75 ${118 - growthLevel * 2}, 77 ${96 - growthLevel * 3}, 80 ${130 - trunkHeight} C84 ${91 - growthLevel * 2}, 86 ${82 - growthLevel * 2}, 86 ${78 - growthLevel * 3}`}
-          fill="none"
-          stroke={`url(#trunk-${treeSvgId})`}
-          strokeLinecap="round"
-          strokeWidth={mature ? 13 : 10}
-          initial={{ pathLength: 0.18, opacity: 0.72 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 0.85, ease: "easeOut" }}
-        />
-        <motion.path
-          d="M81 94 C66 86, 56 78, 48 68"
-          fill="none"
-          stroke="#6b4a38"
-          strokeLinecap="round"
-          strokeWidth={mature ? 6 : 4}
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: growthLevel >= 2 ? 1 : 0.35 }}
-          transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
-        />
-        <motion.path
-          d="M84 89 C99 80, 111 74, 120 63"
-          fill="none"
-          stroke="#73513d"
-          strokeLinecap="round"
-          strokeWidth={mature ? 6 : 4}
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: growthLevel >= 2 ? 1 : 0.45 }}
-          transition={{ delay: 0.25, duration: 0.66, ease: "easeOut" }}
-        />
-        <motion.path
-          d="M83 79 C79 66, 82 56, 88 45"
-          fill="none"
-          stroke="#7a5742"
-          strokeLinecap="round"
-          strokeWidth={growthLevel >= 4 ? 5 : 3.5}
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: growthLevel >= 3 ? 1 : 0.25 }}
-          transition={{ delay: 0.32, duration: 0.68, ease: "easeOut" }}
-        />
-
-        <motion.g
-          style={{ transformBox: "fill-box", transformOrigin: "center" }}
-          initial={{ opacity: 0.45, scale: 0.74 }}
-          animate={{
-            opacity: empty ? 0.56 : 1,
-            rotate: mature ? [0, -1.4, 1.1, 0] : 0,
-            scale: canopyScale,
-          }}
-          transition={{
-            opacity: { duration: 0.38 },
-            rotate: { duration: 4.8, ease: "easeInOut", repeat: Infinity },
-            scale: { duration: 0.55, ease: "easeOut" },
-          }}
-          filter={`url(#soft-shadow-${treeSvgId})`}
-        >
-          {[
-            { cx: 55, cy: 69, rx: 29, ry: 22, rotate: -18, opacity: 0.92 },
-            { cx: 79, cy: 53, rx: 32, ry: 24, rotate: 8, opacity: 0.98 },
-            { cx: 104, cy: 70, rx: 29, ry: 22, rotate: 18, opacity: 0.92 },
-            { cx: 72, cy: 82, rx: 31, ry: 22, rotate: 16, opacity: 0.9 },
-            { cx: 96, cy: 84, rx: 28, ry: 20, rotate: -14, opacity: 0.86 },
-          ]
-            .slice(0, leafCount)
-            .map((leaf, index) => (
-              <motion.ellipse
-                key={index}
-                cx={leaf.cx}
-                cy={leaf.cy}
-                fill={`url(#leaf-${treeSvgId})`}
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: leaf.opacity, scale: 1 }}
-                rx={leaf.rx}
-                ry={leaf.ry}
-                style={{ transformBox: "fill-box", transformOrigin: "center", rotate: `${leaf.rotate}deg` }}
-                transition={{ delay: 0.16 + index * 0.05, type: "spring", stiffness: 140, damping: 16 }}
-              />
-            ))}
-        </motion.g>
-
-        {growthLevel <= 1 && (
-          <motion.g initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-            <path d="M80 101 C72 95, 66 91, 60 92 C64 101, 72 104, 80 101Z" fill="#75a95f" opacity="0.9" />
-            <path d="M84 98 C94 91, 103 89, 111 92 C106 101, 96 105, 84 98Z" fill="#5d984e" opacity="0.9" />
+        {seedOnly ? (
+          <motion.g initial={{ opacity: 0, y: 5, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.15, duration: 0.5 }}>
+            <ellipse cx="80" cy="121" rx="8.5" ry="6.5" fill="#9a6a42" />
+            <path d="M80 118 C78 110, 79 104, 84 98" fill="none" stroke="#5d7f45" strokeLinecap="round" strokeWidth="4" />
+            {!empty && (
+              <>
+                <path d="M82 105 C73 99, 66 98, 60 102 C66 111, 76 112, 82 105Z" fill="#80a968" opacity="0.94" />
+                <path d="M85 101 C94 93, 103 92, 110 96 C104 107, 94 109, 85 101Z" fill="#5f944f" opacity="0.94" />
+              </>
+            )}
           </motion.g>
+        ) : (
+          <>
+            <motion.path
+              d={`M78 130 C75 ${118 - growthLevel * 2}, 77 ${96 - growthLevel * 3}, 80 ${130 - trunkHeight} C84 ${91 - growthLevel * 2}, 86 ${82 - growthLevel * 2}, 86 ${78 - growthLevel * 3}`}
+              fill="none"
+              stroke={`url(#trunk-${treeSvgId})`}
+              strokeLinecap="round"
+              strokeWidth={mature ? 11 : 8}
+              initial={{ pathLength: 0.18, opacity: 0.72 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.85, ease: "easeOut" }}
+            />
+            <path d="M75 127 C66 124, 62 122, 55 119" fill="none" stroke="#644633" strokeLinecap="round" strokeWidth="3.2" opacity="0.72" />
+            <path d="M84 127 C93 124, 99 122, 106 118" fill="none" stroke="#6b4c36" strokeLinecap="round" strokeWidth="3.2" opacity="0.72" />
+            <motion.path
+              d="M81 94 C66 86, 56 78, 48 68"
+              fill="none"
+              stroke="#6b4a38"
+              strokeLinecap="round"
+              strokeWidth={mature ? 4.6 : 3.2}
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: growthLevel >= 2 ? 1 : 0.35 }}
+              transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
+            />
+            <motion.path
+              d="M84 89 C99 80, 111 74, 120 63"
+              fill="none"
+              stroke="#73513d"
+              strokeLinecap="round"
+              strokeWidth={mature ? 4.6 : 3.2}
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: growthLevel >= 2 ? 1 : 0.45 }}
+              transition={{ delay: 0.25, duration: 0.66, ease: "easeOut" }}
+            />
+            <motion.path
+              d="M83 79 C79 66, 82 56, 88 45"
+              fill="none"
+              stroke="#7a5742"
+              strokeLinecap="round"
+              strokeWidth={growthLevel >= 4 ? 4 : 2.8}
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: growthLevel >= 3 ? 1 : 0.25 }}
+              transition={{ delay: 0.32, duration: 0.68, ease: "easeOut" }}
+            />
+
+            <motion.g
+              style={{ transformBox: "fill-box", transformOrigin: "center" }}
+              initial={{ opacity: 0.45, scale: 0.78 }}
+              animate={{
+                opacity: 1,
+                rotate: mature ? [0, -0.8, 0.6, 0] : 0,
+                scale: canopyScale,
+              }}
+              transition={{
+                opacity: { duration: 0.38 },
+                rotate: { duration: 5.4, ease: "easeInOut", repeat: Infinity },
+                scale: { duration: 0.55, ease: "easeOut" },
+              }}
+              filter={`url(#soft-shadow-${treeSvgId})`}
+            >
+              {bonsaiLeafParticles.slice(0, particleLeafCount).map((leaf, index) => (
+                <motion.ellipse
+                  key={index}
+                  cx={leaf.cx}
+                  cy={leaf.cy}
+                  fill={leaf.color}
+                  initial={{ opacity: 0, scale: 0.42 }}
+                  animate={{ opacity: leaf.opacity, scale: 1 }}
+                  rx={leaf.rx}
+                  ry={leaf.ry}
+                  style={{ transformBox: "fill-box", transformOrigin: "center", rotate: `${leaf.rotate}deg` }}
+                  transition={{ delay: 0.08 + index * 0.018, type: "spring", stiffness: 150, damping: 16 }}
+                />
+              ))}
+            </motion.g>
+          </>
         )}
       </motion.svg>
 
@@ -2061,29 +2099,49 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   group.scale.setScalar(scope === "today" ? scale * 1.15 : scale);
   group.userData.floatTree = true;
 
-  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x6b4935, roughness: 0.94 });
+  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x5f3c2c, roughness: 0.96 });
   const barkMaterial = new THREE.MeshStandardMaterial({ color: 0x3f2b22, roughness: 0.96 });
   const branchMaterial = new THREE.MeshStandardMaterial({ color: 0x78523c, roughness: 0.9 });
-  const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xf2eee4, roughness: 0.9 });
-  const mossMaterial = new THREE.MeshStandardMaterial({ color: 0x6f8f55, roughness: 0.95 });
+  const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xf7f3e8, roughness: 0.86 });
+  const rimMaterial = new THREE.MeshStandardMaterial({ color: 0xe1dbcb, roughness: 0.82 });
+  const mossMaterial = new THREE.MeshStandardMaterial({ color: 0x57733f, roughness: 0.98 });
+  const mossHighlightMaterial = new THREE.MeshStandardMaterial({ color: 0x8ead6f, roughness: 0.96 });
   const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0xc8c1b2, roughness: 0.88 });
   const leafMaterials = [
-    new THREE.MeshStandardMaterial({ color: 0x8eb275, roughness: 0.86 }),
-    new THREE.MeshStandardMaterial({ color: 0x67985a, roughness: 0.84 }),
-    new THREE.MeshStandardMaterial({ color: 0x47763f, roughness: 0.88 }),
-    new THREE.MeshStandardMaterial({ color: 0x9cbe83, roughness: 0.85 }),
+    new THREE.MeshStandardMaterial({ color: 0x8fb36f, roughness: 0.88 }),
+    new THREE.MeshStandardMaterial({ color: 0x6f9d5c, roughness: 0.9 }),
+    new THREE.MeshStandardMaterial({ color: 0x456f3a, roughness: 0.92 }),
+    new THREE.MeshStandardMaterial({ color: 0xaac992, roughness: 0.88 }),
   ];
   const leafHighlightMaterial = new THREE.MeshStandardMaterial({ color: 0xb6d09c, roughness: 0.82, transparent: true, opacity: 0.88 });
 
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.38, 0.13, 64), baseMaterial);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.4, 0.12, 72), baseMaterial);
   base.position.y = 0.06;
   base.receiveShadow = true;
   group.add(base);
 
-  const moss = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.98, 0.06, 48), mossMaterial);
-  moss.position.y = 0.15;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.12, 0.065, 12, 72), rimMaterial);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.17;
+  rim.castShadow = true;
+  rim.receiveShadow = true;
+  group.add(rim);
+
+  const moss = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.98, 0.08, 56), mossMaterial);
+  moss.position.y = 0.17;
   moss.receiveShadow = true;
   group.add(moss);
+
+  for (let index = 0; index < 10; index += 1) {
+    const angle = index * 2.17;
+    const radius = 0.16 + (index % 5) * 0.12;
+    const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.055 + (index % 3) * 0.018, 10, 8), index % 3 === 0 ? mossHighlightMaterial : mossMaterial);
+    tuft.position.set(Math.cos(angle) * radius, 0.23 + (index % 2) * 0.012, Math.sin(angle) * radius * 0.82);
+    tuft.scale.set(1.42, 0.42, 1.04);
+    tuft.castShadow = true;
+    tuft.receiveShadow = true;
+    group.add(tuft);
+  }
 
   for (let index = 0; index < 5; index += 1) {
     const angle = index * 1.34 + 0.2;
@@ -2119,17 +2177,17 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     return group;
   }
 
-  const trunkHeight = 1.16 + Math.min(5, growthLevel) * 0.28 + Math.min(3, node.count) * 0.06;
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.34, trunkHeight, 16), trunkMaterial);
+  const trunkHeight = 1.22 + Math.min(5, growthLevel) * 0.28 + Math.min(3, node.count) * 0.06;
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.265, trunkHeight, 18), trunkMaterial);
   trunk.position.y = 0.18 + trunkHeight / 2;
   trunk.rotation.z = -0.045;
   trunk.castShadow = true;
   group.add(trunk);
 
   for (let index = 0; index < 5; index += 1) {
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.018, trunkHeight * 0.58, 0.018), barkMaterial);
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.012, trunkHeight * 0.58, 0.014), barkMaterial);
     const angle = index * 1.2;
-    ridge.position.set(Math.cos(angle) * 0.16, 0.38 + trunkHeight * 0.34, Math.sin(angle) * 0.11);
+    ridge.position.set(Math.cos(angle) * 0.13, 0.38 + trunkHeight * 0.34, Math.sin(angle) * 0.09);
     ridge.rotation.y = angle;
     ridge.rotation.z = -0.045;
     ridge.castShadow = true;
@@ -2137,12 +2195,12 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   }
 
   [
-    { x: -0.38, y: trunkHeight * 0.72, z: 0.04, rz: 0.78, rx: 0.08, length: 0.92 },
-    { x: 0.4, y: trunkHeight * 0.78, z: -0.03, rz: -0.74, rx: -0.06, length: 0.88 },
-    { x: 0.08, y: trunkHeight * 0.9, z: -0.26, rz: -0.26, rx: 0.22, length: 0.78 },
-    { x: -0.12, y: trunkHeight * 0.86, z: 0.28, rz: 0.28, rx: -0.22, length: 0.72 },
+    { x: -0.38, y: trunkHeight * 0.72, z: 0.04, rz: 0.88, rx: 0.08, length: 0.9 },
+    { x: 0.4, y: trunkHeight * 0.78, z: -0.03, rz: -0.86, rx: -0.06, length: 0.86 },
+    { x: 0.08, y: trunkHeight * 0.92, z: -0.26, rz: -0.32, rx: 0.22, length: 0.76 },
+    { x: -0.12, y: trunkHeight * 0.86, z: 0.28, rz: 0.34, rx: -0.22, length: 0.7 },
   ].forEach((branch) => {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.105, branch.length, 12), branchMaterial);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.082, branch.length, 12), branchMaterial);
     mesh.position.set(branch.x, branch.y, branch.z);
     mesh.rotation.z = branch.rz;
     mesh.rotation.x = branch.rx;
@@ -2151,29 +2209,43 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   });
 
   const leafCenters = [
-    { x: -0.64, y: trunkHeight + 0.32, z: 0.02, size: 0.74, sx: 1.22, sy: 0.68, sz: 0.9 },
-    { x: 0.02, y: trunkHeight + 0.62, z: 0.06, size: 0.88, sx: 1.18, sy: 0.72, sz: 0.94 },
-    { x: 0.68, y: trunkHeight + 0.3, z: -0.06, size: 0.72, sx: 1.16, sy: 0.7, sz: 0.9 },
-    { x: -0.18, y: trunkHeight + 0.12, z: 0.47, size: 0.68, sx: 1.28, sy: 0.62, sz: 0.82 },
-    { x: 0.18, y: trunkHeight + 0.16, z: -0.46, size: 0.66, sx: 1.24, sy: 0.64, sz: 0.86 },
-    { x: -0.42, y: trunkHeight + 0.66, z: -0.18, size: 0.56, sx: 1.1, sy: 0.66, sz: 0.8 },
-    { x: 0.45, y: trunkHeight + 0.68, z: 0.16, size: 0.52, sx: 1.08, sy: 0.62, sz: 0.78 },
-    { x: 0.02, y: trunkHeight + 0.36, z: 0.58, size: 0.5, sx: 1.18, sy: 0.58, sz: 0.72 },
+    { x: -0.6, y: trunkHeight + 0.28, z: 0.02, size: 0.7, sx: 1.22, sy: 0.68, sz: 0.9 },
+    { x: 0.0, y: trunkHeight + 0.58, z: 0.06, size: 0.82, sx: 1.18, sy: 0.72, sz: 0.94 },
+    { x: 0.62, y: trunkHeight + 0.28, z: -0.06, size: 0.68, sx: 1.16, sy: 0.7, sz: 0.9 },
+    { x: -0.18, y: trunkHeight + 0.08, z: 0.43, size: 0.62, sx: 1.28, sy: 0.62, sz: 0.82 },
+    { x: 0.18, y: trunkHeight + 0.12, z: -0.42, size: 0.62, sx: 1.24, sy: 0.64, sz: 0.86 },
+    { x: -0.4, y: trunkHeight + 0.62, z: -0.16, size: 0.5, sx: 1.1, sy: 0.66, sz: 0.8 },
+    { x: 0.43, y: trunkHeight + 0.64, z: 0.14, size: 0.48, sx: 1.08, sy: 0.62, sz: 0.78 },
+    { x: 0.02, y: trunkHeight + 0.34, z: 0.54, size: 0.46, sx: 1.18, sy: 0.58, sz: 0.72 },
   ];
   const visibleLeafCount = Math.min(leafCenters.length, Math.max(3, growthLevel + 3 + (node.featured ? 1 : 0)));
   leafCenters.slice(0, visibleLeafCount).forEach((leaf, index) => {
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(leaf.size, 24, 18), leafMaterials[index % leafMaterials.length]);
-    mesh.position.set(leaf.x, leaf.y, leaf.z);
-    mesh.scale.set(leaf.sx, leaf.sy, leaf.sz);
-    mesh.rotation.y = index * 0.36;
-    mesh.rotation.z = (index % 2 ? -1 : 1) * 0.08;
-    mesh.castShadow = true;
-    group.add(mesh);
+    const particleCount = node.featured ? 13 : 9;
+    for (let particle = 0; particle < particleCount; particle += 1) {
+      const seed = Math.sin((index + 1) * 19.13 + (particle + 2) * 7.91) * 43758.5453;
+      const seedB = Math.sin((index + 4) * 13.73 + (particle + 6) * 5.31) * 24634.6345;
+      const seedC = Math.sin((index + 7) * 9.17 + (particle + 3) * 11.11) * 9731.113;
+      const rx = seed - Math.floor(seed);
+      const ry = seedB - Math.floor(seedB);
+      const rz = seedC - Math.floor(seedC);
+      const radius = leaf.size * (0.16 + (particle % 4) * 0.018);
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 10), leafMaterials[(index + particle) % leafMaterials.length]);
+      mesh.position.set(
+        leaf.x + (rx - 0.5) * leaf.size * leaf.sx * 1.25,
+        leaf.y + (ry - 0.5) * leaf.size * leaf.sy * 0.78,
+        leaf.z + (rz - 0.5) * leaf.size * leaf.sz * 1.08,
+      );
+      mesh.scale.set(1.42, 0.62 + (particle % 3) * 0.08, 1.02);
+      mesh.rotation.y = index * 0.38 + particle * 0.16;
+      mesh.rotation.z = (particle % 2 ? -1 : 1) * (0.18 + rx * 0.2);
+      mesh.castShadow = true;
+      group.add(mesh);
+    }
 
-    if (index < 5) {
-      const highlight = new THREE.Mesh(new THREE.SphereGeometry(leaf.size * 0.26, 14, 10), leafHighlightMaterial);
-      highlight.position.set(leaf.x - leaf.size * 0.18, leaf.y + leaf.size * 0.18, leaf.z + leaf.size * 0.34);
-      highlight.scale.set(1.24, 0.36, 0.7);
+    if (index < 4) {
+      const highlight = new THREE.Mesh(new THREE.SphereGeometry(leaf.size * 0.12, 12, 8), leafHighlightMaterial);
+      highlight.position.set(leaf.x - leaf.size * 0.15, leaf.y + leaf.size * 0.18, leaf.z + leaf.size * 0.32);
+      highlight.scale.set(1.8, 0.42, 0.72);
       group.add(highlight);
     }
   });
