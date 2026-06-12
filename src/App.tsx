@@ -927,54 +927,155 @@ function MemoryOverlay({ tasks, visible }: { tasks: Task[]; visible: boolean }) 
 }
 
 function ForestNode({ celebrate, node, onComplete }: { celebrate?: boolean; node: ForestMapNode; onComplete?: () => void }) {
-  const maxSize = node.featured ? 178 : node.todoCount >= 5 ? 138 : node.todoCount >= 2 ? 118 : 96;
-  const minSize = node.featured ? 126 : 76;
-  const fluidSize = node.featured ? 17 : 10;
-  const showSublabel = node.sublabel && node.sublabel !== node.label;
-  const interactive = Boolean(onComplete);
-
-  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (!interactive || (event.key !== "Enter" && event.key !== " ")) return;
-    event.preventDefault();
-    onComplete?.();
-  }
+  const markerWidth = node.featured ? 188 : node.todoCount >= 5 ? 156 : 132;
+  const markerTop = Math.max(7, Math.min(88, node.y - (node.featured ? 18 : 15)));
 
   return (
     <motion.div
-      className={cn(
-        "pointer-events-none absolute z-20 grid -translate-x-1/2 -translate-y-1/2 place-items-center text-center outline-none",
-      )}
+      className="pointer-events-none absolute z-30 -translate-x-1/2 text-center outline-none"
       style={{
         left: `${node.x}%`,
-        top: `${node.y}%`,
-        width: `clamp(${minSize}px, ${fluidSize}vw, ${maxSize}px)`,
-        minHeight: `calc(clamp(${minSize}px, ${fluidSize}vw, ${maxSize}px) + 42px)`,
+        top: `${markerTop}%`,
+        width: `min(${markerWidth}px, 42vw)`,
       }}
-      onKeyDown={handleKeyDown}
+      initial={false}
+      animate={{ y: celebrate ? [0, -5, 0] : 0, scale: celebrate ? [1, 1.04, 1] : 1 }}
+      transition={{ duration: 0.55, ease: "easeOut" }}
       aria-label={`${node.label} 完了${node.count}件 todo${node.todoCount}件`}
       role="group"
     >
-      <TodoFruitTree celebrate={celebrate} node={node} />
-      {interactive && (
-        <motion.button
+      <ForestNodeMarker node={node} onComplete={onComplete} />
+    </motion.div>
+  );
+}
+
+function ForestNodeMarker({ node, onComplete }: { node: ForestMapNode; onComplete?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const showSublabel = node.sublabel && node.sublabel !== node.label;
+  const fruits = node.fruits.slice(0, 5);
+  const buds = node.buds.slice(0, Math.max(0, 5 - fruits.length));
+  const hasFruits = node.fruits.length > 0;
+  const popover = (
+    <AnimatePresence>
+      {open && (
+        <motion.span
+          className="absolute left-1/2 top-[calc(100%+8px)] z-50 grid max-h-44 w-60 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96"
+          initial={{ opacity: 0, y: -4, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -4, scale: 0.96 }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <span className="text-xs font-black text-[#2f3b2f] dark:text-[#e8f5df]">実ったtodo</span>
+          {node.fruits.map((fruit, index) => (
+            <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs font-semibold text-[#566055] dark:text-[#c6d5bf]">
+              <span className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
+              <span className="truncate">{fruit.title}</span>
+              <span className="text-[10px] font-black text-[#71806d] dark:text-[#9fb19a]">{difficultyMeta[fruit.difficulty].label}</span>
+            </span>
+          ))}
+        </motion.span>
+      )}
+    </AnimatePresence>
+  );
+
+  if (!node.featured) {
+    return (
+      <span className={cn("pointer-events-auto relative inline-grid justify-items-center gap-1", node.future && "opacity-60")}>
+        <button
           type="button"
-          className="pointer-events-auto absolute right-1 top-1 z-40 grid h-8 w-8 place-items-center rounded-full border border-white/80 bg-[#4f7f47] text-white shadow-[0_8px_18px_rgba(50,83,44,0.22)] outline-none transition hover:bg-[#3f713b] focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35"
+          className={cn(
+            "relative grid h-10 min-w-10 place-items-center rounded-full border border-white/80 bg-[#fffdf7]/86 px-2 text-xs font-black tabular-nums text-[#4d7048] shadow-[0_12px_28px_rgba(38,49,38,0.12)] outline-none backdrop-blur-md transition focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35 dark:border-white/10 dark:bg-[#13201c]/82 dark:text-[#c9edbd]",
+            hasFruits ? "hover:bg-white" : "cursor-default",
+          )}
+          disabled={!hasFruits}
+          title={hasFruits ? "実ったtodoを見る" : "まだ実っていません"}
+          aria-label={hasFruits ? `${node.label}の完了todoを見る` : `${node.label}はまだ実っていません`}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (hasFruits) setOpen((value) => !value);
+          }}
+        >
+          {node.count}
+          {fruits.length > 0 && (
+            <span className="absolute -right-1 -top-1 flex gap-0.5">
+              {fruits.slice(0, 3).map((fruit, index) => (
+                <span key={`compact-fruit-${index}`} className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
+              ))}
+            </span>
+          )}
+        </button>
+        <span className="max-w-24 truncate rounded-full border border-white/70 bg-[#fffdf7]/76 px-2 py-0.5 text-[11px] font-black text-[#52624f] shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#13201c]/72 dark:text-[#dbe9d5]">
+          {shortTitle(node.label, 8)}
+        </span>
+        {popover}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={cn(
+        "pointer-events-auto relative inline-flex max-w-full items-center gap-2 rounded-full border border-white/72 bg-[#fffdf7]/82 px-2.5 py-2 text-left shadow-[0_14px_34px_rgba(38,49,38,0.12)] backdrop-blur-md dark:border-white/10 dark:bg-[#13201c]/78",
+        node.featured && "border-[#d5dfcc] bg-[#fffdf7]/90 shadow-[0_18px_44px_rgba(38,49,38,0.15)]",
+        node.future && "opacity-60",
+      )}
+    >
+      <span className="grid h-7 min-w-7 place-items-center rounded-full bg-[#6f8d65] px-2 text-xs font-black tabular-nums text-white shadow-sm">
+        {node.count}
+      </span>
+
+      <button
+        type="button"
+        className={cn(
+          "flex h-8 min-w-12 items-center justify-center gap-1 rounded-full border border-[#dcd5c7] bg-white/58 px-2 outline-none transition focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35 dark:border-white/10 dark:bg-white/[0.06]",
+          hasFruits ? "hover:bg-white" : "cursor-default",
+        )}
+        disabled={!hasFruits}
+        title={hasFruits ? "実ったtodoを見る" : "まだ実っていません"}
+        aria-label={hasFruits ? `${node.label}の完了todoを見る` : `${node.label}はまだ実っていません`}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (hasFruits) setOpen((value) => !value);
+        }}
+      >
+        {fruits.length || buds.length ? (
+          <>
+            {fruits.map((fruit, index) => (
+              <span key={`fruit-dot-${index}`} className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
+            ))}
+            {buds.map((bud, index) => (
+              <span key={`bud-dot-${index}`} className={cn("rounded-full border shadow-[0_1px_4px_rgba(75,96,67,0.14)]", miniBudClassName(bud.difficulty))} />
+            ))}
+          </>
+        ) : (
+          <Sprout className="h-4 w-4 text-[#7f986f]" />
+        )}
+      </button>
+
+      <span className="grid min-w-0 flex-1">
+        <span className={cn("truncate text-sm font-black leading-tight text-[#354336] dark:text-[#eff8e8]", node.featured && "text-[#416c3a] dark:text-[#b8edaa]")}>
+          {node.label}
+        </span>
+        {showSublabel && <span className="truncate text-[10px] font-bold leading-tight text-[#71806d] dark:text-[#a6b89e]">{node.sublabel}</span>}
+      </span>
+
+      {onComplete && (
+        <button
+          type="button"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#4f7f47] text-white shadow-[0_8px_18px_rgba(50,83,44,0.2)] outline-none transition hover:bg-[#3f713b] focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35"
           title={`${node.label}を完了`}
           aria-label={`${node.label}を完了`}
           onClick={(event) => {
             event.stopPropagation();
-            onComplete?.();
+            onComplete();
           }}
-          whileTap={{ scale: 0.94 }}
         >
           <CheckCircle2 className="h-4 w-4" />
-        </motion.button>
+        </button>
       )}
-      {showSublabel && <span className="mt-1 max-w-[160px] truncate text-xs font-bold text-[#626961] md:text-sm">{node.sublabel}</span>}
-      <span className={cn("mt-1 max-w-[160px] truncate text-sm font-black text-[#3a473a] md:text-base", node.featured && "text-[#466d3d]")}>
-        {node.label}
-      </span>
-    </motion.div>
+
+      {popover}
+    </span>
   );
 }
 
