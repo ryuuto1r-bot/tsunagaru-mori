@@ -23,6 +23,8 @@ import {
   Target,
   Trash2,
   TreePine,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +63,7 @@ import { cn } from "@/lib/utils";
 type AppView = "tasks" | "forest" | "history" | "settings";
 type ForestScope = "today" | "month" | "all";
 type TimeTone = "morning" | "day" | "evening" | "night";
+type WorldControl = "zoom-in" | "zoom-out" | "reset";
 
 type ProjectGroup = {
   name: string;
@@ -157,6 +160,7 @@ function App() {
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [parentId, setParentId] = useState("");
   const [celebrateId, setCelebrateId] = useState<string | null>(null);
+  const [forestMemoryMode, setForestMemoryMode] = useState(false);
 
   const groups = useMemo(() => groupTasksByProject(tasks), [tasks]);
   const scopedTasks = useMemo(
@@ -174,6 +178,7 @@ function App() {
   const completionRate = tasks.length ? Math.round((tasks.filter((task) => task.completed).length / tasks.length) * 100) : 0;
   const monthCompleted = forestDays.reduce((sum, day) => sum + day.count, 0);
   const selectedParentTitle = tasks.find((task) => task.id === parentId)?.title;
+  const forestImmersive = activeView === "forest" && forestMemoryMode;
 
   useEffect(() => {
     const timer = window.setInterval(() => setTimeTone(getTimeTone()), 60_000);
@@ -206,21 +211,28 @@ function App() {
         themeClass(settings.theme),
       )}
     >
-      <main className="mx-auto min-h-screen w-full max-w-[1540px] p-2 sm:p-4 lg:p-5">
-        <section className="grid min-h-[calc(100vh-1rem)] overflow-hidden rounded-lg border border-white/75 bg-[#fbfaf5]/95 shadow-[0_28px_90px_rgba(31,47,34,0.18)] ring-1 ring-[#1f2d1e]/5 backdrop-blur dark:border-white/10 dark:bg-[#101715]/94 dark:shadow-[0_28px_90px_rgba(0,0,0,0.42)] lg:min-h-[calc(100vh-2.5rem)] lg:grid-cols-[292px_minmax(0,1fr)]">
-          <AppSidebar
-            activeProject={activeProject}
-            completionRate={completionRate}
-            groups={groups}
-            onProject={setActiveProject}
-            onExport={() => exportForest(tasks)}
-            taskCount={tasks.length}
-            todayCount={todayCount}
-          />
+      <main className={cn("mx-auto min-h-screen w-full max-w-[1540px] p-2 transition-all duration-500 sm:p-4 lg:p-5", forestImmersive && "max-w-none p-0 sm:p-0 lg:p-0")}>
+        <section
+          className={cn(
+            "grid min-h-[calc(100vh-1rem)] overflow-hidden rounded-lg border border-white/75 bg-[#fbfaf5]/95 shadow-[0_28px_90px_rgba(31,47,34,0.18)] ring-1 ring-[#1f2d1e]/5 backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/94 dark:shadow-[0_28px_90px_rgba(0,0,0,0.42)] lg:min-h-[calc(100vh-2.5rem)]",
+            forestImmersive ? "min-h-screen rounded-none border-transparent shadow-none ring-0 lg:min-h-screen lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[292px_minmax(0,1fr)]",
+          )}
+        >
+          {!forestImmersive && (
+            <AppSidebar
+              activeProject={activeProject}
+              completionRate={completionRate}
+              groups={groups}
+              onProject={setActiveProject}
+              onExport={() => exportForest(tasks)}
+              taskCount={tasks.length}
+              todayCount={todayCount}
+            />
+          )}
 
-          <div className="min-w-0 border-l border-[#e5e1d7] bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)] dark:border-white/10 dark:bg-[linear-gradient(180deg,#121c19_0%,#0d1413_100%)]">
+          <div className={cn("min-w-0 bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)] transition-all duration-500 dark:bg-[linear-gradient(180deg,#121c19_0%,#0d1413_100%)]", !forestImmersive && "border-l border-[#e5e1d7] dark:border-white/10")}>
             <Tabs value={activeView} onValueChange={(value) => setActiveView(value as AppView)} className="flex min-h-full flex-col">
-              <header className="flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8">
+              <header className={cn("flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8", forestImmersive && "pointer-events-none max-h-0 min-h-0 overflow-hidden border-b-0 px-0 py-0 opacity-0")}>
                 <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner dark:border-white/10 dark:bg-white/[0.06] dark:text-[#b9c7b4] md:flex md:w-auto md:justify-start md:gap-1.5">
                   {appTabs.map((tab) => (
                     <TabsTrigger
@@ -254,6 +266,7 @@ function App() {
                   tasks={tasks}
                   timeTone={timeTone}
                   todayCount={todayCount}
+                  onMemoryModeChange={setForestMemoryMode}
                 />
               </TabsContent>
 
@@ -483,6 +496,7 @@ function ForestScreen({
   groups,
   monthCompleted,
   onComplete,
+  onMemoryModeChange,
   scope,
   stage,
   streak,
@@ -494,6 +508,7 @@ function ForestScreen({
   groups: ProjectGroup[];
   monthCompleted: number;
   onComplete: (id: string) => void;
+  onMemoryModeChange?: (enabled: boolean) => void;
   scope: ForestScope;
   stage: ReturnType<typeof currentStage>;
   streak: number;
@@ -504,6 +519,8 @@ function ForestScreen({
   const mapNodes = useMemo(() => buildForestMapNodes({ groups, scope, tasks, todayCount }), [groups, scope, tasks, todayCount]);
   const links = useMemo(() => mapNodes.slice(1).map((node, index) => ({ from: mapNodes[index], to: node })), [mapNodes]);
   const [memoryMode, setMemoryMode] = useState(false);
+  const [worldControl, setWorldControl] = useState<WorldControl | null>(null);
+  const [worldControlNonce, setWorldControlNonce] = useState(0);
   const memoryTasks = useMemo(
     () =>
       tasks
@@ -513,21 +530,70 @@ function ForestScreen({
     [tasks],
   );
 
+  useEffect(() => {
+    onMemoryModeChange?.(memoryMode);
+    return () => onMemoryModeChange?.(false);
+  }, [memoryMode, onMemoryModeChange]);
+
+  function sendWorldControl(control: WorldControl) {
+    setWorldControl(control);
+    setWorldControlNonce((nonce) => nonce + 1);
+  }
+
   return (
-    <div className="grid min-h-[calc(100vh-6.5rem)] lg:grid-rows-[minmax(0,1fr)_auto]">
-      <section className={cn("relative min-h-[620px] overflow-hidden", forestSurfaceClass(timeTone))}>
-        <ForestWorldLayer mapNodes={mapNodes} scope={scope} timeTone={timeTone} onMemoryMode={setMemoryMode} />
-        <div className={cn("absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(104,120,104,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(104,120,104,0.12)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
-        <div className={cn("absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.58),rgba(245,246,238,0.12)_52%,rgba(235,230,217,0.24))] transition-opacity duration-500", memoryMode && "opacity-0")} />
-        <div className={cn("absolute left-4 top-4 z-40 rounded-md border border-[#e0dacd] bg-[#fbfaf5]/86 px-4 py-3 shadow-sm backdrop-blur transition-opacity duration-500", memoryMode && "pointer-events-none opacity-0")}>
+    <div className={cn("grid min-h-[calc(100vh-6.5rem)] lg:grid-rows-[minmax(0,1fr)_auto]", memoryMode && "min-h-screen lg:grid-rows-[minmax(0,1fr)]")}>
+      <section className={cn("relative min-h-[620px] touch-none overflow-hidden select-none", forestSurfaceClass(timeTone), memoryMode && "min-h-screen")}>
+        <ForestWorldLayer
+          control={worldControl}
+          controlNonce={worldControlNonce}
+          mapNodes={mapNodes}
+          scope={scope}
+          timeTone={timeTone}
+          onMemoryMode={setMemoryMode}
+        />
+        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(104,120,104,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(104,120,104,0.12)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
+        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.58),rgba(245,246,238,0.12)_52%,rgba(235,230,217,0.24))] transition-opacity duration-500", memoryMode && "opacity-0")} />
+        <div className={cn("pointer-events-none absolute left-4 top-4 z-40 rounded-md border border-[#e0dacd] bg-[#fbfaf5]/86 px-4 py-3 shadow-sm backdrop-blur transition-opacity duration-500", memoryMode && "opacity-0")}>
           <p className="text-base font-black text-[#2f3b2f]">{forestScopeTitle(scope)}</p>
           <p className="mt-1 text-xs font-semibold text-[#747a71]">{forestScopeDescription(scope)}</p>
         </div>
-        <div className={cn("absolute bottom-4 left-4 z-40 rounded-md border border-white/60 bg-white/70 px-3 py-2 text-xs font-bold text-[#52624f] shadow-sm backdrop-blur transition-opacity duration-500", memoryMode && "opacity-0")}>
-          ドラッグ / ホイールで木の中へ
+        <div className={cn("pointer-events-none absolute bottom-4 left-4 z-40 rounded-md border border-white/60 bg-white/70 px-3 py-2 text-xs font-bold text-[#52624f] shadow-sm backdrop-blur transition-opacity duration-500", memoryMode && "opacity-0")}>
+          ドラッグ / ホイール / ＋で木の中へ
+        </div>
+        <div className={cn("absolute bottom-4 right-4 z-[60] flex items-center gap-1 rounded-md border border-white/65 bg-white/74 p-1.5 text-[#4c5f4a] shadow-sm backdrop-blur transition-all duration-500", memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-85")}>
+          <Button
+            aria-label="木の中へ近づく"
+            className="h-9 w-9 rounded-md"
+            size="icon"
+            title="木の中へ近づく"
+            variant="ghost"
+            onClick={() => sendWorldControl("zoom-in")}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            aria-label="木から離れる"
+            className="h-9 w-9 rounded-md"
+            size="icon"
+            title="木から離れる"
+            variant="ghost"
+            onClick={() => sendWorldControl("zoom-out")}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <Button
+            aria-label="森の表示を戻す"
+            className="h-9 w-9 rounded-md"
+            size="icon"
+            title="森の表示を戻す"
+            variant="ghost"
+            onClick={() => sendWorldControl("reset")}
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
         </div>
 
-        <svg className={cn("absolute inset-0 z-20 h-full w-full transition-opacity duration-500", memoryMode && "opacity-0")} preserveAspectRatio="none" viewBox="0 0 100 100">
+        <svg className={cn("pointer-events-none absolute inset-0 z-20 h-full w-full transition-opacity duration-500", memoryMode && "opacity-0")} preserveAspectRatio="none" viewBox="0 0 100 100">
           {links.map((link) => (
             <path
               key={`${link.from.id}-${link.to.id}`}
@@ -541,7 +607,7 @@ function ForestScreen({
           ))}
         </svg>
 
-        <div className={cn("transition-opacity duration-500", memoryMode && "pointer-events-none opacity-0")}>
+        <div className={cn("pointer-events-none transition-opacity duration-500", memoryMode && "opacity-0")}>
           {mapNodes.map((node) => (
             <ForestNode
               key={node.id}
@@ -555,7 +621,7 @@ function ForestScreen({
         <MemoryOverlay tasks={memoryTasks} visible={memoryMode} />
       </section>
 
-      <footer className={cn("grid gap-3 border-t border-[#e8e3d9] bg-[#fbfaf5]/94 p-4 transition-opacity duration-500 md:grid-cols-3 lg:px-8", memoryMode && "opacity-45")}>
+      <footer className={cn("grid gap-3 border-t border-[#e8e3d9] bg-[#fbfaf5]/94 p-4 transition-all duration-500 md:grid-cols-3 lg:px-8", memoryMode && "pointer-events-none max-h-0 overflow-hidden border-t-0 p-0 opacity-0")}>
         <BottomMetric label="連続日数" value={`${streak}日`} />
         <BottomMetric label="今月のタスク完了" value={`${monthCompleted}件`} />
         <BottomMetric label="成長率" value={`${Math.round(stage.progress)}%`} />
@@ -565,11 +631,15 @@ function ForestScreen({
 }
 
 function ForestWorldLayer({
+  control,
+  controlNonce,
   mapNodes,
   onMemoryMode,
   scope,
   timeTone,
 }: {
+  control: WorldControl | null;
+  controlNonce: number;
   mapNodes: ForestMapNode[];
   onMemoryMode: (enabled: boolean) => void;
   scope: ForestScope;
@@ -577,10 +647,15 @@ function ForestWorldLayer({
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const onMemoryModeRef = useRef(onMemoryMode);
+  const controlRef = useRef<{ control: WorldControl | null; nonce: number }>({ control: null, nonce: 0 });
 
   useEffect(() => {
     onMemoryModeRef.current = onMemoryMode;
   }, [onMemoryMode]);
+
+  useEffect(() => {
+    controlRef.current = { control, nonce: controlNonce };
+  }, [control, controlNonce]);
 
   useEffect(() => {
     const currentHost = hostRef.current;
@@ -655,6 +730,27 @@ function ForestWorldLayer({
       onMemoryModeRef.current(drag.distance < 9.2);
     }
 
+    function resetView() {
+      drag.yaw = scope === "today" ? 0.18 : -0.38;
+      drag.pitch = 0.18;
+      drag.distance = scope === "today" ? 23 : 31;
+      drag.pinchDistance = null;
+    }
+
+    let handledControlNonce = controlRef.current.nonce;
+    function applyControlSignal() {
+      const signal = controlRef.current;
+      if (!signal.control || signal.nonce === handledControlNonce) return;
+      handledControlNonce = signal.nonce;
+      if (signal.control === "zoom-in") {
+        drag.distance = Math.max(5.8, drag.distance - 8.8);
+      } else if (signal.control === "zoom-out") {
+        drag.distance = Math.min(38, drag.distance + 8.8);
+      } else {
+        resetView();
+      }
+    }
+
     function handlePointerDown(event: PointerEvent) {
       drag.dragging = true;
       drag.lastX = event.clientX;
@@ -710,6 +806,7 @@ function ForestWorldLayer({
     const clock = new THREE.Clock();
     function animate() {
       const elapsed = clock.getElapsedTime();
+      applyControlSignal();
       world.rotation.y += (drag.yaw - world.rotation.y) * 0.08;
       updateCamera();
       world.children.forEach((child: THREE.Object3D, index: number) => {
@@ -786,12 +883,12 @@ function MemoryOverlay({ tasks, visible }: { tasks: Task[]; visible: boolean }) 
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="absolute left-1/2 top-1/2 w-[min(86vw,440px)] -translate-x-1/2 -translate-y-1/2 rounded-md border border-white/50 bg-white/64 px-5 py-4 text-center shadow-[0_24px_70px_rgba(20,31,25,0.18)] backdrop-blur-md"
+            className="absolute left-1/2 top-1/2 w-[min(86vw,440px)] -translate-x-1/2 -translate-y-1/2 rounded-md border border-white/62 bg-[#fffdf7]/82 px-5 py-4 text-center shadow-[0_24px_70px_rgba(20,31,25,0.2)] backdrop-blur-lg"
             initial={{ y: 12, scale: 0.96, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
           >
-            <p className="text-lg font-black text-[#263126]">木の中の記憶</p>
-            <p className="mt-1 text-xs font-bold text-[#5d695c]">完了したtodoが浮かびます</p>
+            <p className="text-lg font-black text-[#213021]">木の中の記憶</p>
+            <p className="mt-1 text-xs font-bold text-[#526150]">完了したtodoが浮かびます</p>
           </motion.div>
 
           {(tasks.length ? tasks : []).map((task, index) => {
@@ -845,8 +942,7 @@ function ForestNode({ celebrate, node, onComplete }: { celebrate?: boolean; node
   return (
     <motion.div
       className={cn(
-        "absolute z-20 grid -translate-x-1/2 -translate-y-1/2 place-items-center text-center outline-none",
-        interactive ? "cursor-pointer" : "cursor-default",
+        "pointer-events-none absolute z-20 grid -translate-x-1/2 -translate-y-1/2 place-items-center text-center outline-none",
       )}
       style={{
         left: `${node.x}%`,
@@ -854,14 +950,26 @@ function ForestNode({ celebrate, node, onComplete }: { celebrate?: boolean; node
         width: `clamp(${minSize}px, ${fluidSize}vw, ${maxSize}px)`,
         minHeight: `calc(clamp(${minSize}px, ${fluidSize}vw, ${maxSize}px) + 42px)`,
       }}
-      onClick={onComplete}
       onKeyDown={handleKeyDown}
-      whileHover={interactive ? { y: -2, scale: 1.015 } : undefined}
       aria-label={`${node.label} 完了${node.count}件 todo${node.todoCount}件`}
-      role={interactive ? "button" : "group"}
-      tabIndex={interactive ? 0 : undefined}
+      role="group"
     >
       <TodoFruitTree celebrate={celebrate} node={node} />
+      {interactive && (
+        <motion.button
+          type="button"
+          className="pointer-events-auto absolute right-1 top-1 z-40 grid h-8 w-8 place-items-center rounded-full border border-white/80 bg-[#4f7f47] text-white shadow-[0_8px_18px_rgba(50,83,44,0.22)] outline-none transition hover:bg-[#3f713b] focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35"
+          title={`${node.label}を完了`}
+          aria-label={`${node.label}を完了`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onComplete?.();
+          }}
+          whileTap={{ scale: 0.94 }}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+        </motion.button>
+      )}
       {showSublabel && <span className="mt-1 max-w-[160px] truncate text-xs font-bold text-[#626961] md:text-sm">{node.sublabel}</span>}
       <span className={cn("mt-1 max-w-[160px] truncate text-sm font-black text-[#3a473a] md:text-base", node.featured && "text-[#466d3d]")}>
         {node.label}
@@ -884,7 +992,7 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
   const treeSvgId = `tree-${node.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 
   return (
-    <span className={cn("relative block aspect-square w-full", node.future && "opacity-45")}>
+    <span className={cn("pointer-events-none relative block aspect-square w-full", node.future && "opacity-45")}>
       <motion.svg
         aria-hidden="true"
         className="absolute inset-0 h-full w-full overflow-visible drop-shadow-[0_14px_18px_rgba(47,75,42,0.14)]"
@@ -1013,7 +1121,7 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
             type="button"
             title={fruit.title}
             className={cn(
-              "absolute grid place-items-center rounded-full border text-[9px] font-black text-white outline-none transition focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35",
+              "pointer-events-auto absolute grid place-items-center rounded-full border text-[9px] font-black text-white outline-none transition focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35",
               fruitClassName(fruit.difficulty),
               openFruitIndex === index && "scale-110 ring-2 ring-[#4e7d45]/35",
             )}
@@ -1053,7 +1161,7 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
       <AnimatePresence>
         {openFruit && (
           <motion.span
-            className="absolute left-1/2 top-[88%] z-50 grid max-h-44 w-56 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96"
+            className="pointer-events-auto absolute left-1/2 top-[88%] z-50 grid max-h-44 w-56 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96"
             initial={{ opacity: 0, y: -4, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.96 }}
