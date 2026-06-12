@@ -517,7 +517,6 @@ function ForestScreen({
   todayCount: number;
 }) {
   const mapNodes = useMemo(() => buildForestMapNodes({ groups, scope, tasks, todayCount }), [groups, scope, tasks, todayCount]);
-  const links = useMemo(() => mapNodes.slice(1).map((node, index) => ({ from: mapNodes[index], to: node })), [mapNodes]);
   const [memoryMode, setMemoryMode] = useState(false);
   const [worldControl, setWorldControl] = useState<WorldControl | null>(null);
   const [worldControlNonce, setWorldControlNonce] = useState(0);
@@ -593,30 +592,7 @@ function ForestScreen({
           </Button>
         </div>
 
-        <svg className={cn("pointer-events-none absolute inset-0 z-20 h-full w-full transition-opacity duration-500", memoryMode && "opacity-0")} preserveAspectRatio="none" viewBox="0 0 100 100">
-          {links.map((link) => (
-            <path
-              key={`${link.from.id}-${link.to.id}`}
-              d={`M ${link.from.x} ${link.from.y} C ${(link.from.x + link.to.x) / 2} ${link.from.y + 8}, ${(link.from.x + link.to.x) / 2} ${link.to.y - 8}, ${link.to.x} ${link.to.y}`}
-              fill="none"
-              stroke="rgba(104,116,104,0.34)"
-              strokeDasharray="1.2 1.4"
-              strokeLinecap="round"
-              strokeWidth="0.35"
-            />
-          ))}
-        </svg>
-
-        <div className={cn("pointer-events-none transition-opacity duration-500", memoryMode && "opacity-0")}>
-          {mapNodes.map((node) => (
-            <ForestNode
-              key={node.id}
-              celebrate={Boolean(celebrateId && (node.id === celebrateId || node.id.includes(celebrateId)))}
-              node={node}
-              onComplete={scope === "today" && node.id.startsWith("task:") ? () => onComplete(node.id.replace("task:", "")) : undefined}
-            />
-          ))}
-        </div>
+        <ForestNodeTray celebrateId={celebrateId} mapNodes={mapNodes} memoryMode={memoryMode} onComplete={onComplete} scope={scope} />
 
         <MemoryOverlay tasks={memoryTasks} visible={memoryMode} />
       </section>
@@ -926,30 +902,69 @@ function MemoryOverlay({ tasks, visible }: { tasks: Task[]; visible: boolean }) 
   );
 }
 
-function ForestNode({ celebrate, node, onComplete }: { celebrate?: boolean; node: ForestMapNode; onComplete?: () => void }) {
-  const markerWidth = node.featured ? 188 : node.todoCount >= 5 ? 156 : 132;
-  const markerTop = Math.max(7, Math.min(88, node.y - (node.featured ? 18 : 15)));
-
+function ForestNodeTray({
+  celebrateId,
+  mapNodes,
+  memoryMode,
+  onComplete,
+  scope,
+}: {
+  celebrateId: string | null;
+  mapNodes: ForestMapNode[];
+  memoryMode: boolean;
+  onComplete: (id: string) => void;
+  scope: ForestScope;
+}) {
   return (
-    <motion.div
-      className="pointer-events-none absolute z-30 -translate-x-1/2 text-center outline-none"
-      style={{
-        left: `${node.x}%`,
-        top: `${markerTop}%`,
-        width: `min(${markerWidth}px, 42vw)`,
-      }}
-      initial={false}
-      animate={{ y: celebrate ? [0, -5, 0] : 0, scale: celebrate ? [1, 1.04, 1] : 1 }}
-      transition={{ duration: 0.55, ease: "easeOut" }}
-      aria-label={`${node.label} 完了${node.count}件 todo${node.todoCount}件`}
-      role="group"
+    <div
+      className={cn(
+        "pointer-events-none absolute bottom-[4.75rem] left-4 right-4 z-40 flex justify-center transition-opacity duration-500",
+        memoryMode && "opacity-0",
+      )}
     >
-      <ForestNodeMarker node={node} onComplete={onComplete} />
-    </motion.div>
+      <div
+        className={cn(
+          "pointer-events-auto max-w-[min(100%,920px)] rounded-md border border-white/62 bg-[#fffdf7]/54 px-2 py-1.5 shadow-[0_14px_36px_rgba(38,49,38,0.1)] backdrop-blur-md dark:border-white/10 dark:bg-[#13201c]/66",
+          scope === "today" && "max-w-[280px]",
+        )}
+      >
+        <div className="flex flex-wrap items-end justify-center gap-1.5">
+          {mapNodes.map((node) => (
+            <motion.span
+              key={node.id}
+              className="relative"
+              initial={false}
+              animate={{
+                y: celebrateId && (node.id === celebrateId || node.id.includes(celebrateId)) ? [0, -5, 0] : 0,
+                scale: celebrateId && (node.id === celebrateId || node.id.includes(celebrateId)) ? [1, 1.04, 1] : 1,
+              }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+            >
+              <ForestNodeMarker
+                compact
+                node={node}
+                popoverSide="top"
+                onComplete={scope === "today" && node.id.startsWith("task:") ? () => onComplete(node.id.replace("task:", "")) : undefined}
+              />
+            </motion.span>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
-function ForestNodeMarker({ node, onComplete }: { node: ForestMapNode; onComplete?: () => void }) {
+function ForestNodeMarker({
+  compact = false,
+  node,
+  onComplete,
+  popoverSide = "bottom",
+}: {
+  compact?: boolean;
+  node: ForestMapNode;
+  onComplete?: () => void;
+  popoverSide?: "bottom" | "top";
+}) {
   const [open, setOpen] = useState(false);
   const showSublabel = node.sublabel && node.sublabel !== node.label;
   const fruits = node.fruits.slice(0, 5);
@@ -959,7 +974,10 @@ function ForestNodeMarker({ node, onComplete }: { node: ForestMapNode; onComplet
     <AnimatePresence>
       {open && (
         <motion.span
-          className="absolute left-1/2 top-[calc(100%+8px)] z-50 grid max-h-44 w-60 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96"
+          className={cn(
+            "absolute left-1/2 z-50 grid max-h-44 w-60 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96",
+            popoverSide === "top" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
+          )}
           initial={{ opacity: 0, y: -4, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, scale: 0.96 }}
@@ -978,13 +996,18 @@ function ForestNodeMarker({ node, onComplete }: { node: ForestMapNode; onComplet
     </AnimatePresence>
   );
 
-  if (!node.featured) {
+  if (compact || !node.featured) {
     return (
-      <span className={cn("pointer-events-auto relative inline-grid justify-items-center gap-1", node.future && "opacity-60")}>
+      <span
+        className={cn(
+          "pointer-events-auto relative inline-flex items-center gap-1 rounded-full border border-white/74 bg-[#fffdf7]/82 px-1 py-1 text-left shadow-[0_8px_22px_rgba(38,49,38,0.1)] backdrop-blur-md dark:border-white/10 dark:bg-[#13201c]/82",
+          node.future && "opacity-60",
+        )}
+      >
         <button
           type="button"
           className={cn(
-            "relative grid h-10 min-w-10 place-items-center rounded-full border border-white/80 bg-[#fffdf7]/86 px-2 text-xs font-black tabular-nums text-[#4d7048] shadow-[0_12px_28px_rgba(38,49,38,0.12)] outline-none backdrop-blur-md transition focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35 dark:border-white/10 dark:bg-[#13201c]/82 dark:text-[#c9edbd]",
+            "relative grid h-8 min-w-8 place-items-center rounded-full border border-white/80 bg-[#fffdf7]/86 px-2 text-xs font-black tabular-nums text-[#4d7048] outline-none transition focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35 dark:border-white/10 dark:bg-white/[0.08] dark:text-[#c9edbd]",
             hasFruits ? "hover:bg-white" : "cursor-default",
           )}
           disabled={!hasFruits}
@@ -1004,8 +1027,8 @@ function ForestNodeMarker({ node, onComplete }: { node: ForestMapNode; onComplet
             </span>
           )}
         </button>
-        <span className="max-w-24 truncate rounded-full border border-white/70 bg-[#fffdf7]/76 px-2 py-0.5 text-[11px] font-black text-[#52624f] shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#13201c]/72 dark:text-[#dbe9d5]">
-          {shortTitle(node.label, 8)}
+        <span className="max-w-20 truncate pr-1 text-[11px] font-black text-[#52624f] dark:text-[#dbe9d5]">
+          {shortTitle(node.label, compact ? 6 : 8)}
         </span>
         {popover}
       </span>
