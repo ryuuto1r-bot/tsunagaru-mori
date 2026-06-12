@@ -550,13 +550,13 @@ function ForestScreen({
           timeTone={timeTone}
           onMemoryMode={setMemoryMode}
         />
-        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(104,120,104,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(104,120,104,0.12)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
-        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.58),rgba(245,246,238,0.12)_52%,rgba(235,230,217,0.24))] transition-opacity duration-500", memoryMode && "opacity-0")} />
+        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(104,120,104,0.09)_1px,transparent_1px),linear-gradient(to_bottom,rgba(104,120,104,0.09)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
+        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(245,246,238,0.04)_52%,rgba(225,219,203,0.12))] transition-opacity duration-500", memoryMode && "opacity-0")} />
         <div className={cn("pointer-events-none absolute left-4 top-4 z-40 rounded-md border border-[#e0dacd] bg-[#fbfaf5]/86 px-4 py-3 shadow-sm backdrop-blur transition-opacity duration-500", memoryMode && "opacity-0")}>
           <p className="text-base font-black text-[#2f3b2f]">{forestScopeTitle(scope)}</p>
           <p className="mt-1 text-xs font-semibold text-[#747a71]">{forestScopeDescription(scope)}</p>
         </div>
-        <div className={cn("pointer-events-none absolute bottom-4 left-4 z-40 rounded-md border border-white/60 bg-white/70 px-3 py-2 text-xs font-bold text-[#52624f] shadow-sm backdrop-blur transition-opacity duration-500", memoryMode && "opacity-0")}>
+        <div className={cn("pointer-events-none absolute bottom-4 left-4 z-40 hidden rounded-md border border-white/60 bg-white/70 px-3 py-2 text-xs font-bold text-[#52624f] shadow-sm backdrop-blur transition-opacity duration-500 sm:block", memoryMode && "opacity-0")}>
           ドラッグ / ホイール / ＋で木の中へ
         </div>
         <div className={cn("absolute bottom-4 right-4 z-[60] flex items-center gap-1 rounded-md border border-white/65 bg-white/74 p-1.5 text-[#4c5f4a] shadow-sm backdrop-blur transition-all duration-500", memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-85")}>
@@ -645,6 +645,9 @@ function ForestWorldLayer({
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = timeTone === "night" ? 1.18 : 1.08;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.className = "h-full w-full touch-none";
@@ -685,7 +688,7 @@ function ForestWorldLayer({
       lastY: 0,
       yaw: scope === "today" ? 0.18 : -0.38,
       pitch: 0.18,
-      distance: scope === "today" ? 23 : 31,
+      distance: scope === "today" ? 19 : 25,
       pinchDistance: null,
     };
 
@@ -709,7 +712,7 @@ function ForestWorldLayer({
     function resetView() {
       drag.yaw = scope === "today" ? 0.18 : -0.38;
       drag.pitch = 0.18;
-      drag.distance = scope === "today" ? 23 : 31;
+      drag.distance = scope === "today" ? 19 : 25;
       drag.pinchDistance = null;
     }
 
@@ -721,7 +724,7 @@ function ForestWorldLayer({
       if (signal.control === "zoom-in") {
         drag.distance = Math.max(5.8, drag.distance - 8.8);
       } else if (signal.control === "zoom-out") {
-        drag.distance = Math.min(38, drag.distance + 8.8);
+        drag.distance = Math.min(34, drag.distance + 8.8);
       } else {
         resetView();
       }
@@ -754,7 +757,7 @@ function ForestWorldLayer({
 
     function handleWheel(event: WheelEvent) {
       event.preventDefault();
-      drag.distance = Math.max(5.8, Math.min(38, drag.distance + event.deltaY * 0.018));
+      drag.distance = Math.max(5.8, Math.min(34, drag.distance + event.deltaY * 0.018));
     }
 
     function getTouchDistance(event: TouchEvent) {
@@ -769,7 +772,7 @@ function ForestWorldLayer({
       const distance = getTouchDistance(event);
       if (!distance) return;
       if (drag.pinchDistance !== null) {
-        drag.distance = Math.max(5.8, Math.min(38, drag.distance - (distance - drag.pinchDistance) * 0.045));
+        drag.distance = Math.max(5.8, Math.min(34, drag.distance - (distance - drag.pinchDistance) * 0.045));
       }
       drag.pinchDistance = distance;
     }
@@ -1975,62 +1978,134 @@ function addWorldSeeds(world: THREE.Group, color: number) {
 function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   const group = new THREE.Group();
   const position = nodeToWorldPosition(node);
-  const scale = node.featured ? 1.55 : Math.max(0.72, Math.min(1.16, 0.72 + node.todoCount * 0.07));
+  const growthLevel = treeGrowthLevel(node);
+  const scale = node.featured ? 1.72 : Math.max(0.86, Math.min(1.42, 0.82 + node.count * 0.055 + node.todoCount * 0.045 + growthLevel * 0.07));
   group.position.set(position.x, 0, position.z);
-  group.scale.setScalar(scope === "today" ? scale * 1.12 : scale);
+  group.scale.setScalar(scope === "today" ? scale * 1.15 : scale);
   group.userData.floatTree = true;
 
-  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x6a4a37, roughness: 0.92 });
-  const branchMaterial = new THREE.MeshStandardMaterial({ color: 0x73513d, roughness: 0.86 });
-  const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xf3eee2, roughness: 0.88 });
+  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x6b4935, roughness: 0.94 });
+  const barkMaterial = new THREE.MeshStandardMaterial({ color: 0x3f2b22, roughness: 0.96 });
+  const branchMaterial = new THREE.MeshStandardMaterial({ color: 0x78523c, roughness: 0.9 });
+  const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xf2eee4, roughness: 0.9 });
+  const mossMaterial = new THREE.MeshStandardMaterial({ color: 0x6f8f55, roughness: 0.95 });
+  const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0xc8c1b2, roughness: 0.88 });
   const leafMaterials = [
-    new THREE.MeshStandardMaterial({ color: 0x7ca863, roughness: 0.82 }),
-    new THREE.MeshStandardMaterial({ color: 0x57904c, roughness: 0.8 }),
-    new THREE.MeshStandardMaterial({ color: 0x3f783f, roughness: 0.84 }),
+    new THREE.MeshStandardMaterial({ color: 0x8eb275, roughness: 0.86 }),
+    new THREE.MeshStandardMaterial({ color: 0x67985a, roughness: 0.84 }),
+    new THREE.MeshStandardMaterial({ color: 0x47763f, roughness: 0.88 }),
+    new THREE.MeshStandardMaterial({ color: 0x9cbe83, roughness: 0.85 }),
   ];
+  const leafHighlightMaterial = new THREE.MeshStandardMaterial({ color: 0xb6d09c, roughness: 0.82, transparent: true, opacity: 0.88 });
 
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.35, 0.12, 48), baseMaterial);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.38, 0.13, 64), baseMaterial);
   base.position.y = 0.06;
   base.receiveShadow = true;
   group.add(base);
 
-  const trunkHeight = node.points > 70 || node.count >= 4 ? 2.25 : node.count >= 2 ? 1.82 : 1.44;
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.34, trunkHeight, 12), trunkMaterial);
-  trunk.position.y = 0.12 + trunkHeight / 2;
+  const moss = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.98, 0.06, 48), mossMaterial);
+  moss.position.y = 0.15;
+  moss.receiveShadow = true;
+  group.add(moss);
+
+  for (let index = 0; index < 5; index += 1) {
+    const angle = index * 1.34 + 0.2;
+    const stone = new THREE.Mesh(new THREE.SphereGeometry(0.055 + (index % 2) * 0.025, 10, 8), stoneMaterial);
+    stone.position.set(Math.cos(angle) * (0.55 + index * 0.035), 0.2, Math.sin(angle) * (0.38 + index * 0.03));
+    stone.scale.set(1.25, 0.42, 0.92);
+    stone.receiveShadow = true;
+    group.add(stone);
+  }
+
+  if (growthLevel <= 1 && node.count === 0) {
+    const seedMaterial = new THREE.MeshStandardMaterial({ color: 0x8f6c45, roughness: 0.72 });
+    const seed = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 14), seedMaterial);
+    seed.position.set(0.04, 0.33, 0.02);
+    seed.scale.set(1.12, 0.72, 0.9);
+    seed.castShadow = true;
+    group.add(seed);
+
+    if (node.todoCount > 0) {
+      [
+        { x: -0.12, rz: 0.78, color: 0x88ad70 },
+        { x: 0.14, rz: -0.72, color: 0x5f944f },
+      ].forEach((leaf) => {
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 12), new THREE.MeshStandardMaterial({ color: leaf.color, roughness: 0.84 }));
+        mesh.position.set(leaf.x, 0.54, 0.02);
+        mesh.rotation.z = leaf.rz;
+        mesh.scale.set(1.35, 0.34, 0.82);
+        mesh.castShadow = true;
+        group.add(mesh);
+      });
+    }
+
+    return group;
+  }
+
+  const trunkHeight = 1.16 + Math.min(5, growthLevel) * 0.28 + Math.min(3, node.count) * 0.06;
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.34, trunkHeight, 16), trunkMaterial);
+  trunk.position.y = 0.18 + trunkHeight / 2;
+  trunk.rotation.z = -0.045;
   trunk.castShadow = true;
   group.add(trunk);
 
+  for (let index = 0; index < 5; index += 1) {
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.018, trunkHeight * 0.58, 0.018), barkMaterial);
+    const angle = index * 1.2;
+    ridge.position.set(Math.cos(angle) * 0.16, 0.38 + trunkHeight * 0.34, Math.sin(angle) * 0.11);
+    ridge.rotation.y = angle;
+    ridge.rotation.z = -0.045;
+    ridge.castShadow = true;
+    group.add(ridge);
+  }
+
   [
-    { x: -0.36, y: trunkHeight * 0.72, z: 0.02, rz: 0.72 },
-    { x: 0.38, y: trunkHeight * 0.78, z: -0.02, rz: -0.72 },
-    { x: 0.08, y: trunkHeight * 0.88, z: -0.28, rz: -0.28 },
+    { x: -0.38, y: trunkHeight * 0.72, z: 0.04, rz: 0.78, rx: 0.08, length: 0.92 },
+    { x: 0.4, y: trunkHeight * 0.78, z: -0.03, rz: -0.74, rx: -0.06, length: 0.88 },
+    { x: 0.08, y: trunkHeight * 0.9, z: -0.26, rz: -0.26, rx: 0.22, length: 0.78 },
+    { x: -0.12, y: trunkHeight * 0.86, z: 0.28, rz: 0.28, rx: -0.22, length: 0.72 },
   ].forEach((branch) => {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, 0.9, 10), branchMaterial);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.105, branch.length, 12), branchMaterial);
     mesh.position.set(branch.x, branch.y, branch.z);
     mesh.rotation.z = branch.rz;
+    mesh.rotation.x = branch.rx;
     mesh.castShadow = true;
     group.add(mesh);
   });
 
   const leafCenters = [
-    { x: -0.55, y: trunkHeight + 0.28, z: 0.02, size: 0.76 },
-    { x: 0.14, y: trunkHeight + 0.55, z: 0.08, size: 0.88 },
-    { x: 0.65, y: trunkHeight + 0.24, z: -0.06, size: 0.72 },
-    { x: -0.04, y: trunkHeight + 0.08, z: 0.46, size: 0.7 },
-    { x: 0.02, y: trunkHeight + 0.12, z: -0.48, size: 0.68 },
+    { x: -0.64, y: trunkHeight + 0.32, z: 0.02, size: 0.74, sx: 1.22, sy: 0.68, sz: 0.9 },
+    { x: 0.02, y: trunkHeight + 0.62, z: 0.06, size: 0.88, sx: 1.18, sy: 0.72, sz: 0.94 },
+    { x: 0.68, y: trunkHeight + 0.3, z: -0.06, size: 0.72, sx: 1.16, sy: 0.7, sz: 0.9 },
+    { x: -0.18, y: trunkHeight + 0.12, z: 0.47, size: 0.68, sx: 1.28, sy: 0.62, sz: 0.82 },
+    { x: 0.18, y: trunkHeight + 0.16, z: -0.46, size: 0.66, sx: 1.24, sy: 0.64, sz: 0.86 },
+    { x: -0.42, y: trunkHeight + 0.66, z: -0.18, size: 0.56, sx: 1.1, sy: 0.66, sz: 0.8 },
+    { x: 0.45, y: trunkHeight + 0.68, z: 0.16, size: 0.52, sx: 1.08, sy: 0.62, sz: 0.78 },
+    { x: 0.02, y: trunkHeight + 0.36, z: 0.58, size: 0.5, sx: 1.18, sy: 0.58, sz: 0.72 },
   ];
-  leafCenters.slice(0, node.count >= 2 || node.featured ? leafCenters.length : 3).forEach((leaf, index) => {
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(leaf.size, 20, 16), leafMaterials[index % leafMaterials.length]);
+  const visibleLeafCount = Math.min(leafCenters.length, Math.max(3, growthLevel + 3 + (node.featured ? 1 : 0)));
+  leafCenters.slice(0, visibleLeafCount).forEach((leaf, index) => {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(leaf.size, 24, 18), leafMaterials[index % leafMaterials.length]);
     mesh.position.set(leaf.x, leaf.y, leaf.z);
-    mesh.scale.set(1.15, 0.72, 0.95);
+    mesh.scale.set(leaf.sx, leaf.sy, leaf.sz);
+    mesh.rotation.y = index * 0.36;
+    mesh.rotation.z = (index % 2 ? -1 : 1) * 0.08;
     mesh.castShadow = true;
     group.add(mesh);
+
+    if (index < 5) {
+      const highlight = new THREE.Mesh(new THREE.SphereGeometry(leaf.size * 0.26, 14, 10), leafHighlightMaterial);
+      highlight.position.set(leaf.x - leaf.size * 0.18, leaf.y + leaf.size * 0.18, leaf.z + leaf.size * 0.34);
+      highlight.scale.set(1.24, 0.36, 0.7);
+      group.add(highlight);
+    }
   });
 
   node.fruits.slice(0, 12).forEach((fruit, index) => {
     const fruitPosition = fruitWorldPosition(index, trunkHeight);
+    const radius = fruitRadius(fruit.difficulty);
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(fruitRadius(fruit.difficulty), 18, 16),
+      new THREE.SphereGeometry(radius, 20, 16),
       new THREE.MeshStandardMaterial({
         color: fruitColor(fruit.difficulty),
         roughness: fruit.difficulty === "hard" ? 0.42 : 0.68,
@@ -2042,6 +2117,16 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     mesh.position.set(fruitPosition.x, fruitPosition.y, fruitPosition.z);
     mesh.castShadow = true;
     group.add(mesh);
+
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, radius * 0.72, 8), branchMaterial);
+    stem.position.set(fruitPosition.x, fruitPosition.y + radius * 0.92, fruitPosition.z);
+    stem.rotation.z = 0.24;
+    stem.castShadow = true;
+    group.add(stem);
+
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.22, 10, 8), new THREE.MeshStandardMaterial({ color: 0xfff6d0, roughness: 0.45, transparent: true, opacity: 0.76 }));
+    shine.position.set(fruitPosition.x - radius * 0.34, fruitPosition.y + radius * 0.28, fruitPosition.z + radius * 0.42);
+    group.add(shine);
   });
 
   node.buds.slice(0, 8).forEach((bud, index) => {
@@ -2055,13 +2140,28 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     group.add(mesh);
   });
 
+  if (growthLevel >= 5 || node.count >= 8) {
+    const flowerMaterials = [
+      new THREE.MeshStandardMaterial({ color: 0xfff0e4, roughness: 0.78 }),
+      new THREE.MeshStandardMaterial({ color: 0xf6d7ba, roughness: 0.78 }),
+    ];
+    for (let index = 0; index < 10; index += 1) {
+      const flowerPosition = fruitWorldPosition(index + 2, trunkHeight + 0.12);
+      const flower = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 10), flowerMaterials[index % flowerMaterials.length]);
+      flower.position.set(flowerPosition.x * 1.12, flowerPosition.y + 0.18, flowerPosition.z * 1.14);
+      flower.scale.set(1.4, 0.62, 1);
+      flower.castShadow = true;
+      group.add(flower);
+    }
+  }
+
   return group;
 }
 
 function nodeToWorldPosition(node: ForestMapNode) {
   return {
-    x: (node.x - 50) / 2.08,
-    z: (node.y - 50) / 2.08,
+    x: (node.x - 50) / 2.65,
+    z: (node.y - 50) / 2.65,
   };
 }
 
@@ -2206,7 +2306,7 @@ function worldPalette(tone: TimeTone) {
       ambientIntensity: 0.68,
       fill: 0xb7d7b3,
       fog: 0xe9f3dd,
-      fogDensity: 0.028,
+      fogDensity: 0.014,
       ground: 0xc7daba,
       path: 0x8a9882,
       seed: 0x9aa681,
@@ -2220,7 +2320,7 @@ function worldPalette(tone: TimeTone) {
       ambientIntensity: 0.5,
       fill: 0xb2c0a4,
       fog: 0xf1dfcb,
-      fogDensity: 0.031,
+      fogDensity: 0.015,
       ground: 0xc9d1ac,
       path: 0x9f8f74,
       seed: 0xa39472,
@@ -2234,7 +2334,7 @@ function worldPalette(tone: TimeTone) {
       ambientIntensity: 0.26,
       fill: 0x95b5c8,
       fog: 0x17211f,
-      fogDensity: 0.04,
+      fogDensity: 0.024,
       ground: 0x314333,
       path: 0x93a393,
       seed: 0x8fa58c,
@@ -2247,7 +2347,7 @@ function worldPalette(tone: TimeTone) {
     ambientIntensity: 0.56,
     fill: 0xc5dcb8,
     fog: 0xe8f2e7,
-    fogDensity: 0.026,
+    fogDensity: 0.013,
     ground: 0xc2d6b4,
     path: 0x87947f,
     seed: 0x96a37d,
