@@ -26,6 +26,7 @@
 - Lucide React
 - Motion
 - Zustand
+- Capacitor iOS
 
 ## Local Development
 
@@ -39,3 +40,17 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## iOS App
+
+ReactアプリをCapacitorでiOSアプリ化しています。
+
+```bash
+npm run ios:prepare
+npm run ios:open
+```
+
+`ios:prepare` はiOS用アイコン/スプラッシュ生成、Viteビルド、Capacitor同期まで実行します。
+`ios:open` はXcodeがインストール済みのMacで `ios/App/App.xcodeproj` を開きます。
+
+App Store提出の流れは [APP_STORE_RELEASE.md](./APP_STORE_RELEASE.md) を見てください。
