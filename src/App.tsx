@@ -10,7 +10,9 @@ import {
   ClipboardList,
   Clock3,
   Download,
+  Flame,
   Folder,
+  Gem,
   History,
   Inbox,
   ListTodo,
@@ -23,6 +25,7 @@ import {
   Target,
   Trash2,
   TreePine,
+  Trophy,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -76,6 +79,15 @@ type FruitTodo = {
   title: string;
   difficulty: Difficulty;
   completed?: boolean;
+};
+
+type RewardToast = {
+  id: string;
+  title: string;
+  difficulty: Difficulty;
+  points: number;
+  stageLabel: string;
+  leveledUp: boolean;
 };
 
 type ForestMapNode = {
@@ -191,7 +203,10 @@ function App() {
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [parentId, setParentId] = useState("");
   const [celebrateId, setCelebrateId] = useState<string | null>(null);
+  const [rewardToast, setRewardToast] = useState<RewardToast | null>(null);
   const [forestMemoryMode, setForestMemoryMode] = useState(false);
+  const knownCompletedTaskIdsRef = useRef<Set<string> | null>(null);
+  const previousPointsRef = useRef(0);
 
   const groups = useMemo(() => groupTasksByProject(tasks), [tasks]);
   const scopedTasks = useMemo(
@@ -216,6 +231,34 @@ function App() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const completedIds = new Set(tasks.filter((task) => task.completed).map((task) => task.id));
+    if (!knownCompletedTaskIdsRef.current) {
+      knownCompletedTaskIdsRef.current = completedIds;
+      previousPointsRef.current = points;
+      return;
+    }
+
+    const newlyCompletedTask = tasks.find((task) => task.completed && !knownCompletedTaskIdsRef.current?.has(task.id));
+    if (newlyCompletedTask) {
+      const beforeStage = currentStage(previousPointsRef.current);
+      const afterStage = currentStage(points);
+      const reward: RewardToast = {
+        id: `${newlyCompletedTask.id}-${Date.now()}`,
+        title: newlyCompletedTask.title,
+        difficulty: newlyCompletedTask.difficulty,
+        points: difficultyPoints[newlyCompletedTask.difficulty],
+        stageLabel: afterStage.label,
+        leveledUp: afterStage.index > beforeStage.index,
+      };
+      setRewardToast(reward);
+      window.setTimeout(() => setRewardToast((current) => (current?.id === reward.id ? null : current)), 2400);
+    }
+
+    knownCompletedTaskIdsRef.current = completedIds;
+    previousPointsRef.current = points;
+  }, [points, tasks]);
+
   function submitTask() {
     if (!title.trim()) return;
     addTask({ title, notes, difficulty, parentId: parentId || undefined });
@@ -227,6 +270,8 @@ function App() {
   }
 
   function finishTask(id: string) {
+    const completingTask = tasks.find((task) => task.id === id);
+    if (!completingTask || completingTask.completed) return;
     completeTask(id);
     if (settings.showCelebration) {
       setCelebrateId(id);
@@ -256,6 +301,9 @@ function App() {
               groups={groups}
               onProject={setActiveProject}
               onExport={() => exportForest(tasks)}
+              points={points}
+              stage={stage}
+              streak={streak}
               taskCount={tasks.length}
               todayCount={todayCount}
             />
@@ -280,7 +328,7 @@ function App() {
                   {activeView === "forest" ? (
                     <ScopeToggle scope={forestScope} onScope={setForestScope} />
                   ) : (
-                    <TopStatusPill todayCount={todayCount} completionRate={completionRate} timeTone={timeTone} />
+                    <TopStatusPill completionRate={completionRate} stage={stage} streak={streak} timeTone={timeTone} todayCount={todayCount} />
                   )}
                 </div>
               </header>
@@ -323,6 +371,7 @@ function App() {
                   tasks={tasks}
                   timeTone={timeTone}
                   title={title}
+                  treeCelebrate={Boolean(celebrateId)}
                 />
               </TabsContent>
 
@@ -337,6 +386,7 @@ function App() {
           </div>
         </section>
       </main>
+      <GameRewardOverlay reward={rewardToast} />
     </div>
   );
 }
@@ -347,6 +397,9 @@ function AppSidebar({
   groups,
   onExport,
   onProject,
+  points,
+  stage,
+  streak,
   taskCount,
   todayCount,
 }: {
@@ -355,6 +408,9 @@ function AppSidebar({
   groups: ProjectGroup[];
   onExport: () => void;
   onProject: (project: string) => void;
+  points: number;
+  stage: ReturnType<typeof currentStage>;
+  streak: number;
   taskCount: number;
   todayCount: number;
 }) {
@@ -376,6 +432,39 @@ function AppSidebar({
           <div className="min-w-0">
             <h1 className="truncate text-xl font-black tracking-normal">つながる森</h1>
             <p className="text-xs font-bold text-[#6f786c] dark:text-[#a3b29d]">todoが実になる庭</p>
+          </div>
+        </div>
+        <div className="mt-4 overflow-hidden rounded-md border border-[#eadfca] bg-[linear-gradient(135deg,#fff9e7,#edf5df)] p-3 shadow-inner dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(46,58,35,0.65),rgba(22,39,29,0.72))]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8b7a4f] dark:text-[#d9c47a]">Forest Level</p>
+              <p className="mt-0.5 text-xl font-black text-[#2d422d] dark:text-[#eef5e8]">Lv.{stage.index + 1}</p>
+            </div>
+            <div className="grid h-12 w-12 place-items-center rounded-full border border-[#ffedaf] bg-[radial-gradient(circle_at_35%_25%,#fff8bf,#dcae37_60%,#93631d)] text-white shadow-[0_12px_28px_rgba(169,116,22,0.24)]">
+              <Trophy className="h-6 w-6" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3 text-xs font-black text-[#687365] dark:text-[#a8b8a2]">
+            <span>{stage.label}</span>
+            <span>{points} XP</span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#dfd6bd] shadow-inner dark:bg-white/10">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-[#7fa86c] via-[#d0a53b] to-[#fff0a3]"
+              initial={false}
+              animate={{ width: `${stage.progress}%` }}
+              transition={{ type: "spring", stiffness: 120, damping: 22 }}
+            />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-md bg-white/58 px-2 py-1.5 text-center text-xs font-black text-[#596653] dark:bg-white/[0.055] dark:text-[#dce9d5]">
+              <Flame className="mx-auto mb-0.5 h-3.5 w-3.5 text-[#d1792a]" />
+              {streak}日
+            </div>
+            <div className="rounded-md bg-white/58 px-2 py-1.5 text-center text-xs font-black text-[#596653] dark:bg-white/[0.055] dark:text-[#dce9d5]">
+              <Gem className="mx-auto mb-0.5 h-3.5 w-3.5 text-[#d0a53b]" />
+              {Math.round(stage.progress)}%
+            </div>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 text-center">
@@ -505,12 +594,34 @@ function ScopeToggle({ scope, onScope }: { scope: ForestScope; onScope: (scope: 
   );
 }
 
-function TopStatusPill({ completionRate, timeTone, todayCount }: { completionRate: number; timeTone: TimeTone; todayCount: number }) {
+function TopStatusPill({
+  completionRate,
+  stage,
+  streak,
+  timeTone,
+  todayCount,
+}: {
+  completionRate: number;
+  stage: ReturnType<typeof currentStage>;
+  streak: number;
+  timeTone: TimeTone;
+  todayCount: number;
+}) {
   return (
-    <div className="flex w-full items-center justify-between gap-2 rounded-md border border-[#ded9cd] bg-[#fffdf7]/82 px-3 py-2 text-sm font-black text-[#52624f] shadow-sm dark:border-white/10 dark:bg-white/[0.06] dark:text-[#dce9d5] md:w-auto">
+    <div className="flex w-full flex-wrap items-center justify-between gap-2 rounded-md border border-[#ded9cd] bg-[#fffdf7]/86 px-3 py-2 text-sm font-black text-[#52624f] shadow-[0_10px_26px_rgba(39,55,37,0.08)] backdrop-blur dark:border-white/10 dark:bg-white/[0.07] dark:text-[#dce9d5] md:w-auto">
       <span className="flex items-center gap-2">
         <CheckCircle2 className="h-4 w-4 text-[#4e7d45]" />
         今日 {todayCount}件
+      </span>
+      <span className="h-4 w-px bg-[#ded9cd]" />
+      <span className="flex items-center gap-1">
+        <Trophy className="h-3.5 w-3.5 text-[#c99225]" />
+        Lv.{stage.index + 1}
+      </span>
+      <span className="hidden h-4 w-px bg-[#ded9cd] sm:block" />
+      <span className="hidden items-center gap-1 sm:flex">
+        <Flame className="h-3.5 w-3.5 text-[#d1792a]" />
+        {streak}日
       </span>
       <span className="h-4 w-px bg-[#ded9cd]" />
       <span>{completionRate}%</span>
@@ -519,6 +630,89 @@ function TopStatusPill({ completionRate, timeTone, todayCount }: { completionRat
         <Clock3 className="h-3.5 w-3.5" />
         {timeToneLabel(timeTone)}
       </span>
+    </div>
+  );
+}
+
+function GameRewardOverlay({ reward }: { reward: RewardToast | null }) {
+  const burst = [
+    { x: -148, y: -42, size: 8, delay: 0.02 },
+    { x: -112, y: 38, size: 11, delay: 0.08 },
+    { x: -64, y: -86, size: 9, delay: 0.04 },
+    { x: 8, y: -118, size: 12, delay: 0.1 },
+    { x: 72, y: -82, size: 9, delay: 0.06 },
+    { x: 122, y: 22, size: 11, delay: 0.12 },
+    { x: 156, y: -34, size: 8, delay: 0.03 },
+    { x: -24, y: 92, size: 10, delay: 0.14 },
+  ];
+
+  return (
+    <AnimatePresence>
+      {reward && (
+        <motion.div
+          className="pointer-events-none fixed inset-0 z-[120] grid place-items-center px-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,239,173,0.22),transparent_42%)]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 1.3, ease: "easeOut" }}
+          />
+          <div className="relative">
+            {burst.map((particle, index) => (
+              <motion.span
+                key={index}
+                className={cn(
+                  "absolute left-1/2 top-1/2 rounded-full border shadow-[0_10px_22px_rgba(130,91,26,0.18)]",
+                  reward.difficulty === "hard" ? "border-[#fff0a8] bg-[#e7b842]" : reward.difficulty === "medium" ? "border-[#f6d49a] bg-[#d8893d]" : "border-[#cfe2b8] bg-[#78a462]",
+                )}
+                style={{ height: particle.size, width: particle.size }}
+                initial={{ x: 0, y: 0, opacity: 0, scale: 0.35 }}
+                animate={{ x: particle.x, y: particle.y, opacity: [0, 1, 0], rotate: 180, scale: [0.35, 1, 0.72] }}
+                transition={{ delay: particle.delay, duration: 1.15, ease: "easeOut" }}
+              />
+            ))}
+
+            <motion.div
+              className="relative w-[min(92vw,380px)] overflow-hidden rounded-lg border border-[#f3ddb1] bg-[#fffdf7]/94 p-5 text-center shadow-[0_34px_110px_rgba(54,46,26,0.26)] ring-1 ring-white/80 backdrop-blur-xl dark:border-[#6d5b34] dark:bg-[#12201a]/94 dark:ring-white/10"
+              initial={{ y: 26, scale: 0.86, opacity: 0 }}
+              animate={{ y: 0, scale: 1, opacity: 1 }}
+              exit={{ y: -12, scale: 0.94, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#73a86a] via-[#f5d36b] to-[#a6c786]" />
+              <motion.div
+                className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-[#ffedaf] bg-[radial-gradient(circle_at_35%_25%,#fff8bf,#e8b941_58%,#9c6a18)] text-white shadow-[0_16px_42px_rgba(168,116,25,0.32)]"
+                animate={{ rotate: reward.leveledUp ? [0, -8, 8, 0] : [0, 4, -4, 0], scale: reward.leveledUp ? [1, 1.16, 1] : [1, 1.08, 1] }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                {reward.leveledUp ? <Trophy className="h-8 w-8" /> : <Gem className="h-8 w-8" />}
+              </motion.div>
+              <p className="mt-3 text-xs font-black uppercase tracking-[0.18em] text-[#8d6c2c] dark:text-[#f0d47b]">
+                {reward.leveledUp ? "Tree Evolution" : "Task Complete"}
+              </p>
+              <h2 className="mt-1 truncate text-xl font-black text-[#263126] dark:text-[#f4f8ee]">{reward.title}</h2>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <RewardMetric label="XP" value={`+${reward.points}`} />
+                <RewardMetric label="実" value={difficultyMeta[reward.difficulty].label} />
+                <RewardMetric label="段階" value={reward.stageLabel} />
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function RewardMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-[#eadfca] bg-white/66 px-2 py-2 shadow-inner dark:border-white/10 dark:bg-white/[0.055]">
+      <p className="text-[10px] font-black text-[#7b8278] dark:text-[#9fb19a]">{label}</p>
+      <p className="mt-0.5 truncate text-sm font-black text-[#31503a] dark:text-[#e8f5df]">{value}</p>
     </div>
   );
 }
@@ -1150,9 +1344,43 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
   const particleLeafCount = seedOnly ? 0 : Math.min(bonsaiLeafParticles.length, 10 + growthLevel * 4 + fruits.length);
   const openFruit = openFruitIndex === null ? undefined : fruits[openFruitIndex];
   const treeSvgId = `tree-${node.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const celebrationLeaves = [
+    { left: 22, top: 40, x: -34, y: -42, rotate: -34, delay: 0.02 },
+    { left: 35, top: 25, x: -22, y: -62, rotate: 22, delay: 0.05 },
+    { left: 51, top: 18, x: 0, y: -70, rotate: -12, delay: 0.08 },
+    { left: 66, top: 27, x: 24, y: -58, rotate: 38, delay: 0.04 },
+    { left: 78, top: 43, x: 36, y: -36, rotate: 18, delay: 0.1 },
+    { left: 30, top: 62, x: -42, y: 12, rotate: 44, delay: 0.12 },
+    { left: 72, top: 66, x: 42, y: 16, rotate: -28, delay: 0.14 },
+  ];
 
   return (
     <span className={cn("pointer-events-none relative block aspect-square w-full", node.future && "opacity-45")}>
+      <AnimatePresence>
+        {celebrate && (
+          <motion.span
+            className="absolute left-1/2 top-1/2 z-20 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ffe9a3]/60"
+            initial={{ opacity: 0.82, scale: 0.36 }}
+            animate={{ opacity: 0, scale: 2.1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {celebrate &&
+          celebrationLeaves.map((leaf, index) => (
+            <motion.span
+              key={index}
+              className="absolute z-30 h-3 w-5 rounded-[999px_0_999px_0] bg-gradient-to-br from-[#d4e8ad] via-[#8fbd73] to-[#4f8348] shadow-[0_6px_14px_rgba(70,103,53,0.22)]"
+              style={{ left: `${leaf.left}%`, top: `${leaf.top}%`, rotate: `${leaf.rotate}deg` }}
+              initial={{ opacity: 0, scale: 0.35, x: 0, y: 0 }}
+              animate={{ opacity: [0, 1, 0], scale: [0.35, 1, 0.72], x: leaf.x, y: leaf.y, rotate: leaf.rotate + 80 }}
+              exit={{ opacity: 0 }}
+              transition={{ delay: leaf.delay, duration: 1.05, ease: "easeOut" }}
+            />
+          ))}
+      </AnimatePresence>
       <motion.svg
         aria-hidden="true"
         className="absolute inset-0 h-full w-full overflow-visible drop-shadow-[0_14px_18px_rgba(47,75,42,0.14)]"
@@ -1297,8 +1525,9 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
               setOpenFruitIndex(openFruitIndex === index ? null : index);
             }}
             initial={{ scale: 0.4, opacity: 0 }}
-            animate={{ scale: celebrate && index === fruits.length - 1 ? [0.7, 1.25, 1] : 1, opacity: 1 }}
+            animate={{ scale: celebrate && index === fruits.length - 1 ? [0.45, 1.38, 1] : 1, opacity: 1, y: celebrate && index === fruits.length - 1 ? [0, -5, 0] : 0 }}
             transition={{ delay: index * 0.03, type: "spring", stiffness: 170, damping: 14 }}
+            whileHover={{ scale: 1.13 }}
             aria-label={`${fruit.title} の完了内容を表示`}
           >
             <span className="h-[34%] w-[34%] rounded-full bg-white/34 shadow-[inset_0_1px_2px_rgba(255,255,255,0.65)]" />
@@ -1379,6 +1608,7 @@ function TaskScreen({
   tasks,
   timeTone,
   title,
+  treeCelebrate,
 }: {
   compact: boolean;
   completedTasks: Task[];
@@ -1400,6 +1630,7 @@ function TaskScreen({
   tasks: Task[];
   timeTone: TimeTone;
   title: string;
+  treeCelebrate: boolean;
 }) {
   const displayTasks = [...pendingTasks, ...completedTasks];
   const displayTaskIds = new Set(displayTasks.map((task) => task.id));
@@ -1475,6 +1706,7 @@ function TaskScreen({
 
       <aside className={cn("grid h-fit gap-4", compact && "gap-3")}>
         <TodayTreeCard
+          celebrate={treeCelebrate}
           compact={compact}
           node={todayNode}
           progress={todayProgress}
@@ -1616,7 +1848,19 @@ function TaskOverviewBand({
   );
 }
 
-function TodayTreeCard({ compact, node, onForest, progress }: { compact: boolean; node: ForestMapNode; onForest: () => void; progress: number }) {
+function TodayTreeCard({
+  celebrate,
+  compact,
+  node,
+  onForest,
+  progress,
+}: {
+  celebrate: boolean;
+  compact: boolean;
+  node: ForestMapNode;
+  onForest: () => void;
+  progress: number;
+}) {
   const growthLevel = treeGrowthLevel(node);
   const stageLabel = todayTreeStageLabel(growthLevel, node.count, node.todoCount);
   const fruits = node.fruits.slice(0, 4);
@@ -1626,7 +1870,7 @@ function TodayTreeCard({ compact, node, onForest, progress }: { compact: boolean
   };
 
   return (
-    <Card className="overflow-hidden border-[#d8d1c2] bg-[#fffdf7]/90 shadow-[0_22px_60px_rgba(38,49,38,0.12)] backdrop-blur dark:border-white/10 dark:bg-[#121c18]/84 dark:shadow-[0_22px_60px_rgba(0,0,0,0.32)]">
+    <Card className={cn("overflow-hidden border-[#d8d1c2] bg-[#fffdf7]/90 shadow-[0_22px_60px_rgba(38,49,38,0.12)] backdrop-blur transition-shadow duration-500 dark:border-white/10 dark:bg-[#121c18]/84 dark:shadow-[0_22px_60px_rgba(0,0,0,0.32)]", celebrate && "shadow-[0_26px_80px_rgba(181,133,39,0.24)]")}>
       <CardHeader className={cn("relative overflow-hidden border-b border-[#e6dfd0]/90 bg-[linear-gradient(135deg,#fffaf0_0%,#eef5e8_58%,#e2ecda_100%)] pb-3 dark:border-white/10 dark:bg-[linear-gradient(135deg,#18251f_0%,#13231b_58%,#0e1714_100%)]", compact && "p-4 pb-2")}>
         <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-[#d8e8c6]/85 blur-2xl dark:bg-[#4f8b55]/28" />
         <div className="relative flex items-start justify-between gap-3">
@@ -1656,6 +1900,17 @@ function TodayTreeCard({ compact, node, onForest, progress }: { compact: boolean
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(96,113,91,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(96,113,91,0.08)_1px,transparent_1px)] bg-[size:44px_44px]" />
           <div className="pointer-events-none absolute left-1/2 top-4 h-28 w-28 -translate-x-1/2 rounded-full bg-[#fff1b8]/64 blur-2xl dark:bg-[#7bb26c]/20" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-24 w-full rounded-t-[50%] bg-[linear-gradient(180deg,rgba(181,194,156,0.35),rgba(126,145,98,0.52))] dark:bg-[linear-gradient(180deg,rgba(49,76,55,0.4),rgba(25,44,32,0.62))]" />
+          <AnimatePresence>
+            {celebrate && (
+              <motion.div
+                className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_50%_42%,rgba(255,232,145,0.58),rgba(255,232,145,0.16)_26%,transparent_60%)]"
+                initial={{ opacity: 0, scale: 0.86 }}
+                animate={{ opacity: [0, 1, 0], scale: [0.86, 1.1, 1.22] }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.9, ease: "easeOut" }}
+              />
+            )}
+          </AnimatePresence>
 
           <div className={cn("absolute right-3 top-3 grid h-16 w-16 place-items-center rounded-full bg-white/78 p-1 shadow-[0_12px_28px_rgba(53,74,48,0.12)] dark:bg-[#13201c]/82", compact && "right-2 top-2 h-12 w-12")} style={progressStyle}>
             <div className="grid h-full w-full place-items-center rounded-full bg-[#fffdf7] text-center dark:bg-[#12201a]">
@@ -1669,7 +1924,7 @@ function TodayTreeCard({ compact, node, onForest, progress }: { compact: boolean
             animate={{ y: node.count ? [0, -2, 0] : 0 }}
             transition={{ duration: 3.6, ease: "easeInOut", repeat: node.count ? Infinity : 0 }}
           >
-            <TodoFruitTree celebrate={false} node={node} />
+            <TodoFruitTree celebrate={celebrate} node={node} />
           </motion.div>
         </div>
 
