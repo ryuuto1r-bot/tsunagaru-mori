@@ -4,9 +4,11 @@ import { AnimatePresence, motion } from "motion/react";
 import * as THREE from "three";
 import {
   Archive,
+  CalendarCheck,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
+  Clock3,
   Download,
   Folder,
   History,
@@ -16,6 +18,9 @@ import {
   RotateCcw,
   Search,
   Settings,
+  Sparkles,
+  Sprout,
+  Target,
   Trash2,
   TreePine,
 } from "lucide-react";
@@ -194,9 +199,9 @@ function App() {
   }
 
   return (
-    <div className={cn("min-h-screen text-[#263126] transition-colors duration-700", timeToneClass(timeTone), themeClass(settings.theme))}>
-      <main className="mx-auto min-h-screen w-full max-w-[1480px] p-2 sm:p-4 lg:p-6">
-        <section className="grid min-h-[calc(100vh-1rem)] overflow-hidden rounded-lg border border-white/80 bg-[#fbfaf5] shadow-[0_24px_80px_rgba(38,49,38,0.16)] lg:min-h-[calc(100vh-3rem)] lg:grid-cols-[280px_minmax(0,1fr)]">
+    <div className={cn("min-h-screen overflow-x-hidden text-[#263126] transition-colors duration-700", timeToneClass(timeTone), themeClass(settings.theme))}>
+      <main className="mx-auto min-h-screen w-full max-w-[1540px] p-2 sm:p-4 lg:p-5">
+        <section className="grid min-h-[calc(100vh-1rem)] overflow-hidden rounded-lg border border-white/75 bg-[#fbfaf5]/95 shadow-[0_28px_90px_rgba(31,47,34,0.18)] ring-1 ring-[#1f2d1e]/5 backdrop-blur lg:min-h-[calc(100vh-2.5rem)] lg:grid-cols-[292px_minmax(0,1fr)]">
           <AppSidebar
             activeProject={activeProject}
             completionRate={completionRate}
@@ -207,15 +212,15 @@ function App() {
             todayCount={todayCount}
           />
 
-          <div className="min-w-0 border-l border-[#e5e1d7] bg-[#fbfaf5]">
+          <div className="min-w-0 border-l border-[#e5e1d7] bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)]">
             <Tabs value={activeView} onValueChange={(value) => setActiveView(value as AppView)} className="flex min-h-full flex-col">
-              <header className="flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fbfaf5]/92 px-3 py-3 backdrop-blur md:flex-row md:items-center md:justify-between lg:px-8">
-                <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-none bg-transparent p-0 text-[#6d746c] md:flex md:w-auto md:justify-start md:gap-2">
+              <header className="flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur md:flex-row md:items-center md:justify-between lg:px-8">
+                <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner md:flex md:w-auto md:justify-start md:gap-1.5">
                   {appTabs.map((tab) => (
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="gap-1 rounded-md border border-transparent px-2 py-2 text-xs data-[state=active]:border-[#d8d2c4] data-[state=active]:bg-[#f3f1e9] data-[state=active]:text-[#263126] data-[state=active]:shadow-none sm:text-sm md:gap-2 md:px-4"
+                      className="gap-1 rounded-md border border-transparent px-2 py-2 text-xs font-black data-[state=active]:border-[#d8d2c4] data-[state=active]:bg-[#fffdf7] data-[state=active]:text-[#2f4530] data-[state=active]:shadow-[0_8px_18px_rgba(38,49,38,0.08)] sm:text-sm md:gap-2 md:px-4"
                     >
                       {tab.icon}
                       {tab.label}
@@ -265,6 +270,7 @@ function App() {
                   setActiveView={setActiveView}
                   setQuery={setQuery}
                   tasks={tasks}
+                  timeTone={timeTone}
                   title={title}
                 />
               </TabsContent>
@@ -310,28 +316,49 @@ function AppSidebar({
   ];
 
   return (
-    <aside className="hidden min-h-full bg-[#f4f3ed]/88 px-5 py-6 lg:block">
-      <div className="mb-8 flex items-center gap-3">
-        <TreePine className="h-7 w-7 fill-[#3f7b3b] text-[#3f7b3b]" />
-        <h1 className="text-xl font-black">つながる森</h1>
+    <aside className="hidden min-h-full bg-[linear-gradient(180deg,rgba(244,243,237,0.94),rgba(238,240,231,0.9))] px-4 py-5 lg:block">
+      <div className="rounded-md border border-white/80 bg-[#fffdf7]/72 p-4 shadow-[0_14px_34px_rgba(38,49,38,0.08)]">
+        <div className="flex items-center gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-md bg-[#e2eadb] text-[#3f7b3b] shadow-inner">
+            <TreePine className="h-7 w-7 fill-[#3f7b3b] text-[#3f7b3b]" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-black tracking-normal">つながる森</h1>
+            <p className="text-xs font-bold text-[#6f786c]">todoが実になる庭</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+          <div className="rounded-md border border-[#e4dfd4] bg-white/58 px-3 py-2">
+            <p className="text-[10px] font-black text-[#7b8278]">今日</p>
+            <p className="text-lg font-black tabular-nums text-[#3f5f3b]">{todayCount}</p>
+          </div>
+          <div className="rounded-md border border-[#e4dfd4] bg-white/58 px-3 py-2">
+            <p className="text-[10px] font-black text-[#7b8278]">完了率</p>
+            <p className="text-lg font-black tabular-nums text-[#3f5f3b]">{completionRate}%</p>
+          </div>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e4dfd4]">
+          <div className="h-full rounded-full bg-gradient-to-r from-[#88a871] via-[#4e7d45] to-[#d1a63b]" style={{ width: `${completionRate}%` }} />
+        </div>
       </div>
 
-      <div className="grid gap-2">
+      <div className="mt-5 grid gap-2">
         {mainItems.map((item, index) => (
           <button
             key={item.id}
             className={cn(
-              "flex h-11 items-center justify-between rounded-md px-3 text-left text-sm font-semibold text-[#626a61] transition",
-              index === 0 && "bg-[#e4e8dc] text-[#3f5f3b]",
-              "hover:bg-[#e9ece2]",
+              "group flex h-12 items-center justify-between rounded-md border border-transparent px-3 text-left text-sm font-bold text-[#626a61] transition",
+              index === 0 ? "border-[#d7dece] bg-[#e9eee1] text-[#3f5f3b] shadow-sm" : "hover:border-[#e2decf] hover:bg-[#fbfaf5]/70",
             )}
             type="button"
           >
-            <span className="flex items-center gap-3">
-              {item.icon}
-              {item.label}
+            <span className="flex min-w-0 items-center gap-3">
+              <span className={cn("grid h-8 w-8 place-items-center rounded-md bg-white/62 text-[#7a8375]", index === 0 && "bg-white text-[#3f7b3b]")}>
+                {item.icon}
+              </span>
+              <span className="truncate">{item.label}</span>
             </span>
-            <span className="tabular-nums">
+            <span className="rounded-full bg-white/64 px-2 py-0.5 text-xs font-black tabular-nums text-[#536050]">
               {item.value}
               {item.suffix}
             </span>
@@ -339,17 +366,17 @@ function AppSidebar({
         ))}
       </div>
 
-      <div className="my-7 h-px bg-[#e1ddd2]" />
+      <div className="my-6 h-px bg-[#e1ddd2]" />
 
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-bold text-[#6b7369]">プロジェクト</p>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#60715e]" onClick={() => onProject("all")}>
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-[#7b8278]">プロジェクト</p>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-[#60715e] hover:bg-[#e9ece2]" onClick={() => onProject("all")}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="grid gap-1">
-        <ProjectButton active={activeProject === "all"} count={taskCount} label="すべて" onClick={() => onProject("all")} />
+      <div className="grid gap-1.5">
+        <ProjectButton active={activeProject === "all"} count={taskCount} done={todayCount} label="すべて" onClick={() => onProject("all")} />
         {groups.map((group) => (
           <ProjectButton
             key={group.name}
@@ -362,9 +389,9 @@ function AppSidebar({
         ))}
       </div>
 
-      <Button variant="outline" className="mt-6 w-full justify-start border-[#ddd8cc] bg-[#fbfaf5]" onClick={onExport}>
+      <Button variant="outline" className="mt-6 w-full justify-start rounded-md border-[#ddd8cc] bg-[#fffdf7]/70 font-bold text-[#52624f] shadow-sm hover:bg-white" onClick={onExport}>
         <Download className="h-4 w-4" />
-        出力
+        森データを出力
       </Button>
     </aside>
   );
@@ -383,20 +410,26 @@ function ProjectButton({
   label: string;
   onClick: () => void;
 }) {
+  const progress = count ? Math.round(((done ?? 0) / count) * 100) : 0;
   return (
     <button
       className={cn(
-        "flex h-11 items-center justify-between rounded-md px-3 text-left text-sm font-semibold text-[#6b7369] transition hover:bg-[#e9ece2]",
-        active && "bg-[#e4e8dc] text-[#3f5f3b]",
+        "grid gap-2 rounded-md border border-transparent px-3 py-2.5 text-left text-sm font-bold text-[#6b7369] transition hover:border-[#e2decf] hover:bg-[#fbfaf5]/70",
+        active && "border-[#d7dece] bg-[#e4e8dc] text-[#3f5f3b] shadow-sm",
       )}
       onClick={onClick}
       type="button"
     >
-      <span className="flex min-w-0 items-center gap-2">
-        <ChevronRight className="h-4 w-4 text-[#a2a99e]" />
-        <span className="truncate">{label}</span>
+      <span className="flex min-w-0 items-center justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-2">
+          <ChevronRight className={cn("h-4 w-4 text-[#a2a99e] transition", active && "rotate-90 text-[#4e7d45]")} />
+          <span className="truncate">{label}</span>
+        </span>
+        <span className="rounded-full bg-white/64 px-2 py-0.5 text-[11px] font-black tabular-nums text-[#5b744f]">{done ?? count}</span>
       </span>
-      <span className="tabular-nums text-[#5b744f]">{done ?? count}</span>
+      <span className="h-1.5 overflow-hidden rounded-full bg-[#e5e0d3]">
+        <span className="block h-full rounded-full bg-gradient-to-r from-[#8daa77] to-[#4e7d45]" style={{ width: `${Math.max(progress, active ? 8 : 0)}%` }} />
+      </span>
     </button>
   );
 }
@@ -423,15 +456,18 @@ function ScopeToggle({ scope, onScope }: { scope: ForestScope; onScope: (scope: 
 
 function TopStatusPill({ completionRate, timeTone, todayCount }: { completionRate: number; timeTone: TimeTone; todayCount: number }) {
   return (
-    <div className="flex w-full items-center justify-between gap-2 rounded-md border border-[#ded9cd] bg-[#fbfaf5] px-3 py-2 text-sm font-bold text-[#52624f] md:w-auto">
+    <div className="flex w-full items-center justify-between gap-2 rounded-md border border-[#ded9cd] bg-[#fffdf7]/82 px-3 py-2 text-sm font-black text-[#52624f] shadow-sm md:w-auto">
       <span className="flex items-center gap-2">
         <CheckCircle2 className="h-4 w-4 text-[#4e7d45]" />
-        今日 {todayCount}
+        今日 {todayCount}件
       </span>
       <span className="h-4 w-px bg-[#ded9cd]" />
       <span>{completionRate}%</span>
       <span className="hidden h-4 w-px bg-[#ded9cd] sm:block" />
-      <span className="hidden text-xs text-[#71806d] sm:block">{timeToneLabel(timeTone)}</span>
+      <span className="hidden items-center gap-1 text-xs text-[#71806d] sm:flex">
+        <Clock3 className="h-3.5 w-3.5" />
+        {timeToneLabel(timeTone)}
+      </span>
     </div>
   );
 }
@@ -963,6 +999,7 @@ function TaskScreen({
   setActiveView,
   setQuery,
   tasks,
+  timeTone,
   title,
 }: {
   completedTasks: Task[];
@@ -982,77 +1019,134 @@ function TaskScreen({
   setActiveView: (view: AppView) => void;
   setQuery: (query: string) => void;
   tasks: Task[];
+  timeTone: TimeTone;
   title: string;
 }) {
-  const children = childrenByParent(tasks);
-  const rootTasks = tasks.filter((task) => !task.parentId || !tasks.some((candidate) => candidate.id === task.parentId));
+  const displayTasks = [...pendingTasks, ...completedTasks];
+  const displayTaskIds = new Set(displayTasks.map((task) => task.id));
+  const children = childrenByParent(displayTasks);
+  const rootTasks = displayTasks.filter((task) => !task.parentId || !displayTaskIds.has(task.parentId));
   const todayNode = buildTodayOverviewNode(tasks);
+  const todayProgress = todayNode.todoCount ? Math.round((todayNode.count / todayNode.todoCount) * 100) : 0;
+  const parentCount = displayTasks.filter((task) => (children.get(task.id) ?? []).length > 0).length;
 
   return (
-    <div className="grid gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-8">
-      <section className="grid min-w-0 gap-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-black">今日のタスク</h2>
-            <p className="text-sm font-medium text-[#747a71]">親タスクを幹にして、小todoが実になる</p>
-          </div>
-          <label className="relative block md:w-72">
+    <div className="grid gap-5 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_390px] lg:p-6 xl:p-8">
+      <section className="grid min-w-0 content-start gap-4">
+        <TaskOverviewBand
+          completedCount={completedTasks.length}
+          onForest={() => setActiveView("forest")}
+          parentCount={parentCount}
+          pendingCount={pendingTasks.length}
+          progress={todayProgress}
+          timeTone={timeTone}
+          todayNode={todayNode}
+        />
+
+        <div className="grid gap-3 rounded-md border border-[#e5dfd2] bg-[#fffdf8]/72 p-3 shadow-[0_14px_36px_rgba(38,49,38,0.06)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+          <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b9288]" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} className="rounded-md border-[#ddd8cc] bg-white/70 pl-9" placeholder="探す" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="h-11 rounded-md border-[#ddd8cc] bg-white/78 pl-9 font-semibold shadow-inner placeholder:text-[#9ca398]"
+              placeholder="タスクやメモを探す"
+            />
           </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <TaskPill label="未完了" value={pendingTasks.length} />
+            <TaskPill label="実" value={todayNode.count} />
+            <TaskPill label="親" value={parentCount} />
+          </div>
         </div>
 
-        <div className="grid gap-3">
-          <AnimatePresence initial={false}>
-            {rootTasks.map((task) => (
-              <NestedTaskRow
-                key={task.id}
-                childrenMap={children}
-                depth={0}
-                onComplete={onComplete}
-                onDelete={onDelete}
-                onParent={(id) => {
-                  onParent(id);
-                  setActiveView("tasks");
-                }}
-                task={task}
-              />
-            ))}
-          </AnimatePresence>
-          {!rootTasks.length && <EmptyState text="タスクがまだありません" />}
+        <div className="rounded-md border border-[#e4dfd4] bg-[#fffdf8]/66 p-2 shadow-[0_18px_48px_rgba(38,49,38,0.07)]">
+          <div className="flex flex-col gap-2 px-2 pb-3 pt-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#82907d]">Task Tree</p>
+              <h2 className="text-xl font-black text-[#263126]">今日やること</h2>
+            </div>
+            <Badge variant="outline" className="w-fit border-[#d9d3c5] bg-white/70 font-black text-[#536050]">
+              {rootTasks.length}本の幹
+            </Badge>
+          </div>
+          <div className="grid gap-2.5">
+            <AnimatePresence initial={false}>
+              {rootTasks.map((task) => (
+                <NestedTaskRow
+                  key={task.id}
+                  childrenMap={children}
+                  depth={0}
+                  onComplete={onComplete}
+                  onDelete={onDelete}
+                  onParent={(id) => {
+                    onParent(id);
+                    setActiveView("tasks");
+                  }}
+                  task={task}
+                />
+              ))}
+            </AnimatePresence>
+            {!rootTasks.length && <EmptyState text="タスクがまだありません" />}
+          </div>
         </div>
       </section>
 
       <aside className="grid h-fit gap-4">
-        <Card className="border-[#e4dfd4] bg-white/70 shadow-none">
-          <CardHeader className="pb-2">
+        <Card className="overflow-hidden border-[#ded8c8] bg-[#fffdf7]/82 shadow-[0_18px_48px_rgba(38,49,38,0.08)]">
+          <CardHeader className="border-b border-[#e9e2d3]/80 bg-[radial-gradient(circle_at_50%_0%,rgba(221,235,203,0.9),transparent_44%)] pb-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <CardTitle>今日の木</CardTitle>
-                <CardDescription>{todayNode.count}/{todayNode.todoCount} 実った</CardDescription>
+                <CardTitle className="flex items-center gap-2 text-[#263126]">
+                  <TreePine className="h-4 w-4 fill-[#4e7d45] text-[#4e7d45]" />
+                  今日の木
+                </CardTitle>
+                <CardDescription className="font-semibold">{todayNode.count}/{todayNode.todoCount} 実った</CardDescription>
               </div>
-              <Button variant="ghost" size="sm" className="text-[#4e7d45]" onClick={() => setActiveView("forest")}>
+              <Button variant="outline" size="sm" className="rounded-md border-[#d9d3c5] bg-white/72 font-black text-[#4e7d45]" onClick={() => setActiveView("forest")}>
                 森へ
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="grid place-items-center pb-5">
-            <div className="w-48 max-w-full">
+          <CardContent className="grid gap-4 p-4">
+            <div className="mx-auto w-56 max-w-full rounded-md border border-[#e0d9ca] bg-[linear-gradient(180deg,#f8f6ed,#eef3e6)] p-3 shadow-inner">
               <TodoFruitTree celebrate={false} node={todayNode} />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <TreeTinyStat label="進捗" value={`${todayProgress}%`} />
+              <TreeTinyStat label="芽" value={todayNode.buds.length} />
+              <TreeTinyStat label="実" value={todayNode.fruits.length} />
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-[#e5e0d3]">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-[#95b17e] via-[#4e7d45] to-[#d1a63b]"
+                initial={false}
+                animate={{ width: `${todayProgress}%` }}
+                transition={{ type: "spring", stiffness: 120, damping: 20 }}
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#e4dfd4] bg-white/70 shadow-none">
+        <Card className="border-[#ded8c8] bg-[#fffdf7]/86 shadow-[0_18px_48px_rgba(38,49,38,0.08)]">
           <CardHeader className="pb-3">
-            <CardTitle>追加</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Sprout className="h-4 w-4 text-[#4e7d45]" />
+              todoを植える
+            </CardTitle>
             <CardDescription>{selectedParentTitle ? `親: ${selectedParentTitle}` : "親タスクなし"}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            <Input value={title} onChange={(event) => onTitle(event.target.value)} onKeyDown={(event) => event.key === "Enter" && onSubmit()} placeholder="タスク名" />
-            <Textarea value={notes} onChange={(event) => onNotes(event.target.value)} placeholder="メモ" />
+            <Input
+              value={title}
+              onChange={(event) => onTitle(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && onSubmit()}
+              className="h-11 rounded-md border-[#ddd8cc] bg-white/80 font-semibold"
+              placeholder="タスク名"
+            />
+            <Textarea value={notes} onChange={(event) => onNotes(event.target.value)} className="min-h-20 rounded-md border-[#ddd8cc] bg-white/80 font-medium" placeholder="メモ" />
             <select
-              className="h-10 rounded-md border border-[#ddd8cc] bg-white px-3 text-sm outline-none"
+              className="h-11 rounded-md border border-[#ddd8cc] bg-white/80 px-3 text-sm font-semibold outline-none"
               value={parentId}
               onChange={(event) => onParent(event.target.value)}
             >
@@ -1065,12 +1159,24 @@ function TaskScreen({
             </select>
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
-                <Button key={key} variant={difficulty === key ? "default" : "outline"} size="sm" onClick={() => onDifficulty(key)}>
-                  {difficultyMeta[key].label}
-                </Button>
+                <button
+                  key={key}
+                  type="button"
+                  className={cn(
+                    "grid gap-1 rounded-md border px-2 py-2 text-center text-xs font-black transition",
+                    difficulty === key
+                      ? "border-[#4e7d45] bg-[#e6ecdf] text-[#334a31] shadow-[0_8px_18px_rgba(78,125,69,0.12)]"
+                      : "border-[#ddd8cc] bg-white/64 text-[#6a7467] hover:bg-white",
+                  )}
+                  onClick={() => onDifficulty(key)}
+                >
+                  <span className={cn("mx-auto rounded-full border", miniFruitClassName(key))} />
+                  <span>{difficultyMeta[key].label}</span>
+                  <span className="text-[10px] text-[#7b8278]">{difficultyMeta[key].hint}</span>
+                </button>
               ))}
             </div>
-            <Button onClick={onSubmit}>
+            <Button className="h-11 rounded-md bg-[#3f7b3b] font-black text-white shadow-[0_12px_28px_rgba(63,123,59,0.24)] hover:bg-[#356b32]" onClick={onSubmit}>
               <Plus className="h-4 w-4" />
               植える
             </Button>
@@ -1082,6 +1188,105 @@ function TaskScreen({
           <MiniMetric label="完了済み" value={completedTasks.length} />
         </div>
       </aside>
+    </div>
+  );
+}
+
+function TaskOverviewBand({
+  completedCount,
+  onForest,
+  parentCount,
+  pendingCount,
+  progress,
+  timeTone,
+  todayNode,
+}: {
+  completedCount: number;
+  onForest: () => void;
+  parentCount: number;
+  pendingCount: number;
+  progress: number;
+  timeTone: TimeTone;
+  todayNode: ForestMapNode;
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-md border border-[#ded8c8] bg-[linear-gradient(135deg,#fffdf7_0%,#f2f4ea_52%,#e8efe2_100%)] p-4 shadow-[0_18px_48px_rgba(38,49,38,0.08)]">
+      <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#dbe8cd]/72 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-0 h-20 w-full bg-[linear-gradient(90deg,rgba(112,141,94,0.08),transparent)]" />
+      <div className="relative grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="rounded-full bg-[#e3eadb] px-3 py-1 text-[#3f5f3b] shadow-none">
+              <Target className="mr-1 h-3.5 w-3.5" />
+              今日のフォーカス
+            </Badge>
+            <span className="flex items-center gap-1 text-xs font-black text-[#71806d]">
+              <Clock3 className="h-3.5 w-3.5" />
+              {timeToneLabel(timeTone)}
+            </span>
+          </div>
+          <h2 className="mt-3 text-2xl font-black tracking-normal text-[#263126] sm:text-3xl">今日やることを実にする</h2>
+          <p className="mt-1 max-w-2xl text-sm font-semibold text-[#6f786c]">
+            親todoは幹、小todoは実。完了すると木に内容が残ります。
+          </p>
+        </div>
+        <Button className="h-11 rounded-md bg-[#3f7b3b] px-4 font-black text-white shadow-[0_12px_28px_rgba(63,123,59,0.24)] hover:bg-[#356b32]" onClick={onForest}>
+          <TreePine className="h-4 w-4" />
+          森を見る
+        </Button>
+      </div>
+
+      <div className="relative mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <OverviewStat icon={<ListTodo className="h-4 w-4" />} label="未完了" value={pendingCount} />
+        <OverviewStat icon={<CheckCircle2 className="h-4 w-4" />} label="完了済み" value={completedCount} />
+        <OverviewStat icon={<CalendarCheck className="h-4 w-4" />} label="今日の実" value={`${todayNode.count}/${todayNode.todoCount}`} />
+        <OverviewStat icon={<Sparkles className="h-4 w-4" />} label="親タスク" value={parentCount} />
+      </div>
+
+      <div className="relative mt-4">
+        <div className="mb-2 flex items-center justify-between text-xs font-black text-[#6d746c]">
+          <span>今日の成長ゲージ</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-[#e2dece] shadow-inner">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-[#8faf77] via-[#4e7d45] to-[#d1a63b]"
+            initial={false}
+            animate={{ width: `${progress}%` }}
+            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OverviewStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-md border border-white/80 bg-white/62 px-3 py-3 shadow-[0_10px_24px_rgba(38,49,38,0.06)]">
+      <div className="flex items-center gap-2 text-[#6b7567]">
+        <span className="grid h-8 w-8 place-items-center rounded-md bg-[#eef3e8] text-[#4e7d45]">{icon}</span>
+        <span className="text-xs font-black">{label}</span>
+      </div>
+      <p className="mt-2 text-xl font-black tabular-nums text-[#2f3b2f] sm:text-2xl">{value}</p>
+    </div>
+  );
+}
+
+function TaskPill({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <span className="inline-flex h-9 items-center gap-2 rounded-full border border-[#ded8c8] bg-white/74 px-3 text-xs font-black text-[#536050]">
+      <span className="text-[#7b8278]">{label}</span>
+      <span className="tabular-nums text-[#31503a]">{value}</span>
+    </span>
+  );
+}
+
+function TreeTinyStat({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-md border border-[#e5dfd2] bg-white/64 px-2 py-2 text-center">
+      <p className="text-[10px] font-black text-[#7b8278]">{label}</p>
+      <p className="mt-0.5 text-base font-black tabular-nums text-[#334a31]">{value}</p>
     </div>
   );
 }
@@ -1103,53 +1308,69 @@ function NestedTaskRow({
 }) {
   const childTasks = childrenMap.get(task.id) ?? [];
   const childDone = childTasks.filter((child) => child.completed).length;
+  const childProgress = childTasks.length ? Math.round((childDone / childTasks.length) * 100) : task.completed ? 100 : 0;
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }}>
       <div
         className={cn(
-          "grid gap-2 rounded-md border border-[#e4dfd4] bg-white/70 p-3 shadow-sm",
-          task.completed && "bg-[#f4f4ee] text-[#7a8177]",
+          "group relative grid gap-2 overflow-hidden rounded-md border border-[#e4dfd4] bg-white/78 p-3.5 shadow-[0_10px_26px_rgba(38,49,38,0.06)] transition hover:-translate-y-0.5 hover:border-[#d3dbc8] hover:bg-white hover:shadow-[0_16px_34px_rgba(38,49,38,0.1)]",
+          task.completed && "border-[#e1ded2] bg-[#f2f3eb]/82 text-[#7a8177] hover:bg-[#f5f5ef]",
         )}
         style={{ marginLeft: depth ? Math.min(depth * 22, 58) : 0 }}
       >
+        <span className={cn("absolute inset-y-0 left-0 w-1 bg-[#8caf77]", task.completed && "bg-[#c7cbbd]", task.difficulty === "hard" && "bg-[#d1a63b]")} />
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
-          <Checkbox
-            aria-label={task.completed ? `${task.title}は完了済み` : `${task.title}を完了`}
-            checked={task.completed}
-            disabled={task.completed}
-            onCheckedChange={() => !task.completed && onComplete(task.id)}
-          />
+          <span className="grid h-9 w-9 place-items-center rounded-md border border-[#ddd8cc] bg-[#fffdf7] shadow-inner">
+            <Checkbox
+              aria-label={task.completed ? `${task.title}は完了済み` : `${task.title}を完了`}
+              checked={task.completed}
+              disabled={task.completed}
+              onCheckedChange={() => !task.completed && onComplete(task.id)}
+            />
+          </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className={cn("truncate font-bold", task.completed && "line-through")}>{task.title}</p>
-              <Badge className={difficultyMeta[task.difficulty].className}>{difficultyMeta[task.difficulty].label}</Badge>
-              {!!childTasks.length && <Badge variant="outline">{childDone}/{childTasks.length}</Badge>}
+              <p className={cn("min-w-0 max-w-full truncate text-base font-black text-[#263126]", task.completed && "text-[#7a8177] line-through")}>{task.title}</p>
+              <DifficultyBadge difficulty={task.difficulty} />
+              {!!childTasks.length && (
+                <Badge variant="outline" className="rounded-full border-[#d9d3c5] bg-[#fffdf7]/74 text-[#536050]">
+                  {childDone}/{childTasks.length}
+                </Badge>
+              )}
             </div>
             {task.notes && <p className="mt-1 line-clamp-2 text-sm text-[#777f75]">{task.notes}</p>}
             {!!childTasks.length && (
-              <div className="mt-3 flex items-center gap-2">
-                <span className="h-8 w-1.5 rounded-full bg-gradient-to-b from-[#7b5944] via-[#5f4131] to-[#3f2d24]" />
-                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                  {childTasks.slice(0, 10).map((child) => (
-                    <span
-                      key={child.id}
-                      title={child.title}
-                      className={cn(
-                        "rounded-full border",
-                        child.completed ? miniFruitClassName(child.difficulty) : miniBudClassName(child.difficulty),
-                      )}
-                    />
-                  ))}
+              <div className="mt-3 rounded-md border border-[#ebe5d7] bg-[#f8f7ef]/80 p-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="h-9 w-1.5 rounded-full bg-gradient-to-b from-[#7b5944] via-[#5f4131] to-[#3f2d24]" />
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                      {childTasks.slice(0, 12).map((child) => (
+                        <span
+                          key={child.id}
+                          title={child.title}
+                          className={cn(
+                            "rounded-full border",
+                            child.completed ? miniFruitClassName(child.difficulty) : miniBudClassName(child.difficulty),
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-xs font-black tabular-nums text-[#657160]">{childProgress}%</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e1ddcf]">
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#8faf77] to-[#d1a63b]" style={{ width: `${childProgress}%` }} />
                 </div>
               </div>
             )}
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onParent(task.id)} aria-label={`${task.title}に小タスクを追加`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-[#60715e] hover:bg-[#e9eee1]" onClick={() => onParent(task.id)} aria-label={`${task.title}に小タスクを追加`}>
               <Plus className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(task.id)} aria-label={`${task.title}を削除`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md text-[#a15d55] hover:bg-[#f3e3df]" onClick={() => onDelete(task.id)} aria-label={`${task.title}を削除`}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -1167,6 +1388,15 @@ function NestedTaskRow({
         />
       ))}
     </motion.div>
+  );
+}
+
+function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
+  return (
+    <Badge className={cn("rounded-full border px-2.5 py-1 shadow-none", difficultyBadgeClassName(difficulty))}>
+      <span className={cn("mr-1.5 rounded-full border", miniFruitClassName(difficulty))} />
+      {difficultyMeta[difficulty].label}
+    </Badge>
   );
 }
 
@@ -1269,15 +1499,20 @@ function SettingsScreen({
 
 function MiniMetric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-[#e4dfd4] bg-white/70 p-4">
-      <p className="text-xs font-bold text-[#747a71]">{label}</p>
-      <p className="mt-1 text-2xl font-black tabular-nums">{value}</p>
+    <div className="rounded-md border border-[#e4dfd4] bg-[#fffdf7]/76 p-4 shadow-[0_12px_28px_rgba(38,49,38,0.06)]">
+      <p className="text-xs font-black text-[#747a71]">{label}</p>
+      <p className="mt-1 text-2xl font-black tabular-nums text-[#2f3b2f]">{value}</p>
     </div>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <p className="rounded-md border border-dashed border-[#ddd8cc] bg-white/55 p-5 text-center text-sm font-medium text-[#747a71]">{text}</p>;
+  return (
+    <div className="grid place-items-center rounded-md border border-dashed border-[#d9d3c5] bg-[#fffdf7]/58 p-8 text-center">
+      <Sprout className="mb-2 h-6 w-6 text-[#8aa17e]" />
+      <p className="text-sm font-bold text-[#747a71]">{text}</p>
+    </div>
+  );
 }
 
 function buildForestMapNodes({
@@ -1609,10 +1844,10 @@ function timeToneLabel(tone: TimeTone) {
 }
 
 function timeToneClass(tone: TimeTone) {
-  if (tone === "morning") return "bg-[#e8ece1]";
-  if (tone === "day") return "bg-[#e5ece2]";
-  if (tone === "evening") return "bg-[#eee6d8]";
-  return "bg-[#17211f]";
+  if (tone === "morning") return "bg-[radial-gradient(circle_at_18%_8%,rgba(255,245,208,0.9),transparent_28%),linear-gradient(135deg,#edf2e7_0%,#f7f3ea_48%,#e0e9d9_100%)]";
+  if (tone === "day") return "bg-[radial-gradient(circle_at_78%_10%,rgba(255,255,255,0.82),transparent_30%),linear-gradient(135deg,#e6eee3_0%,#f5f4ea_54%,#dde8d8_100%)]";
+  if (tone === "evening") return "bg-[radial-gradient(circle_at_20%_10%,rgba(255,198,122,0.58),transparent_30%),linear-gradient(135deg,#efe2d2_0%,#f7f0e5_52%,#dce2d0_100%)]";
+  return "bg-[radial-gradient(circle_at_72%_12%,rgba(132,174,211,0.2),transparent_34%),linear-gradient(135deg,#17211f_0%,#22302b_52%,#111b1b_100%)]";
 }
 
 function forestSurfaceClass(tone: TimeTone) {
@@ -1724,6 +1959,12 @@ function miniBudClassName(difficulty: Difficulty) {
   if (difficulty === "hard") return "h-4 w-4 border-[#aab99d] bg-[#edf2d9]";
   if (difficulty === "medium") return "h-3 w-3 border-[#9bad91] bg-[#e8f0df]";
   return "h-2.5 w-2.5 border-[#9bad91] bg-[#eef5e7]";
+}
+
+function difficultyBadgeClassName(difficulty: Difficulty) {
+  if (difficulty === "hard") return "border-[#ead68a] bg-[#fff5c6] text-[#725313]";
+  if (difficulty === "medium") return "border-[#edcf9b] bg-[#fff0da] text-[#7a5128]";
+  return "border-[#d7c9b9] bg-[#f3efe7] text-[#5f684f]";
 }
 
 function exportForest(tasks: Task[]) {
