@@ -478,25 +478,39 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   }
 
   if (growthLevel <= 1 && node.count === 0) {
-    const seedMaterial = new MeshStandardMaterial({ color: 0x8f6c45, roughness: 0.72 });
+    const seedMaterial = new MeshStandardMaterial({ color: 0xa97b4b, roughness: 0.72, emissive: 0x241505, emissiveIntensity: 0.06 });
     const seed = new Mesh(new SphereGeometry(0.2, 18, 14), seedMaterial);
     seed.position.set(0.04, 0.33, 0.02);
     seed.scale.set(1.12, 0.72, 0.9);
     seed.castShadow = true;
     group.add(seed);
 
+    const sproutStemMaterial = new MeshStandardMaterial({ color: 0x87aa5d, roughness: 0.82, emissive: 0x14240d, emissiveIntensity: 0.08 });
+    const sproutStem = new Mesh(new CylinderGeometry(0.024, 0.04, 0.42, 10), sproutStemMaterial);
+    sproutStem.position.set(0.02, 0.58, 0.02);
+    sproutStem.rotation.z = -0.08;
+    sproutStem.castShadow = true;
+    group.add(sproutStem);
+
     if (node.todoCount > 0) {
       [
-        { x: -0.12, rz: 0.78, color: 0x88ad70 },
-        { x: 0.14, rz: -0.72, color: 0x5f944f },
+        { x: -0.2, y: 0.7, z: 0.04, rz: 0.72, ry: -0.28, color: 0xa5cf7e, sx: 1.64 },
+        { x: 0.2, y: 0.72, z: 0.02, rz: -0.7, ry: 0.28, color: 0x77a85d, sx: 1.58 },
+        { x: -0.08, y: 0.86, z: -0.02, rz: 0.34, ry: -0.12, color: 0xb8d897, sx: 1.3 },
+        { x: 0.1, y: 0.9, z: 0.04, rz: -0.3, ry: 0.14, color: 0x8ebd68, sx: 1.28 },
       ].forEach((leaf) => {
-        const mesh = new Mesh(new SphereGeometry(0.18, 16, 12), new MeshStandardMaterial({ color: leaf.color, roughness: 0.84 }));
-        mesh.position.set(leaf.x, 0.54, 0.02);
+        const mesh = new Mesh(new SphereGeometry(0.17, 18, 12), new MeshStandardMaterial({ color: leaf.color, roughness: 0.82, emissive: 0x10230a, emissiveIntensity: 0.05 }));
+        mesh.position.set(leaf.x, leaf.y, leaf.z);
         mesh.rotation.z = leaf.rz;
-        mesh.scale.set(1.35, 0.34, 0.82);
+        mesh.rotation.y = leaf.ry;
+        mesh.scale.set(leaf.sx, 0.34, 0.86);
         mesh.castShadow = true;
         group.add(mesh);
       });
+
+      const dew = new Mesh(new SphereGeometry(0.035, 10, 8), new MeshStandardMaterial({ color: 0xf7ffe7, roughness: 0.2, transparent: true, opacity: 0.78 }));
+      dew.position.set(-0.16, 0.75, 0.17);
+      group.add(dew);
     }
 
     return group;
@@ -736,15 +750,15 @@ function worldPalette(tone: TimeTone) {
   if (tone === "night") {
     return {
       ambient: 0x8fb4d9,
-      ambientIntensity: 0.26,
+      ambientIntensity: 0.36,
       fill: 0x95b5c8,
       fog: 0x17211f,
-      fogDensity: 0.024,
-      ground: 0x314333,
+      fogDensity: 0.02,
+      ground: 0x40553f,
       path: 0x93a393,
       seed: 0x8fa58c,
       sun: 0xb6d4ff,
-      sunIntensity: 0.46,
+      sunIntensity: 0.64,
     };
   }
   return {

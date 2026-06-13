@@ -1800,7 +1800,7 @@ function TaskScreen({
   const streak = streakDays(tasks);
   const now = new Date();
   const questTotal = Math.max(todayNode.todoCount, todayNode.count, 1);
-  const activeTreeName = (settings.treeName ?? "").trim() || "名前待ちの木";
+  const activeTreeName = (settings.treeName ?? "").trim() || "はじまりの木";
   const monthReport = buildMonthReport(tasks);
   const pot = streakPot(streak);
   const featuredTaskId = expandedTaskId ?? rootTasks[0]?.id ?? "";
