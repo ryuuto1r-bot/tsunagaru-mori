@@ -3,22 +3,28 @@ import type React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Archive,
+  Camera,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   ClipboardList,
   Clock3,
   Download,
+  Droplets,
   Flame,
   Folder,
   Gem,
   History,
   Inbox,
+  Info,
+  Leaf,
   ListTodo,
   Plus,
   RotateCcw,
   Search,
   Settings,
   Sprout,
+  Sun,
   Target,
   Trash2,
   TreePine,
@@ -108,6 +114,18 @@ const difficultyMeta: Record<Difficulty, { label: string; hint: string; classNam
   easy: { label: "軽め", hint: "+8", className: "bg-emerald-100 text-emerald-800" },
   medium: { label: "集中", hint: "+14", className: "bg-amber-100 text-amber-800" },
   hard: { label: "深い", hint: "+22", className: "bg-sky-100 text-sky-800" },
+};
+
+const publicAsset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
+
+const questAssets = {
+  bonsaiHero: publicAsset("assets/bonsai-hero-realistic.png"),
+  barkPanel: publicAsset("assets/quest-bark-panel.png"),
+  fruit: {
+    easy: publicAsset("assets/fruit-easy.png"),
+    medium: publicAsset("assets/fruit-medium.png"),
+    hard: publicAsset("assets/fruit-hard.png"),
+  } satisfies Record<Difficulty, string>,
 };
 
 const appTabs: { value: AppView; label: string; icon: React.ReactNode }[] = [
@@ -217,6 +235,7 @@ function App() {
   const monthCompleted = forestDays.reduce((sum, day) => sum + day.count, 0);
   const selectedParentTitle = tasks.find((task) => task.id === parentId)?.title;
   const forestImmersive = activeView === "forest" && forestMemoryMode;
+  const taskGameMode = activeView === "tasks" && !forestImmersive;
 
   useEffect(() => {
     const timer = window.setInterval(() => setTimeTone(getTimeTone()), 60_000);
@@ -290,14 +309,21 @@ function App() {
         themeClass(settings.theme),
       )}
     >
-      <main className={cn("mx-auto min-h-screen w-full max-w-[1540px] p-2 transition-all duration-500 sm:p-4 lg:p-5", forestImmersive && "max-w-none p-0 sm:p-0 lg:p-0")}>
+      <main
+        className={cn(
+          "mx-auto min-h-screen w-full max-w-[1540px] p-2 transition-all duration-500 sm:p-4 lg:p-5",
+          forestImmersive && "max-w-none p-0 sm:p-0 lg:p-0",
+          taskGameMode && "max-w-[430px] p-0 sm:p-0 lg:p-0",
+        )}
+      >
         <section
           className={cn(
             "grid min-h-[calc(100vh-1rem)] overflow-hidden rounded-lg border border-white/75 bg-[#fbfaf5]/95 shadow-[0_28px_90px_rgba(31,47,34,0.18)] ring-1 ring-[#1f2d1e]/5 backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/94 dark:shadow-[0_28px_90px_rgba(0,0,0,0.42)] lg:min-h-[calc(100vh-2.5rem)]",
             forestImmersive ? "min-h-screen rounded-none border-transparent shadow-none ring-0 lg:min-h-screen lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[292px_minmax(0,1fr)]",
+            taskGameMode && "min-h-screen rounded-none border-transparent bg-transparent shadow-none ring-0 lg:min-h-screen lg:grid-cols-[minmax(0,1fr)]",
           )}
         >
-          {!forestImmersive && (
+          {!forestImmersive && !taskGameMode && (
             <AppSidebar
               activeProject={activeProject}
               completionRate={completionRate}
@@ -312,9 +338,15 @@ function App() {
             />
           )}
 
-          <div className={cn("min-w-0 bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)] pb-20 transition-all duration-500 dark:bg-[linear-gradient(180deg,#121c19_0%,#0d1413_100%)] md:pb-0", !forestImmersive && "border-l border-[#e5e1d7] dark:border-white/10")}>
+          <div
+            className={cn(
+              "min-w-0 bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)] pb-20 transition-all duration-500 dark:bg-[linear-gradient(180deg,#121c19_0%,#0d1413_100%)] md:pb-0",
+              !forestImmersive && !taskGameMode && "border-l border-[#e5e1d7] dark:border-white/10",
+              taskGameMode && "bg-transparent pb-0 dark:bg-transparent",
+            )}
+          >
             <Tabs value={activeView} onValueChange={(value) => setActiveView(value as AppView)} className="flex min-h-full flex-col">
-              <header className={cn("flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8", forestImmersive && "pointer-events-none max-h-0 min-h-0 overflow-hidden border-b-0 px-0 py-0 opacity-0")}>
+              <header className={cn("flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8", (forestImmersive || taskGameMode) && "pointer-events-none max-h-0 min-h-0 overflow-hidden border-b-0 px-0 py-0 opacity-0")}>
                 <TabsList className="hidden h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner dark:border-white/10 dark:bg-white/[0.06] dark:text-[#b9c7b4] md:flex md:w-auto md:justify-start md:gap-1.5">
                   {appTabs.map((tab) => (
                     <TabsTrigger
@@ -370,6 +402,7 @@ function App() {
                   query={query}
                   selectedParentTitle={selectedParentTitle}
                   setActiveView={setActiveView}
+                  setForestScope={setForestScope}
                   setQuery={setQuery}
                   tasks={tasks}
                   timeTone={timeTone}
@@ -390,7 +423,7 @@ function App() {
           </div>
         </section>
       </main>
-      <MobileTabBar activeView={activeView} hidden={forestImmersive} onView={setActiveView} />
+      <MobileTabBar activeView={activeView} hidden={forestImmersive} gameMode={taskGameMode} onView={setActiveView} />
       <FruitFlightOverlay reward={fruitFlight} />
       <GameRewardOverlay reward={rewardToast} />
     </div>
@@ -545,17 +578,25 @@ function AppSidebar({
 
 function MobileTabBar({
   activeView,
+  gameMode = false,
   hidden,
   onView,
 }: {
   activeView: AppView;
+  gameMode?: boolean;
   hidden: boolean;
   onView: (view: AppView) => void;
 }) {
   if (hidden) return null;
 
   return (
-    <nav className="fixed inset-x-3 bottom-3 z-[95] grid h-16 grid-cols-[repeat(4,minmax(0,1fr))] gap-1 rounded-md border border-[#ddd8cc] bg-[#fffdf7]/92 p-1.5 text-[#6d746c] shadow-[0_18px_45px_rgba(28,41,30,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#121c18]/92 dark:text-[#b9c7b4] md:hidden" aria-label="アプリの画面切り替え">
+    <nav
+      className={cn(
+        "fixed inset-x-3 bottom-3 z-[95] grid h-16 grid-cols-[repeat(4,minmax(0,1fr))] gap-1 rounded-md border border-[#ddd8cc] bg-[#fffdf7]/92 p-1.5 text-[#6d746c] shadow-[0_18px_45px_rgba(28,41,30,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#121c18]/92 dark:text-[#b9c7b4] md:hidden",
+        gameMode && "left-1/2 right-auto h-[78px] w-[min(calc(100vw-28px),390px)] -translate-x-1/2 rounded-[28px] border-[#c5b47d]/32 bg-[#0c1a17]/82 p-2 text-[#bfb58d] shadow-[0_18px_50px_rgba(0,0,0,0.44)] ring-1 ring-white/5 md:grid",
+      )}
+      aria-label="アプリの画面切り替え"
+    >
       {appTabs.map((tab) => {
         const active = activeView === tab.value;
         return (
@@ -563,16 +604,17 @@ function MobileTabBar({
             key={tab.value}
             type="button"
             className={cn(
-              "grid h-full min-w-0 content-center justify-items-center gap-0.5 rounded-md border border-transparent px-1 text-[10px] font-black transition",
-              active
-                ? "border-[#d8d2c4] bg-[#e8efe2] text-[#2f4530] shadow-[0_8px_18px_rgba(38,49,38,0.08)] dark:border-white/10 dark:bg-white/[0.12] dark:text-[#f0f6e9]"
-                : "text-[#6d746c] hover:bg-[#f0efe8] dark:text-[#b9c7b4] dark:hover:bg-white/[0.08]",
+              "relative grid h-full min-w-0 content-center justify-items-center gap-0.5 rounded-md border border-transparent px-1 text-[10px] font-black transition",
+              active ? "border-[#d8d2c4] bg-[#e8efe2] text-[#2f4530] shadow-[0_8px_18px_rgba(38,49,38,0.08)] dark:border-white/10 dark:bg-white/[0.12] dark:text-[#f0f6e9]" : "text-[#6d746c] hover:bg-[#f0efe8] dark:text-[#b9c7b4] dark:hover:bg-white/[0.08]",
+              gameMode && "rounded-[20px] border-transparent bg-transparent text-[#bfb58d] hover:bg-white/[0.04] dark:bg-transparent",
+              gameMode && active && "bg-transparent text-[#d9ef6c] shadow-none dark:bg-transparent dark:text-[#d9ef6c]",
             )}
             aria-current={active ? "page" : undefined}
             onClick={() => onView(tab.value)}
           >
-            {tab.icon}
+            <span className={cn(gameMode && active && "drop-shadow-[0_0_14px_rgba(217,239,108,0.8)]")}>{tab.icon}</span>
             <span className="max-w-full truncate">{tab.label}</span>
+            {gameMode && active && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#d9ef6c] shadow-[0_0_14px_rgba(217,239,108,0.9)]" />}
           </button>
         );
       })}
@@ -1485,6 +1527,7 @@ function TaskScreen({
   query,
   selectedParentTitle,
   setActiveView,
+  setForestScope,
   setQuery,
   tasks,
   timeTone,
@@ -1507,150 +1550,597 @@ function TaskScreen({
   query: string;
   selectedParentTitle?: string;
   setActiveView: (view: AppView) => void;
+  setForestScope: (scope: ForestScope) => void;
   setQuery: (query: string) => void;
   tasks: Task[];
   timeTone: TimeTone;
   title: string;
   treeCelebrate: boolean;
 }) {
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const displayTasks = [...pendingTasks, ...completedTasks];
   const displayTaskIds = new Set(displayTasks.map((task) => task.id));
   const children = childrenByParent(displayTasks);
   const rootTasks = displayTasks.filter((task) => !task.parentId || !displayTaskIds.has(task.parentId));
   const todayNode = buildTodayOverviewNode(tasks);
   const todayProgress = todayNode.todoCount ? Math.round((todayNode.count / todayNode.todoCount) * 100) : 0;
-  const parentCount = displayTasks.filter((task) => (children.get(task.id) ?? []).length > 0).length;
+  const points = growthPoints(tasks);
+  const stage = currentStage(points);
+  const streak = streakDays(tasks);
+  const now = new Date();
+  const questTotal = Math.max(todayNode.todoCount, todayNode.count, 1);
+  const activeTreeName = rootTasks[0]?.title ? deriveTaskGroup(rootTasks[0]) : "ケヤキ";
+  const featuredTaskId = expandedTaskId ?? rootTasks[0]?.id ?? "";
+
+  useEffect(() => {
+    if (!rootTasks.length) {
+      if (expandedTaskId) setExpandedTaskId(null);
+      return;
+    }
+    if (!expandedTaskId || !rootTasks.some((task) => task.id === expandedTaskId)) {
+      setExpandedTaskId(rootTasks[0].id);
+    }
+  }, [expandedTaskId, rootTasks]);
+
+  function openForest(scope: ForestScope) {
+    setForestScope(scope);
+    setActiveView("forest");
+  }
+
+  function waterNextTask() {
+    const nextTask = pendingTasks[0];
+    if (nextTask) onComplete(nextTask.id);
+  }
 
   return (
-    <div className={cn("grid min-w-0 items-start gap-5 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_410px] lg:p-6 xl:p-8", compact && "gap-3 p-2 sm:p-3 lg:grid-cols-[minmax(0,1fr)_350px] lg:p-4 xl:p-5")}>
-      <section className={cn("order-2 grid min-w-0 content-start gap-4 lg:order-1", compact && "gap-3")}>
-        <TaskOverviewBand
-          compact={compact}
-          completedCount={completedTasks.length}
-          onForest={() => setActiveView("forest")}
-          parentCount={parentCount}
-          pendingCount={pendingTasks.length}
-          progress={todayProgress}
-          timeTone={timeTone}
-          todayNode={todayNode}
+    <div className="relative min-h-screen overflow-hidden bg-[#071916] pb-24 text-[#f7f1d7]">
+      <section className="relative min-h-[690px] overflow-hidden">
+        <img
+          src={questAssets.bonsaiHero}
+          alt=""
+          className="absolute inset-0 h-full w-full scale-[1.04] object-cover"
         />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_47%_42%,transparent_0%,transparent_32%,rgba(5,19,16,0.18)_55%,rgba(5,19,16,0.76)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,20,16,0.16)_0%,rgba(6,20,16,0.05)_35%,rgba(7,25,22,0.88)_100%)]" />
 
-        <div className={cn("rounded-md border border-[#e5dfd2] bg-[#fffdf8]/72 p-2.5 shadow-[0_10px_26px_rgba(38,49,38,0.05)] backdrop-blur dark:border-white/10 dark:bg-white/[0.05]", compact && "p-2")}>
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b9288]" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="h-11 rounded-md border-[#ddd8cc] bg-white/78 pl-9 font-semibold shadow-inner placeholder:text-[#9ca398] dark:border-white/10 dark:bg-white/[0.08] dark:text-[#edf5e9] dark:placeholder:text-[#83927e]"
-              placeholder="タスクやメモを探す"
-            />
-          </label>
-        </div>
-
-        <div className={cn("rounded-md border border-[#e4dfd4] bg-[#fffdf8]/66 p-2 shadow-[0_18px_48px_rgba(38,49,38,0.07)] backdrop-blur dark:border-white/10 dark:bg-white/[0.045] dark:shadow-[0_18px_48px_rgba(0,0,0,0.25)]", compact && "p-1.5")}>
-          <div className={cn("flex flex-col gap-2 px-2 pb-3 pt-1 sm:flex-row sm:items-end sm:justify-between", compact && "pb-2")}>
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#82907d] dark:text-[#93a88e]">Task Tree</p>
-              <h2 className={cn("text-xl font-black text-[#263126] dark:text-[#eef4e8]", compact && "text-lg")}>今日やること</h2>
-            </div>
-            <Badge variant="outline" className="w-fit border-[#d9d3c5] bg-white/70 font-black text-[#536050] dark:border-white/10 dark:bg-white/[0.06] dark:text-[#d9e8d3]">
-              {rootTasks.length}本の幹
-            </Badge>
+        <div className="relative z-10 grid min-h-[690px] content-start px-4 pb-7 pt-8">
+          <div className="flex items-start justify-between gap-3">
+            <button type="button" className="flex min-w-0 items-center gap-2 rounded-full px-1 text-left" onClick={() => setQuery(query)}>
+              <span className="truncate text-[28px] font-black leading-none tracking-normal text-[#fff7da] drop-shadow-[0_5px_20px_rgba(0,0,0,0.42)]">つながる森</span>
+              <Leaf className="mt-1 h-7 w-7 rotate-[-18deg] fill-[#e9e0a1] text-[#e9e0a1] drop-shadow" />
+            </button>
+            <button
+              type="button"
+              aria-label="今日の画面を共有"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#d7c797]/35 bg-[#17251d]/44 text-[#efe4bb] shadow-[0_10px_28px_rgba(0,0,0,0.28)] backdrop-blur-xl"
+              onClick={() => void shareForest(todayNode.count, questTotal)}
+            >
+              <Camera className="h-5 w-5" />
+            </button>
           </div>
-          <div className={cn("grid gap-2.5", compact && "gap-1.5")}>
-            <AnimatePresence initial={false}>
-              {rootTasks.map((task) => (
-                <NestedTaskRow
-                  key={task.id}
-                  childrenMap={children}
-                  depth={0}
-                  onComplete={onComplete}
-                  onDelete={onDelete}
-                  onParent={(id) => {
-                    onParent(id);
-                    setActiveView("tasks");
-                  }}
-                  compact={compact}
-                  task={task}
+
+          <div className="mt-8 grid grid-cols-[118px_minmax(0,1fr)] items-start gap-2">
+            <QuestProgressPanel completed={todayNode.count} progress={todayProgress} total={questTotal} />
+            <div className="grid min-w-0 gap-2">
+              <LevelPanel points={points} stage={stage} streak={streak} />
+              <TimePanel date={formatGameDate(now)} greeting={timeGreeting(timeTone)} time={formatGameTime(now)} />
+            </div>
+          </div>
+
+          <div className="mt-auto grid min-h-[280px] content-end">
+            <AnimatePresence>
+              {treeCelebrate && (
+                <motion.div
+                  className="pointer-events-none absolute inset-x-8 top-[18rem] h-52 rounded-full bg-[radial-gradient(circle,rgba(229,216,127,0.35),transparent_66%)] blur-xl"
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: [0, 1, 0], scale: [0.7, 1.18, 1.42] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.05, ease: "easeOut" }}
                 />
-              ))}
+              )}
             </AnimatePresence>
-            {!rootTasks.length && <EmptyState text="タスクがまだありません" />}
+
+            <div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-end gap-3">
+              <button
+                type="button"
+                className="relative grid h-[74px] w-[74px] place-items-center rounded-full border border-[#d8c691]/38 bg-[#2a301f]/56 text-[#fbf2cf] shadow-[0_16px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition active:scale-95"
+                onClick={waterNextTask}
+              >
+                <Droplets className="h-7 w-7" />
+                <span className="absolute -right-0.5 -top-1 grid h-7 min-w-7 place-items-center rounded-full border border-[#e4efbd] bg-[#97bf55] px-1 text-sm font-black text-white shadow">{pendingTasks.length}</span>
+                <span className="absolute bottom-2 text-xs font-black">水やり</span>
+              </button>
+
+              <div className="mx-auto grid min-w-0 rounded-[26px] border border-[#d7c797]/34 bg-[#111914]/72 px-8 py-4 text-center shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+                <span className="text-xs font-black text-[#d7cfaa]">
+                  今日の木 <Info className="mb-0.5 ml-1 inline h-3.5 w-3.5" />
+                </span>
+                <span className="mt-1 truncate text-xl font-black text-[#fff9df]">{activeTreeName}</span>
+                <span className="mt-1 text-sm font-black text-[#d7cfaa]">Lv. {stage.index + 1}　{todayTreeStageLabel(treeGrowthLevel(todayNode), todayNode.count, todayNode.todoCount)}</span>
+              </div>
+
+              <button
+                type="button"
+                className="grid h-[74px] w-[74px] place-items-center rounded-full border border-[#d8c691]/38 bg-[#2a301f]/56 text-[#fbf2cf] shadow-[0_16px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition active:scale-95"
+                onClick={() => void shareForest(todayNode.count, questTotal)}
+              >
+                <Camera className="h-7 w-7" />
+                <span className="absolute bottom-2 text-xs font-black">シェア</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      <aside className={cn("order-1 grid h-fit min-w-0 gap-4 lg:order-2 lg:sticky lg:top-6", compact && "gap-3")}>
-        <TodayTreeCard
-          celebrate={treeCelebrate}
-          compact={compact}
-          node={todayNode}
-          progress={todayProgress}
-          onForest={() => setActiveView("forest")}
-        />
-
-        <Card className="border-[#ded8c8] bg-[#fffdf7]/86 shadow-[0_18px_48px_rgba(38,49,38,0.08)] backdrop-blur dark:border-white/10 dark:bg-white/[0.055] dark:shadow-[0_18px_48px_rgba(0,0,0,0.25)]">
-          <CardHeader className={cn("pb-3", compact && "p-4 pb-2")}>
-            <CardTitle className="flex items-center gap-2">
-              <Sprout className="h-4 w-4 text-[#4e7d45]" />
-              todoを植える
-            </CardTitle>
-            <CardDescription className="dark:text-[#a8b8a2]">{selectedParentTitle ? `親: ${selectedParentTitle}` : "親タスクなし"}</CardDescription>
-          </CardHeader>
-          <CardContent className={cn("grid gap-3", compact && "gap-2 p-4 pt-0")}>
-            <Input
-              value={title}
-              onChange={(event) => onTitle(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && onSubmit()}
-              className="h-11 rounded-md border-[#ddd8cc] bg-white/80 font-semibold dark:border-white/10 dark:bg-white/[0.08] dark:text-[#edf5e9] dark:placeholder:text-[#83927e]"
-              placeholder="タスク名"
-            />
-            <Textarea value={notes} onChange={(event) => onNotes(event.target.value)} className="min-h-20 rounded-md border-[#ddd8cc] bg-white/80 font-medium dark:border-white/10 dark:bg-white/[0.08] dark:text-[#edf5e9] dark:placeholder:text-[#83927e]" placeholder="メモ" />
-            <select
-              className="h-11 rounded-md border border-[#ddd8cc] bg-white/80 px-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-[#17221f] dark:text-[#edf5e9]"
-              value={parentId}
-              onChange={(event) => onParent(event.target.value)}
-            >
-              <option value="">親タスクなし</option>
-              {tasks.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.title}
-                </option>
-              ))}
-            </select>
-            <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2">
-              {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={cn(
-                    "grid min-w-0 gap-1 rounded-md border px-2 py-2 text-center text-xs font-black transition",
-                    difficulty === key
-                      ? "border-[#4e7d45] bg-[#e6ecdf] text-[#334a31] shadow-[0_8px_18px_rgba(78,125,69,0.12)] dark:border-[#8ccf83] dark:bg-[#1d3a28] dark:text-[#e9f6e2]"
-                      : "border-[#ddd8cc] bg-white/64 text-[#6a7467] hover:bg-white dark:border-white/10 dark:bg-white/[0.06] dark:text-[#c2d0bc] dark:hover:bg-white/[0.1]",
-                  )}
-                  onClick={() => onDifficulty(key)}
-                >
-                  <span className={cn("mx-auto rounded-full border", miniFruitClassName(key))} />
-                  <span>{difficultyMeta[key].label}</span>
-                  <span className="text-[10px] text-[#7b8278] dark:text-[#9fb19a]">{difficultyMeta[key].hint}</span>
-                </button>
-              ))}
-            </div>
-            <Button className="h-11 rounded-md bg-[#3f7b3b] font-black text-white shadow-[0_12px_28px_rgba(63,123,59,0.24)] hover:bg-[#356b32]" onClick={onSubmit}>
-              <Plus className="h-4 w-4" />
-              植える
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-2 gap-3">
-          <MiniMetric label="未完了" value={pendingTasks.length} />
-          <MiniMetric label="完了済み" value={completedTasks.length} />
+      <section className="relative z-20 -mt-8 rounded-t-[32px] border-t border-[#b7aa7b]/28 bg-[linear-gradient(180deg,rgba(14,31,26,0.96),#071916_55%,#071916_100%)] px-3 pb-28 pt-4 shadow-[0_-24px_60px_rgba(0,0,0,0.38)]">
+        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[#d7c797]/68" />
+        <div className="mx-auto grid max-w-[330px] grid-cols-3 rounded-full border border-[#a7986c]/46 bg-[#17211b]/72 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
+          <QuestScopeButton active label="今日" onClick={() => openForest("today")} />
+          <QuestScopeButton label="今月" onClick={() => openForest("month")} />
+          <QuestScopeButton label="すべて" onClick={() => openForest("all")} />
         </div>
-      </aside>
+
+        <div className="relative mt-5 overflow-hidden rounded-[30px] border border-[#a28f62]/54 bg-[#14221c]/82 p-3 shadow-[0_22px_60px_rgba(0,0,0,0.34)] ring-1 ring-white/5 backdrop-blur-xl">
+          <img src={questAssets.barkPanel} alt="" className="absolute inset-y-0 left-0 h-full w-[116px] object-cover opacity-90" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,18,14,0.04)_0%,rgba(9,18,14,0.18)_24%,rgba(9,18,14,0.72)_50%,rgba(9,18,14,0.78)_100%)]" />
+          <div className="relative grid gap-3">
+            <AnimatePresence initial={false}>
+              {rootTasks.map((task) => (
+                <QuestTaskCard
+                  key={task.id}
+                  childrenMap={children}
+                  expanded={featuredTaskId === task.id}
+                  onComplete={onComplete}
+                  onDelete={onDelete}
+                  onExpand={() => setExpandedTaskId(featuredTaskId === task.id ? null : task.id)}
+                  onParent={(id) => {
+                    onParent(id);
+                    setExpandedTaskId(id);
+                  }}
+                  task={task}
+                />
+              ))}
+            </AnimatePresence>
+
+            {!rootTasks.length && (
+              <div className="relative ml-[72px] rounded-[24px] border border-[#d0c091]/28 bg-[#17251d]/72 px-4 py-8 text-center text-sm font-black text-[#d9d0a7]">
+                まだクエストがありません
+              </div>
+            )}
+
+            <QuestAddDialog
+              difficulty={difficulty}
+              notes={notes}
+              onDifficulty={onDifficulty}
+              onNotes={onNotes}
+              onParent={onParent}
+              onSubmit={onSubmit}
+              onTitle={onTitle}
+              parentId={parentId}
+              selectedParentTitle={selectedParentTitle}
+              tasks={tasks}
+              title={title}
+            />
+          </div>
+        </div>
+      </section>
     </div>
   );
+}
+
+function QuestProgressPanel({
+  completed,
+  progress,
+  total,
+}: {
+  completed: number;
+  progress: number;
+  total: number;
+}) {
+  return (
+    <div className="grid h-[118px] w-[118px] place-items-center rounded-[26px] border border-[#e0cf98]/38 bg-[#20291d]/54 p-3 text-center shadow-[0_22px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+      <p className="text-xs font-black text-[#fff4cf]">今日のクエスト</p>
+      <div
+        className="mt-1 grid h-[76px] w-[76px] place-items-center rounded-full p-1 shadow-[inset_0_0_18px_rgba(0,0,0,0.32)]"
+        style={{ background: `conic-gradient(#9fc766 ${progress * 3.6}deg, rgba(227,214,155,0.2) 0deg)` }}
+      >
+        <div className="grid h-full w-full place-items-center rounded-full bg-[#182017]/86">
+          <span className="text-[32px] font-black leading-none text-[#fff9df]">
+            {completed}<span className="text-base text-[#d7cfaa]">/{total}</span>
+          </span>
+          <span className="-mt-4 text-xs font-black text-[#d7cfaa]">完了</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LevelPanel({
+  points,
+  stage,
+  streak,
+}: {
+  points: number;
+  stage: ReturnType<typeof currentStage>;
+  streak: number;
+}) {
+  const next = Math.max(stage.next, points || stage.next);
+  return (
+    <div className="w-full rounded-[22px] border border-[#d7c797]/34 bg-[#182019]/58 px-3.5 py-3 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.26)] backdrop-blur-xl">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-black sm:text-sm">
+            <Flame className="h-4 w-4 text-[#e2a04c]" />
+            <span>連続 {streak} 日</span>
+            <span className="h-4 w-px bg-[#d7c797]/42" />
+            <span className="text-base sm:text-lg">Lv. {stage.index + 1}</span>
+          </div>
+          <p className="mt-2 text-right text-xs font-black text-[#d7cfaa]">{points} / {next} XP</p>
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#1f281d]/70 shadow-inner">
+            <motion.div
+              className="h-full rounded-full bg-[#a8cb70]"
+              initial={false}
+              animate={{ width: `${stage.progress}%` }}
+              transition={{ type: "spring", stiffness: 130, damping: 22 }}
+            />
+          </div>
+        </div>
+        <div className="hidden h-[52px] w-[52px] place-items-center rounded-full border border-[#a9cf6a]/50 bg-[#172116] shadow-[inset_0_0_0_6px_rgba(157,195,95,0.24),0_12px_28px_rgba(0,0,0,0.28)] min-[390px]:grid">
+          <Leaf className="h-7 w-7 fill-[#9ec966] text-[#9ec966]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimePanel({ date, greeting, time }: { date: string; greeting: string; time: string }) {
+  return (
+    <div className="ml-auto grid w-full rounded-[22px] border border-[#d7c797]/34 bg-[#172017]/52 px-3.5 py-3 text-right text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 text-left">
+        <Sun className="h-7 w-7 text-[#f1c156]" />
+        <span className="grid">
+          <span className="text-xs font-black text-[#d7cfaa]">{greeting}</span>
+          <span className="text-[30px] font-black leading-none tracking-normal">{time}</span>
+        </span>
+      </div>
+      <span className="mt-3 border-t border-[#d7c797]/30 pt-2 text-sm font-black text-[#f3e9bf]">{date}</span>
+    </div>
+  );
+}
+
+function QuestScopeButton({ active, label, onClick }: { active?: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "h-12 rounded-full text-sm font-black transition",
+        active ? "bg-[#0c170f] text-[#fff7da] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_10px_24px_rgba(0,0,0,0.24)]" : "text-[#b9ad82] hover:bg-white/[0.04]",
+      )}
+      onClick={onClick}
+    >
+      {active && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#a9d46a] align-middle" />}
+      {label}
+    </button>
+  );
+}
+
+function QuestTaskCard({
+  childrenMap,
+  expanded,
+  onComplete,
+  onDelete,
+  onExpand,
+  onParent,
+  task,
+}: {
+  childrenMap: Map<string, Task[]>;
+  expanded: boolean;
+  onComplete: (id: string) => void;
+  onDelete: (id: string) => void;
+  onExpand: () => void;
+  onParent: (id: string) => void;
+  task: Task;
+}) {
+  const childTasks = childrenMap.get(task.id) ?? [];
+  const taskFruits = childTasks.length ? childTasks : [task];
+  const progress = questTaskProgress(task, childTasks);
+
+  return (
+    <motion.article
+      layout
+      className="relative pl-[74px]"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 180, damping: 20 }}
+    >
+      <div className="absolute left-4 top-5 z-10 grid h-[58px] w-[58px] place-items-center rounded-full border border-[#dccb94]/45 bg-[#638850] shadow-[0_12px_28px_rgba(0,0,0,0.32),inset_0_0_0_5px_rgba(255,255,255,0.07)]">
+        <Leaf className="h-7 w-7 fill-[#eef4cf] text-[#eef4cf]" />
+      </div>
+      <div className="absolute left-[43px] top-[80px] h-[calc(100%-52px)] w-px border-l border-dashed border-[#d8c895]/44" />
+
+      <div className={cn("overflow-hidden rounded-[26px] border border-[#d1c090]/25 bg-[#17241d]/78 shadow-[0_16px_42px_rgba(0,0,0,0.25)] backdrop-blur-xl", expanded && "border-[#d9c38b]/48 bg-[#1a261d]/86")}>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4">
+          <div className="min-w-0 text-left" onClick={onExpand}>
+            <div className="flex min-w-0 items-center gap-2">
+              <h3 className="truncate text-lg font-black text-[#fff7dc]">{task.title}</h3>
+              <button type="button" className="rounded-full p-1 text-[#cfc397] hover:bg-white/5" onClick={(event) => { event.stopPropagation(); onParent(task.id); }}>
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              {Array.from({ length: Math.max(progress.total, 2) }).slice(0, 4).map((_, index) => (
+                <span key={index} className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#8b835b]/52">
+                  <span className="block h-full rounded-full bg-[#a8cd67]" style={{ width: index < progress.done ? "100%" : index === progress.done ? `${progress.partial}%` : "0%" }} />
+                </span>
+              ))}
+            </div>
+            <p className="mt-1 text-sm font-black text-[#d6caa0]">{progress.done} / {progress.total}</p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {taskFruits.slice(0, 3).map((fruitTask) => (
+              <QuestFruit key={fruitTask.id} task={fruitTask} onComplete={onComplete} />
+            ))}
+            <button
+              type="button"
+              className="grid h-11 w-11 place-items-center rounded-full border border-dashed border-[#d2c394]/46 bg-[#1a2119]/68 text-[#d8c896] transition hover:bg-white/5 active:scale-95"
+              onClick={() => onParent(task.id)}
+              aria-label={`${task.title}に小タスクを追加`}
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              className="grid h-9 w-9 place-items-center rounded-full text-[#f4e9bd] transition hover:bg-white/5"
+              onClick={onExpand}
+              aria-label={expanded ? `${task.title}を閉じる` : `${task.title}を開く`}
+            >
+              <ChevronDown className={cn("h-5 w-5 transition", expanded && "rotate-180")} />
+            </button>
+          </div>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {expanded && childTasks.length > 0 && (
+            <motion.div
+              className="mx-2 mb-3 overflow-hidden rounded-[18px] border border-[#d1c090]/20 bg-[#34462e]/38"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+            >
+              {childTasks.map((child) => (
+                <QuestChildRow key={child.id} onComplete={onComplete} onDelete={onDelete} task={child} />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.article>
+  );
+}
+
+function QuestChildRow({
+  onComplete,
+  onDelete,
+  task,
+}: {
+  onComplete: (id: string) => void;
+  onDelete: (id: string) => void;
+  task: Task;
+}) {
+  return (
+    <div className="grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-3 border-b border-[#d1c090]/18 px-3 py-2 last:border-b-0">
+      <span className={cn("h-3 w-3 rounded-full", task.completed ? "bg-[#9fc766]" : difficultyDotClassName(task.difficulty))} />
+      <button type="button" className="truncate text-left text-sm font-black text-[#fff5d7]" onClick={() => !task.completed && onComplete(task.id)}>
+        {task.title}
+      </button>
+      <QuestFruit task={task} onComplete={onComplete} small />
+      <span className={cn("min-w-12 text-xs font-black", difficultyTextClassName(task.difficulty))}>{difficultyMeta[task.difficulty].label}</span>
+      <button type="button" className="hidden text-[#a99772] hover:text-[#f5ddb0] sm:block" onClick={() => onDelete(task.id)} aria-label={`${task.title}を削除`}>
+        <Trash2 className="h-4 w-4" />
+      </button>
+      <span className="col-span-5 -mt-1 pl-6 text-right text-[11px] font-black text-[#b4aa85]">
+        {task.completed ? `完了 ${formatCompletedTime(task.completedAt)}` : "-"}
+      </span>
+    </div>
+  );
+}
+
+function QuestFruit({
+  onComplete,
+  small,
+  task,
+}: {
+  onComplete: (id: string) => void;
+  small?: boolean;
+  task: Task;
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "relative grid place-items-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a8cd67]",
+        small ? "h-9 w-9" : "h-12 w-12",
+        task.completed ? "cursor-default" : "opacity-65 hover:opacity-100 active:scale-95",
+      )}
+      onClick={() => !task.completed && onComplete(task.id)}
+      disabled={task.completed}
+      title={task.title}
+      aria-label={task.completed ? `${task.title}は完了済み` : `${task.title}を完了`}
+    >
+      <FruitImage difficulty={task.difficulty} className={cn(small ? "h-8 w-8" : "h-12 w-12", !task.completed && "grayscale-[0.24]")} />
+      {task.completed ? (
+        <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full bg-[#283c26] text-[#dff3b0] shadow">
+          <CheckCircle2 className="h-4 w-4" />
+        </span>
+      ) : (
+        <span className="absolute inset-1 rounded-full border border-dashed border-[#dccb94]/42" />
+      )}
+    </button>
+  );
+}
+
+function QuestAddDialog({
+  difficulty,
+  notes,
+  onDifficulty,
+  onNotes,
+  onParent,
+  onSubmit,
+  onTitle,
+  parentId,
+  selectedParentTitle,
+  tasks,
+  title,
+}: {
+  difficulty: Difficulty;
+  notes: string;
+  onDifficulty: (difficulty: Difficulty) => void;
+  onNotes: (notes: string) => void;
+  onParent: (parentId: string) => void;
+  onSubmit: () => void;
+  onTitle: (title: string) => void;
+  parentId: string;
+  selectedParentTitle?: string;
+  tasks: Task[];
+  title: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function submit() {
+    if (!title.trim()) return;
+    onSubmit();
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="relative ml-[60px] mt-2 grid h-14 place-items-center rounded-full border border-[#b8d57b]/38 bg-[linear-gradient(180deg,#5b8f44,#386f32)] px-5 text-base font-black text-[#fff8dd] shadow-[0_18px_44px_rgba(44,88,39,0.28)] transition active:scale-[0.99]"
+        >
+          <span className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            新しいクエストを追加
+            <Sprout className="h-5 w-5 text-[#d7f4aa]" />
+          </span>
+        </button>
+      </DialogTrigger>
+      <DialogContent className="rounded-[26px] border-[#d1c090]/40 bg-[#101c17]/95 text-[#fff5d7] shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+        <DialogHeader>
+          <DialogTitle>クエストを植える</DialogTitle>
+          <DialogDescription className="text-[#bfb58d]">{selectedParentTitle ? `親: ${selectedParentTitle}` : "親タスクなし"}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <Input
+            value={title}
+            onChange={(event) => onTitle(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && submit()}
+            className="h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
+            placeholder="クエスト名"
+          />
+          <Textarea
+            value={notes}
+            onChange={(event) => onNotes(event.target.value)}
+            className="min-h-20 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-medium text-[#fff5d7] placeholder:text-[#8f876b]"
+            placeholder="メモ"
+          />
+          <select
+            className="h-12 rounded-2xl border border-[#d1c090]/30 bg-[#17241d] px-3 text-sm font-bold text-[#fff5d7] outline-none"
+            value={parentId}
+            onChange={(event) => onParent(event.target.value)}
+          >
+            <option value="">親タスクなし</option>
+            {tasks.map((task) => (
+              <option key={task.id} value={task.id}>
+                {task.title}
+              </option>
+            ))}
+          </select>
+          <div className="grid grid-cols-3 gap-2">
+            {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={cn(
+                  "grid min-w-0 place-items-center gap-1 rounded-2xl border px-2 py-2 text-center text-xs font-black transition",
+                  difficulty === key ? "border-[#b8d57b]/70 bg-[#d9ef9a]/16 text-[#f6f2d0]" : "border-[#d1c090]/24 bg-white/[0.05] text-[#bfb58d]",
+                )}
+                onClick={() => onDifficulty(key)}
+              >
+                <FruitImage difficulty={key} className="h-8 w-8" />
+                {difficultyMeta[key].label}
+              </button>
+            ))}
+          </div>
+          <Button className="h-12 rounded-full bg-[#5d9544] font-black text-[#fff8dd] hover:bg-[#4a8039]" onClick={submit}>
+            <Plus className="h-5 w-5" />
+            植える
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FruitImage({ className, difficulty }: { className?: string; difficulty: Difficulty }) {
+  return <img src={questAssets.fruit[difficulty]} alt="" className={cn("object-contain drop-shadow-[0_8px_12px_rgba(0,0,0,0.36)]", className)} />;
+}
+
+function questTaskProgress(task: Task, children: Task[]) {
+  const total = children.length || 1;
+  const done = children.length ? children.filter((child) => child.completed).length : task.completed ? 1 : 0;
+  const percent = total ? Math.round((done / total) * 100) : 0;
+  return { done, total, percent, partial: percent };
+}
+
+function difficultyDotClassName(difficulty: Difficulty) {
+  if (difficulty === "hard") return "bg-[#e8c14d] shadow-[0_0_0_3px_rgba(232,193,77,0.13)]";
+  if (difficulty === "medium") return "bg-[#d8893d] shadow-[0_0_0_3px_rgba(216,137,61,0.13)]";
+  return "bg-[#9fc766] shadow-[0_0_0_3px_rgba(159,199,102,0.13)]";
+}
+
+function difficultyTextClassName(difficulty: Difficulty) {
+  if (difficulty === "hard") return "text-[#f3ce5d]";
+  if (difficulty === "medium") return "text-[#e7a45b]";
+  return "text-[#b8d57b]";
+}
+
+function formatGameTime(date: Date) {
+  return new Intl.DateTimeFormat("ja-JP", { hour: "numeric", minute: "2-digit", hour12: false }).format(date);
+}
+
+function formatGameDate(date: Date) {
+  const weekday = new Intl.DateTimeFormat("ja-JP", { weekday: "short" }).format(date);
+  return `${date.getMonth() + 1}月${date.getDate()}日 (${weekday})`;
+}
+
+function formatCompletedTime(value?: string) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ja-JP", { hour: "numeric", minute: "2-digit", hour12: false }).format(new Date(value));
+}
+
+function timeGreeting(tone: TimeTone) {
+  if (tone === "morning") return "おはよう";
+  if (tone === "day") return "こんにちは";
+  if (tone === "evening") return "おつかれさま";
+  return "こんばんは";
+}
+
+async function shareForest(completed: number, total: number) {
+  const text = `つながる森 今日のクエスト ${completed}/${total} 完了`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "つながる森", text });
+      return;
+    }
+    await navigator.clipboard?.writeText(text);
+  } catch {
+    // Sharing can be cancelled by the user.
+  }
 }
 
 function TaskOverviewBand({
