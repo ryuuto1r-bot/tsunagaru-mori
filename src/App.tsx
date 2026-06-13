@@ -3,6 +3,10 @@ import type React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Archive,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
   Camera,
   CheckCircle2,
   ChevronDown,
@@ -72,7 +76,7 @@ const LazyForestWorldLayer = lazy(() => import("@/components/ForestWorldLayer"))
 type AppView = "tasks" | "forest" | "history" | "settings";
 type ForestScope = "today" | "month" | "all";
 type TimeTone = "morning" | "day" | "evening" | "night";
-type WorldControl = "zoom-in" | "zoom-out" | "reset";
+type WorldControl = "zoom-in" | "zoom-out" | "orbit-left" | "orbit-right" | "tilt-up" | "tilt-down" | "reset";
 
 type ProjectGroup = {
   name: string;
@@ -943,40 +947,9 @@ function ForestScreen({
         </div>
 
         <div className={cn("pointer-events-none absolute left-4 top-[8.75rem] z-40 hidden rounded-full border border-[#c7b47e]/24 bg-[#111c17]/54 px-3 py-2 text-xs font-black text-[#d7cfaa] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl transition-opacity duration-500 sm:block", memoryMode && "opacity-0")}>
-          ドラッグ / ホイール / ＋で木の中へ
+          ドラッグで回転 / ホイール・ピンチでズーム
         </div>
-        <div className={cn("absolute bottom-6 right-4 z-[60] flex items-center gap-1 rounded-full border border-[#c7b47e]/34 bg-[#111c17]/68 p-1.5 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-all duration-500", memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-85")}>
-          <Button
-            aria-label="木の中へ近づく"
-            className="h-10 w-10 rounded-full text-[#fff7da] hover:bg-white/[0.08]"
-            size="icon"
-            title="木の中へ近づく"
-            variant="ghost"
-            onClick={() => sendWorldControl("zoom-in")}
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button
-            aria-label="木から離れる"
-            className="h-10 w-10 rounded-full text-[#fff7da] hover:bg-white/[0.08]"
-            size="icon"
-            title="木から離れる"
-            variant="ghost"
-            onClick={() => sendWorldControl("zoom-out")}
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button
-            aria-label="森の表示を戻す"
-            className="h-10 w-10 rounded-full text-[#fff7da] hover:bg-white/[0.08]"
-            size="icon"
-            title="森の表示を戻す"
-            variant="ghost"
-            onClick={() => sendWorldControl("reset")}
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
+        <ForestOrbitControls memoryMode={memoryMode} onControl={sendWorldControl} />
 
         <ForestNodeTray celebrateId={celebrateId} mapNodes={mapNodes} memoryMode={memoryMode} onComplete={onComplete} scope={scope} />
 
@@ -989,6 +962,77 @@ function ForestScreen({
         <BottomMetric label="成長率" value={`${Math.round(stage.progress)}%`} />
       </footer>
     </div>
+  );
+}
+
+function ForestOrbitControls({
+  memoryMode,
+  onControl,
+}: {
+  memoryMode: boolean;
+  onControl: (control: WorldControl) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute bottom-5 right-4 z-[60] grid gap-2 rounded-[24px] border border-[#c7b47e]/34 bg-[#111c17]/72 p-2 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-all duration-500",
+        memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-90",
+      )}
+      aria-label="3D森ビュー操作"
+    >
+      <div className="grid grid-cols-3 gap-1">
+        <span />
+        <ForestControlButton label="上から見る" onClick={() => onControl("tilt-up")}>
+          <ArrowUp className="h-4 w-4" />
+        </ForestControlButton>
+        <span />
+        <ForestControlButton label="左へ回す" onClick={() => onControl("orbit-left")}>
+          <ArrowLeft className="h-4 w-4" />
+        </ForestControlButton>
+        <ForestControlButton label="表示を戻す" onClick={() => onControl("reset")}>
+          <RotateCcw className="h-4 w-4" />
+        </ForestControlButton>
+        <ForestControlButton label="右へ回す" onClick={() => onControl("orbit-right")}>
+          <ArrowRight className="h-4 w-4" />
+        </ForestControlButton>
+        <span />
+        <ForestControlButton label="低く見る" onClick={() => onControl("tilt-down")}>
+          <ArrowDown className="h-4 w-4" />
+        </ForestControlButton>
+        <span />
+      </div>
+      <div className="grid grid-cols-2 gap-1 border-t border-[#c7b47e]/18 pt-2">
+        <ForestControlButton label="木の中へ近づく" onClick={() => onControl("zoom-in")}>
+          <ZoomIn className="h-4 w-4" />
+        </ForestControlButton>
+        <ForestControlButton label="木から離れる" onClick={() => onControl("zoom-out")}>
+          <ZoomOut className="h-4 w-4" />
+        </ForestControlButton>
+      </div>
+    </div>
+  );
+}
+
+function ForestControlButton({
+  children,
+  label,
+  onClick,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      aria-label={label}
+      className="h-9 w-9 rounded-full text-[#fff7da] shadow-none hover:bg-white/[0.08] focus-visible:ring-[#d9ef6c]/45"
+      size="icon"
+      title={label}
+      variant="ghost"
+      onClick={onClick}
+    >
+      {children}
+    </Button>
   );
 }
 

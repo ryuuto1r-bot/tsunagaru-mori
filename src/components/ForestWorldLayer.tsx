@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 type ForestScope = "today" | "month" | "all";
 type TimeTone = "morning" | "day" | "evening" | "night";
-type WorldControl = "zoom-in" | "zoom-out" | "reset";
+type WorldControl = "zoom-in" | "zoom-out" | "orbit-left" | "orbit-right" | "tilt-up" | "tilt-down" | "reset";
 
 type FruitTodo = {
   title: string;
@@ -59,6 +59,11 @@ type DragState = {
   yaw: number;
   pitch: number;
   distance: number;
+  targetYaw: number;
+  targetPitch: number;
+  targetDistance: number;
+  velocityYaw: number;
+  velocityPitch: number;
   pinchDistance: number | null;
 };
 
@@ -82,6 +87,12 @@ const fruitPositions = [
   { left: 49, top: 64 },
   { left: 35, top: 68 },
 ] as const;
+
+const minDistance = 5.8;
+const memoryDistance = 8.1;
+const maxDistance = 34;
+const minPitch = -0.08;
+const maxPitch = 0.58;
 
 export default function ForestWorldLayer({
   control,
@@ -120,7 +131,10 @@ export default function ForestWorldLayer({
     renderer.toneMappingExposure = timeTone === "night" ? 1.18 : 1.08;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFShadowMap;
-    renderer.domElement.className = "h-full w-full touch-none";
+    renderer.domElement.className = "h-full w-full touch-none outline-none";
+    renderer.domElement.tabIndex = 0;
+    renderer.domElement.setAttribute("role", "application");
+    renderer.domElement.setAttribute("aria-label", "ドラッグ、ホイール、矢印キーで動かせる森の3Dワールド");
     hostElement.appendChild(renderer.domElement);
 
     const world = new Group();
@@ -152,13 +166,19 @@ export default function ForestWorldLayer({
     mapNodes.forEach((node) => world.add(createWorldTree(node, scope)));
     addWorldSeeds(world, palette.seed);
 
+    const initialView = defaultWorldView(scope);
     const drag: DragState = {
       dragging: false,
       lastX: 0,
       lastY: 0,
-      yaw: scope === "today" ? 0.18 : -0.38,
-      pitch: 0.18,
-      distance: scope === "today" ? 19 : 25,
+      yaw: initialView.yaw,
+      pitch: initialView.pitch,
+      distance: initialView.distance,
+      targetYaw: initialView.yaw,
+      targetPitch: initialView.pitch,
+      targetDistance: initialView.distance,
+      velocityYaw: 0,
+      velocityPitch: 0,
       pinchDistance: null,
     };
 
@@ -172,6 +192,9 @@ export default function ForestWorldLayer({
     }
 
     function updateCamera() {
+      drag.yaw += (drag.targetYaw - drag.yaw) * 0.16;
+      drag.pitch += (drag.targetPitch - drag.pitch) * 0.16;
+      drag.distance += (drag.targetDistance - drag.distance) * 0.18;
       const target = scope === "today" ? new Vector3(0.8, 2.9, 0.4) : new Vector3(0, 2.6, 0);
       const height = 6.5 + drag.pitch * 9;
       camera.position.set(Math.sin(drag.yaw) * drag.distance, height, Math.cos(drag.yaw) * drag.distance);
@@ -180,9 +203,12 @@ export default function ForestWorldLayer({
     }
 
     function resetView() {
-      drag.yaw = scope === "today" ? 0.18 : -0.38;
-      drag.pitch = 0.18;
-      drag.distance = scope === "today" ? 19 : 25;
+      const view = defaultWorldView(scope);
+      drag.targetYaw = view.yaw;
+      drag.targetPitch = view.pitch;
+      drag.targetDistance = view.distance;
+      drag.velocityYaw = 0;
+      drag.velocityPitch = 0;
       drag.pinchDistance = null;
     }
 
@@ -192,9 +218,17 @@ export default function ForestWorldLayer({
       if (!signal.control || signal.nonce === handledControlNonce) return;
       handledControlNonce = signal.nonce;
       if (signal.control === "zoom-in") {
-        drag.distance = Math.max(5.8, drag.distance - 8.8);
+        drag.targetDistance = drag.targetDistance > 12 ? memoryDistance : clamp(drag.targetDistance - 4.5, minDistance, maxDistance);
       } else if (signal.control === "zoom-out") {
-        drag.distance = Math.min(34, drag.distance + 8.8);
+        drag.targetDistance = clamp(drag.targetDistance + 5.5, minDistance, maxDistance);
+      } else if (signal.control === "orbit-left") {
+        drag.targetYaw += 0.38;
+      } else if (signal.control === "orbit-right") {
+        drag.targetYaw -= 0.38;
+      } else if (signal.control === "tilt-up") {
+        drag.targetPitch = clamp(drag.targetPitch + 0.13, minPitch, maxPitch);
+      } else if (signal.control === "tilt-down") {
+        drag.targetPitch = clamp(drag.targetPitch - 0.13, minPitch, maxPitch);
       } else {
         resetView();
       }
@@ -204,6 +238,9 @@ export default function ForestWorldLayer({
       drag.dragging = true;
       drag.lastX = event.clientX;
       drag.lastY = event.clientY;
+      drag.velocityYaw = 0;
+      drag.velocityPitch = 0;
+      renderer.domElement.focus({ preventScroll: true });
       renderer.domElement.setPointerCapture(event.pointerId);
     }
 
@@ -213,8 +250,12 @@ export default function ForestWorldLayer({
       const dy = event.clientY - drag.lastY;
       drag.lastX = event.clientX;
       drag.lastY = event.clientY;
-      drag.yaw -= dx * 0.006;
-      drag.pitch = Math.max(-0.08, Math.min(0.58, drag.pitch + dy * 0.003));
+      const yawDelta = -dx * 0.0049;
+      const pitchDelta = dy * 0.0027;
+      drag.targetYaw += yawDelta;
+      drag.targetPitch = clamp(drag.targetPitch + pitchDelta, minPitch, maxPitch);
+      drag.velocityYaw = yawDelta * 0.9;
+      drag.velocityPitch = pitchDelta * 0.72;
     }
 
     function handlePointerUp(event: PointerEvent) {
@@ -227,7 +268,7 @@ export default function ForestWorldLayer({
 
     function handleWheel(event: WheelEvent) {
       event.preventDefault();
-      drag.distance = Math.max(5.8, Math.min(34, drag.distance + event.deltaY * 0.018));
+      drag.targetDistance = clamp(drag.targetDistance + event.deltaY * 0.014, minDistance, maxDistance);
     }
 
     function getTouchDistance(event: TouchEvent) {
@@ -242,7 +283,7 @@ export default function ForestWorldLayer({
       const distance = getTouchDistance(event);
       if (!distance) return;
       if (drag.pinchDistance !== null) {
-        drag.distance = Math.max(5.8, Math.min(34, drag.distance - (distance - drag.pinchDistance) * 0.045));
+        drag.targetDistance = clamp(drag.targetDistance - (distance - drag.pinchDistance) * 0.04, minDistance, maxDistance);
       }
       drag.pinchDistance = distance;
     }
@@ -251,12 +292,45 @@ export default function ForestWorldLayer({
       drag.pinchDistance = null;
     }
 
+    function handleKeyDown(event: KeyboardEvent) {
+      const key = event.key;
+      if (key === "ArrowLeft") {
+        event.preventDefault();
+        drag.targetYaw += 0.24;
+      } else if (key === "ArrowRight") {
+        event.preventDefault();
+        drag.targetYaw -= 0.24;
+      } else if (key === "ArrowUp") {
+        event.preventDefault();
+        drag.targetPitch = clamp(drag.targetPitch + 0.08, minPitch, maxPitch);
+      } else if (key === "ArrowDown") {
+        event.preventDefault();
+        drag.targetPitch = clamp(drag.targetPitch - 0.08, minPitch, maxPitch);
+      } else if (key === "+" || key === "=") {
+        event.preventDefault();
+        drag.targetDistance = clamp(drag.targetDistance - 2.8, minDistance, maxDistance);
+      } else if (key === "-" || key === "_") {
+        event.preventDefault();
+        drag.targetDistance = clamp(drag.targetDistance + 2.8, minDistance, maxDistance);
+      } else if (key === "Escape" || key === "0") {
+        event.preventDefault();
+        resetView();
+      }
+    }
+
     let frameId = 0;
     const animationStart = window.performance.now();
     function animate() {
       const elapsed = (window.performance.now() - animationStart) / 1000;
       applyControlSignal();
-      world.rotation.y += (drag.yaw - world.rotation.y) * 0.08;
+      if (!drag.dragging) {
+        drag.targetYaw += drag.velocityYaw;
+        drag.targetPitch = clamp(drag.targetPitch + drag.velocityPitch, minPitch, maxPitch);
+        drag.velocityYaw *= 0.9;
+        drag.velocityPitch *= 0.82;
+        if (Math.abs(drag.velocityYaw) < 0.00008) drag.velocityYaw = 0;
+        if (Math.abs(drag.velocityPitch) < 0.00008) drag.velocityPitch = 0;
+      }
       updateCamera();
       world.children.forEach((child: Object3D, index: number) => {
         if (!child.userData.floatTree) return;
@@ -275,9 +349,11 @@ export default function ForestWorldLayer({
     renderer.domElement.addEventListener("pointermove", handlePointerMove);
     renderer.domElement.addEventListener("pointerup", handlePointerUp);
     renderer.domElement.addEventListener("pointercancel", handlePointerUp);
+    renderer.domElement.addEventListener("lostpointercapture", handlePointerUp);
     renderer.domElement.addEventListener("wheel", handleWheel, { passive: false });
     renderer.domElement.addEventListener("touchmove", handleTouchMove, { passive: false });
     renderer.domElement.addEventListener("touchend", handleTouchEnd);
+    renderer.domElement.addEventListener("keydown", handleKeyDown);
 
     return () => {
       onMemoryModeRef.current(false);
@@ -287,9 +363,11 @@ export default function ForestWorldLayer({
       renderer.domElement.removeEventListener("pointermove", handlePointerMove);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("pointercancel", handlePointerUp);
+      renderer.domElement.removeEventListener("lostpointercapture", handlePointerUp);
       renderer.domElement.removeEventListener("wheel", handleWheel);
       renderer.domElement.removeEventListener("touchmove", handleTouchMove);
       renderer.domElement.removeEventListener("touchend", handleTouchEnd);
+      renderer.domElement.removeEventListener("keydown", handleKeyDown);
       disposeThreeScene(scene);
       renderer.dispose();
       renderer.domElement.remove();
@@ -581,6 +659,18 @@ function fruitColor(difficulty: Difficulty) {
   if (difficulty === "hard") return 0xf3c544;
   if (difficulty === "medium") return 0xd8893d;
   return 0xc97939;
+}
+
+function defaultWorldView(scope: ForestScope) {
+  return {
+    yaw: scope === "today" ? 0.18 : -0.38,
+    pitch: 0.18,
+    distance: scope === "today" ? 19 : 25,
+  };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function disposeThreeScene(scene: Scene) {

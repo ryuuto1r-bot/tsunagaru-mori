@@ -36,6 +36,8 @@ final result: passed
 - Settings was changed from a white admin panel into an in-app forest menu with theme cards, toggles, and reset dialog styling.
 - Verified `npm run build`, task add, and task complete.
 - Verified Forest tab 3D canvas, zoom-in memory mode, History tab, Settings tab, and `390 x 844` mobile viewport in the in-app browser.
+- Improved 3D forest release controls: smooth orbit camera, inertial drag, keyboard arrows, directional control pad, and one-click memory zoom.
+- Verified 3D control buttons, desktop drag movement, one-click `木の中の記憶`, and mobile `390 x 844` forest control layout in the in-app browser.
 
 ## Follow-up Polish
 
