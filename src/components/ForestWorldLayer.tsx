@@ -88,10 +88,10 @@ const fruitPositions = [
   { left: 35, top: 68 },
 ] as const;
 
-const minDistance = 5.8;
-const memoryDistance = 8.1;
+const minDistance = 4.8;
+const memoryDistance = 6.9;
 const maxDistance = 34;
-const minPitch = -0.08;
+const minPitch = -0.14;
 const maxPitch = 0.58;
 
 export default function ForestWorldLayer({
@@ -128,7 +128,7 @@ export default function ForestWorldLayer({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = timeTone === "night" ? 1.18 : 1.08;
+    renderer.toneMappingExposure = timeTone === "night" ? 1.18 : timeTone === "morning" ? 1.16 : 1.08;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFShadowMap;
     renderer.domElement.className = "h-full w-full touch-none outline-none";
@@ -154,8 +154,8 @@ export default function ForestWorldLayer({
     const sun = new DirectionalLight(palette.sun, palette.sunIntensity);
     sun.position.set(-10, 18, 12);
     sun.castShadow = true;
-    sun.shadow.mapSize.width = 1024;
-    sun.shadow.mapSize.height = 1024;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
     scene.add(sun);
 
     const fill = new DirectionalLight(palette.fill, 0.38);
@@ -199,7 +199,7 @@ export default function ForestWorldLayer({
       const height = 6.5 + drag.pitch * 9;
       camera.position.set(Math.sin(drag.yaw) * drag.distance, height, Math.cos(drag.yaw) * drag.distance);
       camera.lookAt(target);
-      onMemoryModeRef.current(drag.distance < 9.2);
+      onMemoryModeRef.current(drag.distance < 8.3);
     }
 
     function resetView() {
@@ -218,7 +218,7 @@ export default function ForestWorldLayer({
       if (!signal.control || signal.nonce === handledControlNonce) return;
       handledControlNonce = signal.nonce;
       if (signal.control === "zoom-in") {
-        drag.targetDistance = drag.targetDistance > 12 ? memoryDistance : clamp(drag.targetDistance - 4.5, minDistance, maxDistance);
+        drag.targetDistance = drag.targetDistance > 12 ? memoryDistance : clamp(drag.targetDistance - 4.2, minDistance, maxDistance);
       } else if (signal.control === "zoom-out") {
         drag.targetDistance = clamp(drag.targetDistance + 5.5, minDistance, maxDistance);
       } else if (signal.control === "orbit-left") {
@@ -427,6 +427,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   const trunkMaterial = new MeshStandardMaterial({ color: 0x5f3c2c, roughness: 0.96 });
   const barkMaterial = new MeshStandardMaterial({ color: 0x3f2b22, roughness: 0.96 });
   const branchMaterial = new MeshStandardMaterial({ color: 0x78523c, roughness: 0.9 });
+  const rootMaterial = new MeshStandardMaterial({ color: 0x4a3329, roughness: 0.98 });
   const baseMaterial = new MeshStandardMaterial({ color: 0xf7f3e8, roughness: 0.86 });
   const rimMaterial = new MeshStandardMaterial({ color: 0xe1dbcb, roughness: 0.82 });
   const mossMaterial = new MeshStandardMaterial({ color: 0x57733f, roughness: 0.98 });
@@ -439,6 +440,15 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     new MeshStandardMaterial({ color: 0xaac992, roughness: 0.88 }),
   ];
   const leafHighlightMaterial = new MeshStandardMaterial({ color: 0xb6d09c, roughness: 0.82, transparent: true, opacity: 0.88 });
+
+  const contactShadow = new Mesh(
+    new CircleGeometry(1.7, 72),
+    new MeshStandardMaterial({ color: 0x06100c, roughness: 1, transparent: true, opacity: 0.16 }),
+  );
+  contactShadow.rotation.x = -Math.PI / 2;
+  contactShadow.position.y = 0.018;
+  contactShadow.scale.set(1.18, 0.62, 1);
+  group.add(contactShadow);
 
   const base = new Mesh(new CylinderGeometry(1.12, 1.4, 0.12, 72), baseMaterial);
   base.position.y = 0.06;
@@ -457,9 +467,9 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   moss.receiveShadow = true;
   group.add(moss);
 
-  for (let index = 0; index < 10; index += 1) {
+  for (let index = 0; index < 15; index += 1) {
     const angle = index * 2.17;
-    const radius = 0.16 + (index % 5) * 0.12;
+    const radius = 0.14 + (index % 6) * 0.105;
     const tuft = new Mesh(new SphereGeometry(0.055 + (index % 3) * 0.018, 10, 8), index % 3 === 0 ? mossHighlightMaterial : mossMaterial);
     tuft.position.set(Math.cos(angle) * radius, 0.23 + (index % 2) * 0.012, Math.sin(angle) * radius * 0.82);
     tuft.scale.set(1.42, 0.42, 1.04);
@@ -522,6 +532,20 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   trunk.rotation.z = -0.045;
   trunk.castShadow = true;
   group.add(trunk);
+
+  [
+    { x: -0.22, z: 0.16, rz: 0.78, rx: -0.2, length: 0.66, base: 0.06, tip: 0.026 },
+    { x: 0.2, z: -0.12, rz: -0.72, rx: 0.18, length: 0.62, base: 0.055, tip: 0.024 },
+    { x: 0.02, z: 0.27, rz: 0.18, rx: -0.72, length: 0.54, base: 0.048, tip: 0.022 },
+    { x: -0.04, z: -0.28, rz: -0.16, rx: 0.72, length: 0.52, base: 0.046, tip: 0.02 },
+  ].forEach((root) => {
+    const mesh = new Mesh(new CylinderGeometry(root.tip, root.base, root.length, 12), rootMaterial);
+    mesh.position.set(root.x, 0.37, root.z);
+    mesh.rotation.z = root.rz;
+    mesh.rotation.x = root.rx;
+    mesh.castShadow = true;
+    group.add(mesh);
+  });
 
   for (let index = 0; index < 5; index += 1) {
     const ridge = new Mesh(new BoxGeometry(0.012, trunkHeight * 0.58, 0.014), barkMaterial);
@@ -596,10 +620,10 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
       new SphereGeometry(radius, 20, 16),
       new MeshStandardMaterial({
         color: fruitColor(fruit.difficulty),
-        roughness: fruit.difficulty === "hard" ? 0.42 : 0.68,
-        metalness: fruit.difficulty === "hard" ? 0.18 : 0.02,
-        emissive: fruit.difficulty === "hard" ? 0x5c3f08 : 0x000000,
-        emissiveIntensity: fruit.difficulty === "hard" ? 0.12 : 0,
+        roughness: fruit.difficulty === "hard" ? 0.34 : fruit.difficulty === "medium" ? 0.58 : 0.72,
+        metalness: fruit.difficulty === "hard" ? 0.2 : 0.03,
+        emissive: fruit.difficulty === "hard" ? 0x5c3f08 : fruit.difficulty === "easy" ? 0x10230a : 0x241000,
+        emissiveIntensity: fruit.difficulty === "hard" ? 0.14 : fruit.difficulty === "easy" ? 0.04 : 0.03,
       }),
     );
     mesh.position.set(fruitPosition.x, fruitPosition.y, fruitPosition.z);
@@ -615,6 +639,16 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     const shine = new Mesh(new SphereGeometry(radius * 0.22, 10, 8), new MeshStandardMaterial({ color: 0xfff6d0, roughness: 0.45, transparent: true, opacity: 0.76 }));
     shine.position.set(fruitPosition.x - radius * 0.34, fruitPosition.y + radius * 0.28, fruitPosition.z + radius * 0.42);
     group.add(shine);
+
+    if (fruit.difficulty === "hard") {
+      const glow = new Mesh(
+        new TorusGeometry(radius * 1.18, radius * 0.05, 8, 28),
+        new MeshStandardMaterial({ color: 0xffe88a, roughness: 0.36, transparent: true, opacity: 0.54, emissive: 0x5c3f08, emissiveIntensity: 0.08 }),
+      );
+      glow.position.set(fruitPosition.x, fruitPosition.y, fruitPosition.z);
+      glow.rotation.x = Math.PI / 2.4;
+      group.add(glow);
+    }
   });
 
   node.buds.slice(0, 8).forEach((bud, index) => {
@@ -672,7 +706,7 @@ function fruitRadius(difficulty: Difficulty) {
 function fruitColor(difficulty: Difficulty) {
   if (difficulty === "hard") return 0xf3c544;
   if (difficulty === "medium") return 0xd8893d;
-  return 0xc97939;
+  return 0x8fb85f;
 }
 
 function defaultWorldView(scope: ForestScope) {

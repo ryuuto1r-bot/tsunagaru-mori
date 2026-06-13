@@ -390,25 +390,29 @@ function App() {
           >
             <Tabs value={activeView} onValueChange={(value) => setActiveView(value as AppView)} className="flex min-h-full flex-col">
               <header className={cn("flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8", (forestImmersive || appGameMode) && "pointer-events-none max-h-0 min-h-0 overflow-hidden border-b-0 px-0 py-0 opacity-0")}>
-                <TabsList className="hidden h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner dark:border-white/10 dark:bg-white/[0.06] dark:text-[#b9c7b4] md:flex md:w-auto md:justify-start md:gap-1.5">
-                  {appTabs.map((tab) => (
-                    <TabsTrigger
-                      key={tab.value}
-                      value={tab.value}
-                      className="gap-1 rounded-md border border-transparent px-2 py-2 text-xs font-black data-[state=active]:border-[#d8d2c4] data-[state=active]:bg-[#fffdf7] data-[state=active]:text-[#2f4530] data-[state=active]:shadow-[0_8px_18px_rgba(38,49,38,0.08)] dark:data-[state=active]:border-white/10 dark:data-[state=active]:bg-white/[0.12] dark:data-[state=active]:text-[#f0f6e9] sm:text-sm md:gap-2 md:px-4"
-                    >
-                      {tab.icon}
-                      {tab.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                <div className="flex items-center gap-2">
-                  {activeView === "forest" ? (
-                    <ScopeToggle scope={forestScope} onScope={setForestScope} />
-                  ) : (
-                    <TopStatusPill completionRate={completionRate} stage={stage} streak={streak} timeTone={timeTone} todayCount={todayCount} />
-                  )}
-                </div>
+                {!appGameMode && !forestImmersive && (
+                  <>
+                    <TabsList className="hidden h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner dark:border-white/10 dark:bg-white/[0.06] dark:text-[#b9c7b4] md:flex md:w-auto md:justify-start md:gap-1.5">
+                      {appTabs.map((tab) => (
+                        <TabsTrigger
+                          key={tab.value}
+                          value={tab.value}
+                          className="gap-1 rounded-md border border-transparent px-2 py-2 text-xs font-black data-[state=active]:border-[#d8d2c4] data-[state=active]:bg-[#fffdf7] data-[state=active]:text-[#2f4530] data-[state=active]:shadow-[0_8px_18px_rgba(38,49,38,0.08)] dark:data-[state=active]:border-white/10 dark:data-[state=active]:bg-white/[0.12] dark:data-[state=active]:text-[#f0f6e9] sm:text-sm md:gap-2 md:px-4"
+                        >
+                          {tab.icon}
+                          {tab.label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    <div className="flex items-center gap-2">
+                      {activeView === "forest" ? (
+                        <ScopeToggle scope={forestScope} onScope={setForestScope} />
+                      ) : (
+                        <TopStatusPill completionRate={completionRate} stage={stage} streak={streak} timeTone={timeTone} todayCount={todayCount} />
+                      )}
+                    </div>
+                  </>
+                )}
               </header>
 
               <TabsContent value="forest" className="m-0 flex-1 outline-none">
@@ -964,9 +968,12 @@ function ForestScreen({
 }) {
   const mapNodes = useMemo(() => buildForestMapNodes({ groups, scope, tasks, todayCount }), [groups, scope, tasks, todayCount]);
   const forestStats = useMemo(() => buildForestViewStats(mapNodes), [mapNodes]);
+  const featuredNode = useMemo(() => mapNodes.find((node) => node.featured) ?? mapNodes.find((node) => !node.future) ?? mapNodes[0], [mapNodes]);
   const [memoryMode, setMemoryMode] = useState(false);
   const [worldControl, setWorldControl] = useState<WorldControl | null>(null);
   const [worldControlNonce, setWorldControlNonce] = useState(0);
+  const memoryHoldTimerRef = useRef<number | null>(null);
+  const memorySuppressTimerRef = useRef<number | null>(null);
   const memoryTasks = useMemo(
     () =>
       tasks
@@ -981,9 +988,52 @@ function ForestScreen({
     return () => onMemoryModeChange?.(false);
   }, [memoryMode, onMemoryModeChange]);
 
+  useEffect(() => {
+    return () => {
+      if (memoryHoldTimerRef.current) window.clearTimeout(memoryHoldTimerRef.current);
+      if (memorySuppressTimerRef.current) window.clearTimeout(memorySuppressTimerRef.current);
+    };
+  }, []);
+
   function sendWorldControl(control: WorldControl) {
     setWorldControl(control);
     setWorldControlNonce((nonce) => nonce + 1);
+  }
+
+  function holdMemoryMode() {
+    if (memoryHoldTimerRef.current) window.clearTimeout(memoryHoldTimerRef.current);
+    memoryHoldTimerRef.current = window.setTimeout(() => {
+      memoryHoldTimerRef.current = null;
+    }, 1800);
+  }
+
+  function handleWorldMemoryMode(enabled: boolean) {
+    if (!enabled && memoryHoldTimerRef.current) return;
+    if (enabled && memorySuppressTimerRef.current) return;
+    setMemoryMode(enabled);
+  }
+
+  function enterMemoryWorld() {
+    if (memorySuppressTimerRef.current) {
+      window.clearTimeout(memorySuppressTimerRef.current);
+      memorySuppressTimerRef.current = null;
+    }
+    holdMemoryMode();
+    setMemoryMode(true);
+    sendWorldControl("zoom-in");
+  }
+
+  function leaveMemoryWorld() {
+    if (memoryHoldTimerRef.current) {
+      window.clearTimeout(memoryHoldTimerRef.current);
+      memoryHoldTimerRef.current = null;
+    }
+    if (memorySuppressTimerRef.current) window.clearTimeout(memorySuppressTimerRef.current);
+    memorySuppressTimerRef.current = window.setTimeout(() => {
+      memorySuppressTimerRef.current = null;
+    }, 2800);
+    setMemoryMode(false);
+    sendWorldControl("reset");
   }
 
   return (
@@ -996,7 +1046,7 @@ function ForestScreen({
             mapNodes={mapNodes}
             scope={scope}
             timeTone={timeTone}
-            onMemoryMode={setMemoryMode}
+            onMemoryMode={handleWorldMemoryMode}
           />
         </Suspense>
         <img
@@ -1008,22 +1058,25 @@ function ForestScreen({
         <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(221,205,146,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(221,205,146,0.05)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
         <ForestSceneGlow memoryMode={memoryMode} timeTone={timeTone} />
 
-        <div className={cn("absolute left-4 right-4 top-4 z-40 grid gap-3 transition-opacity duration-500 md:grid-cols-[minmax(0,1fr)_auto] md:items-start", memoryMode && "pointer-events-none opacity-0")}>
-          <div className="min-w-0 rounded-[26px] border border-[#c7b47e]/38 bg-[#07120f]/86 px-4 py-3 shadow-[0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-xl">
+        <div className={cn("absolute left-4 right-4 top-4 z-40 flex flex-col gap-3 transition-opacity duration-500 md:flex-row md:items-start md:justify-between", memoryMode && "pointer-events-none opacity-0")}>
+          <div className="flex min-w-0 items-center gap-3">
             <p className="flex min-w-0 items-center gap-2 text-xl font-black text-[#fff7da] drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]">
               <TreePine className="h-5 w-5 fill-[#a8cb70] text-[#a8cb70]" />
               <span className="truncate">{forestScopeTitle(scope)}</span>
             </p>
-            <p className="mt-1 text-xs font-black text-[#e2d7aa] drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{forestScopeDescription(scope)}</p>
-            <ForestScopeDashboard stats={forestStats} />
+            <span className="hidden rounded-full border border-[#d6c48f]/24 bg-[#111c17]/48 px-3 py-1 text-[11px] font-black text-[#e2d7aa] shadow-[0_10px_26px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:inline-flex">
+              {forestScopeDescription(scope)}
+            </span>
           </div>
-          <ScopeToggle scope={scope} onScope={onScope} />
+          <div className="flex flex-wrap items-start gap-2 md:justify-end">
+            <ForestTopHud stage={stage} stats={forestStats} streak={streak} />
+            <ScopeToggle scope={scope} onScope={onScope} />
+          </div>
         </div>
 
-        <div className={cn("pointer-events-none absolute left-4 top-[8.75rem] z-40 hidden rounded-full border border-[#c7b47e]/24 bg-[#111c17]/54 px-3 py-2 text-xs font-black text-[#d7cfaa] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl transition-opacity duration-500 sm:block", memoryMode && "opacity-0")}>
-          ドラッグで回転 / ホイール・ピンチでズーム
-        </div>
-        <ForestOrbitControls memoryMode={memoryMode} onControl={sendWorldControl} />
+        <ForestFeaturedHud memoryMode={memoryMode} node={featuredNode} scope={scope} stage={stage} stats={forestStats} />
+        <ForestGestureHint memoryMode={memoryMode} />
+        <ForestOrbitControls memoryMode={memoryMode} onControl={sendWorldControl} onEnterMemory={enterMemoryWorld} onExitMemory={leaveMemoryWorld} />
 
         <ForestNodeTray celebrateId={celebrateId} mapNodes={mapNodes} memoryMode={memoryMode} onComplete={onComplete} scope={scope} />
 
@@ -1039,81 +1092,190 @@ function ForestScreen({
   );
 }
 
+function ForestTopHud({
+  stage,
+  stats,
+  streak,
+}: {
+  stage: ReturnType<typeof currentStage>;
+  stats: ForestViewStats;
+  streak: number;
+}) {
+  return (
+    <div className="min-w-[min(100%,300px)] rounded-[30px] border border-[#e6d7a4]/34 bg-[#0d1713]/62 px-4 py-3 shadow-[0_18px_52px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl">
+      <div className="flex items-center gap-3">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#d9ef9a]/42 bg-[#a7c56b]/14 shadow-[inset_0_0_0_7px_rgba(169,203,112,0.12)]">
+          <Leaf className="h-6 w-6 fill-[#a8cb70] text-[#dff0b2]" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center justify-between gap-4 text-[#fff7da]">
+            <span className="inline-flex items-center gap-1.5 text-sm font-black">
+              <Flame className="h-4 w-4 fill-[#f3bd47] text-[#f3bd47]" />
+              {streak}日
+            </span>
+            <span className="text-xl font-black tabular-nums">Lv. {stage.index + 1}</span>
+          </span>
+          <span className="mt-2 block h-2 overflow-hidden rounded-full bg-white/14">
+            <motion.span
+              className="block h-full rounded-full bg-[linear-gradient(90deg,#9cc56c,#d9ef9a)] shadow-[0_0_16px_rgba(185,221,112,0.36)]"
+              initial={false}
+              animate={{ width: `${Math.round(stage.progress)}%` }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+            />
+          </span>
+          <span className="mt-1 flex justify-between text-[10px] font-black text-[#dfd3a6]">
+            <span>{stats.score} XP</span>
+            <span>{Math.round(stage.progress)}%</span>
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ForestFeaturedHud({
+  memoryMode,
+  node,
+  scope,
+  stage,
+  stats,
+}: {
+  memoryMode: boolean;
+  node?: ForestMapNode;
+  scope: ForestScope;
+  stage: ReturnType<typeof currentStage>;
+  stats: ForestViewStats;
+}) {
+  if (!node) return null;
+  const total = Math.max(node.todoCount, node.count, 1);
+  const progress = Math.min(100, Math.round((node.count / total) * 100));
+  const leadingFruit = node.fruits[0];
+  const level = scope === "today" ? stage.index + 1 : Math.max(1, treeGrowthLevel(node) + 1);
+
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute left-1/2 top-[9.25rem] z-30 w-[min(86vw,360px)] -translate-x-1/2 rounded-[30px] border border-[#e6d7a4]/36 bg-[#101812]/50 px-4 py-3 text-[#fff7da] shadow-[0_20px_60px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition-opacity duration-500 sm:top-[8.25rem] md:top-[7.25rem]",
+        memoryMode && "opacity-0",
+      )}
+    >
+      <motion.div
+        className="rounded-[30px]"
+      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <div className="flex items-center gap-3">
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-[#e6d7a4]/34 bg-white/[0.08] shadow-[inset_0_0_0_8px_rgba(255,255,255,0.07)]">
+          {leadingFruit ? (
+            <FruitImage difficulty={leadingFruit.difficulty} className={fruitImageSizeClassName(leadingFruit.difficulty, true)} />
+          ) : (
+            <Sprout className="h-7 w-7 text-[#d9ef9a]" />
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-3">
+            <span className="truncate text-sm font-black text-[#efe4bb]">{node.label}</span>
+            <span className="text-lg font-black tabular-nums">Lv. {level}</span>
+          </span>
+          <span className="mt-2 block h-2 overflow-hidden rounded-full bg-white/14">
+            <motion.span
+              className="block h-full rounded-full bg-[linear-gradient(90deg,#9cc56c,#d9ef9a)]"
+              initial={false}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+            />
+          </span>
+          <span className="mt-1 flex justify-between text-[10px] font-black text-[#dfd3a6]">
+            <span>{node.count}/{total} 実り</span>
+            <span>{scope === "today" ? `実 ${stats.fruitCount}` : `${node.points} XP`}</span>
+          </span>
+        </span>
+      </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function ForestGestureHint({ memoryMode }: { memoryMode: boolean }) {
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute left-1/2 top-[14.5rem] z-30 hidden -translate-x-1/2 rounded-full border border-[#e6d7a4]/22 bg-[#101812]/34 px-3 py-1.5 text-[11px] font-black text-[#e6d7a4] shadow-[0_12px_34px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-opacity duration-500 sm:block md:top-[12.6rem]",
+        memoryMode && "opacity-0",
+      )}
+    >
+      ドラッグで回転 / ホイール・ピンチで木へ近づく
+    </div>
+  );
+}
+
 function ForestOrbitControls({
   memoryMode,
   onControl,
+  onEnterMemory,
+  onExitMemory,
 }: {
   memoryMode: boolean;
   onControl: (control: WorldControl) => void;
+  onEnterMemory: () => void;
+  onExitMemory: () => void;
 }) {
   return (
     <>
       <div
         className={cn(
-          "absolute bottom-4 right-3 z-[60] flex max-w-[calc(100vw-24px)] gap-1 rounded-[24px] border border-[#c7b47e]/34 bg-[#111c17]/74 p-1.5 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-all duration-500 md:hidden",
-          memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-90",
+          "pointer-events-auto absolute bottom-3 left-1/2 z-[60] flex w-[min(92vw,460px)] -translate-x-1/2 items-center justify-center gap-2 rounded-[30px] border border-[#e6d7a4]/34 bg-[#111c17]/62 p-2 text-[#fff7da] shadow-[0_22px_56px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition-all duration-500",
+          memoryMode && "bottom-5 border-white/20 bg-[#12251b]/58 text-white",
         )}
         aria-label="3D森ビュー操作"
       >
         <ForestControlButton compact label="左へ回す" onClick={() => onControl("orbit-left")}>
           <ArrowLeft className="h-4 w-4" />
         </ForestControlButton>
-        <ForestControlButton compact label="上から見る" onClick={() => onControl("tilt-up")}>
-          <ArrowUp className="h-4 w-4" />
-        </ForestControlButton>
-        <ForestControlButton compact label="表示を戻す" onClick={() => onControl("reset")}>
-          <RotateCcw className="h-4 w-4" />
-        </ForestControlButton>
-        <ForestControlButton compact label="低く見る" onClick={() => onControl("tilt-down")}>
-          <ArrowDown className="h-4 w-4" />
-        </ForestControlButton>
+        {memoryMode ? (
+          <Button
+            className="pointer-events-auto h-12 flex-1 rounded-full border border-[#e6d7a4]/24 bg-white/[0.11] px-5 text-sm font-black text-[#fff7da] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] hover:bg-white/[0.16] focus-visible:ring-[#d9ef6c]/45"
+            type="button"
+            variant="ghost"
+            onClick={onExitMemory}
+          >
+            <ZoomOut className="h-4 w-4" />
+            外へ戻る
+          </Button>
+        ) : (
+          <Button
+            className="pointer-events-auto h-12 flex-1 rounded-full border border-[#f1e2aa]/36 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(255,255,255,0.08))] px-5 text-sm font-black text-[#fff7da] shadow-[0_0_22px_rgba(217,239,154,0.18),inset_0_1px_0_rgba(255,255,255,0.18)] hover:bg-white/[0.18] focus-visible:ring-[#d9ef6c]/45"
+            type="button"
+            variant="ghost"
+            onClick={onEnterMemory}
+          >
+            <Leaf className="h-4 w-4 fill-[#d9ef9a] text-[#d9ef9a]" />
+            木の中へ
+            <ChevronRight className="ml-auto h-4 w-4" />
+          </Button>
+        )}
         <ForestControlButton compact label="右へ回す" onClick={() => onControl("orbit-right")}>
           <ArrowRight className="h-4 w-4" />
         </ForestControlButton>
-        <ForestControlButton compact label="木の中へ近づく" onClick={() => onControl("zoom-in")}>
-          <ZoomIn className="h-4 w-4" />
-        </ForestControlButton>
-        <ForestControlButton compact label="木から離れる" onClick={() => onControl("zoom-out")}>
-          <ZoomOut className="h-4 w-4" />
+        <ForestControlButton compact label="表示を戻す" onClick={() => onControl("reset")}>
+          <RotateCcw className="h-4 w-4" />
         </ForestControlButton>
       </div>
 
       <div
         className={cn(
-          "absolute bottom-5 right-4 z-[60] hidden gap-2 rounded-[24px] border border-[#c7b47e]/34 bg-[#111c17]/72 p-2 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-all duration-500 md:grid",
-          memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-90",
+          "pointer-events-auto absolute right-4 top-[13.75rem] z-[60] hidden gap-1 rounded-full border border-[#e6d7a4]/24 bg-[#111c17]/44 p-1.5 text-[#fff7da] shadow-[0_14px_38px_rgba(0,0,0,0.26)] backdrop-blur-xl transition-opacity duration-500 md:flex",
+          memoryMode && "opacity-0",
         )}
-        aria-label="3D森ビュー操作"
+        aria-label="3D森ビューの高さ操作"
       >
-        <div className="grid grid-cols-3 gap-1">
-          <span />
-          <ForestControlButton label="上から見る" onClick={() => onControl("tilt-up")}>
-            <ArrowUp className="h-4 w-4" />
-          </ForestControlButton>
-          <span />
-          <ForestControlButton label="左へ回す" onClick={() => onControl("orbit-left")}>
-            <ArrowLeft className="h-4 w-4" />
-          </ForestControlButton>
-          <ForestControlButton label="表示を戻す" onClick={() => onControl("reset")}>
-            <RotateCcw className="h-4 w-4" />
-          </ForestControlButton>
-          <ForestControlButton label="右へ回す" onClick={() => onControl("orbit-right")}>
-            <ArrowRight className="h-4 w-4" />
-          </ForestControlButton>
-          <span />
-          <ForestControlButton label="低く見る" onClick={() => onControl("tilt-down")}>
-            <ArrowDown className="h-4 w-4" />
-          </ForestControlButton>
-          <span />
-        </div>
-        <div className="grid grid-cols-2 gap-1 border-t border-[#c7b47e]/18 pt-2">
-          <ForestControlButton label="木の中へ近づく" onClick={() => onControl("zoom-in")}>
-            <ZoomIn className="h-4 w-4" />
-          </ForestControlButton>
-          <ForestControlButton label="木から離れる" onClick={() => onControl("zoom-out")}>
-            <ZoomOut className="h-4 w-4" />
-          </ForestControlButton>
-        </div>
+        <ForestControlButton compact label="上から見る" onClick={() => onControl("tilt-up")}>
+          <ArrowUp className="h-4 w-4" />
+        </ForestControlButton>
+        <ForestControlButton compact label="低く見る" onClick={() => onControl("tilt-down")}>
+          <ArrowDown className="h-4 w-4" />
+        </ForestControlButton>
       </div>
     </>
   );
@@ -1133,9 +1295,10 @@ function ForestControlButton({
   return (
     <Button
       aria-label={label}
-      className={cn("rounded-full text-[#fff7da] shadow-none hover:bg-white/[0.08] focus-visible:ring-[#d9ef6c]/45", compact ? "h-8 w-8" : "h-9 w-9")}
+      className={cn("rounded-full text-[#fff7da] shadow-none hover:bg-white/[0.08] focus-visible:ring-[#d9ef6c]/45", compact ? "h-10 w-10" : "h-9 w-9")}
       size="icon"
       title={label}
+      type="button"
       variant="ghost"
       onClick={onClick}
     >
@@ -1237,18 +1400,29 @@ function MemoryOverlay({ tasks, visible }: { tasks: Task[]; visible: boolean }) 
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="pointer-events-none absolute inset-0 z-50 overflow-hidden bg-[#1e2d26]/18 backdrop-blur-[1px]"
+          className="pointer-events-none absolute inset-0 z-50 overflow-hidden bg-[radial-gradient(circle_at_50%_48%,rgba(45,67,45,0.24),rgba(5,10,8,0.86)_70%)] backdrop-blur-[1px]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
+          <img
+            src={questAssets.barkPanel}
+            alt=""
+            className="absolute inset-0 h-full w-full scale-125 object-cover opacity-[0.18] mix-blend-overlay"
+          />
+          <motion.span
+            className="absolute left-1/2 top-1/2 h-[min(76vw,520px)] w-[min(76vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#d6c48f]/18 bg-[radial-gradient(circle,rgba(255,239,178,0.16),transparent_58%)] shadow-[0_0_90px_rgba(217,239,154,0.12)]"
+            initial={{ scale: 0.72, opacity: 0 }}
+            animate={{ scale: [0.92, 1.04, 0.98], opacity: 1, rotate: [0, 4, -2, 0] }}
+            transition={{ duration: 6.8, repeat: Infinity, ease: "easeInOut" }}
+          />
           <motion.div
-            className="absolute left-1/2 top-1/2 w-[min(86vw,440px)] -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-[#d6c48f]/34 bg-[#101b16]/78 px-5 py-4 text-center shadow-[0_24px_70px_rgba(0,0,0,0.36)] backdrop-blur-xl"
+            className="absolute left-1/2 top-[46%] w-[min(86vw,440px)] -translate-x-1/2 -translate-y-1/2 rounded-[30px] border border-[#d6c48f]/34 bg-[#101b16]/70 px-5 py-4 text-center shadow-[0_24px_70px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl"
             initial={{ y: 12, scale: 0.96, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
           >
             <p className="text-lg font-black text-[#fff7da]">木の中の記憶</p>
-            <p className="mt-1 text-xs font-black text-[#c8bc90]">完了したtodoが浮かびます</p>
+            <p className="mt-1 text-xs font-black text-[#c8bc90]">近づくほど、実ったtodoが記憶として浮かびます</p>
           </motion.div>
 
           {(tasks.length ? tasks : []).map((task, index) => {
@@ -1256,17 +1430,22 @@ function MemoryOverlay({ tasks, visible }: { tasks: Task[]; visible: boolean }) 
             return (
               <motion.div
                 key={task.id}
-                className="absolute max-w-[230px] rounded-full border border-[#d6c48f]/34 bg-[#101b16]/66 px-4 py-2 text-xs font-black text-[#fff7da] shadow-[0_12px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl"
+                className="absolute grid max-w-[250px] grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-[24px] border border-[#d6c48f]/28 bg-[#101b16]/62 px-3 py-2 text-left text-xs font-black text-[#fff7da] shadow-[0_16px_42px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-2xl"
                 style={{ left: `${position.left}%`, top: `${position.top}%` }}
                 initial={{ opacity: 0, y: 18, scale: 0.86 }}
                 animate={{ opacity: 1, y: [0, -12, 0], scale: 1 }}
                 transition={{ delay: index * 0.08, y: { duration: 3.6 + (index % 3), repeat: Infinity, ease: "easeInOut" } }}
               >
-                <span className="mr-2 inline-block align-middle">
-                  <span className={cn("inline-block rounded-full border align-middle", miniFruitClassName(task.difficulty))} />
+                <span className="grid h-9 w-9 place-items-center rounded-full border border-[#d6c48f]/18 bg-white/[0.08]">
+                  <FruitImage difficulty={task.difficulty} className={fruitImageSizeClassName(task.difficulty, true)} />
                 </span>
-                <span className="align-middle">{shortTitle(task.title, 18)}</span>
-                {task.completedAt && <span className="ml-2 align-middle text-[10px] text-[#c8bc90]">{formatMonthDay(new Date(task.completedAt))}</span>}
+                <span className="min-w-0">
+                  <span className="block truncate">{shortTitle(task.title, 20)}</span>
+                  <span className="mt-0.5 flex items-center gap-2 text-[10px] text-[#c8bc90]">
+                    <span className={cn("h-2 w-2 rounded-full border", miniFruitClassName(task.difficulty))} />
+                    {task.completedAt ? formatCompletedTime(task.completedAt) : "完了"}
+                  </span>
+                </span>
               </motion.div>
             );
           })}
@@ -1302,7 +1481,7 @@ function ForestNodeTray({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-[4.75rem] left-4 right-4 z-40 flex justify-center transition-opacity duration-500",
+        "pointer-events-none absolute bottom-[7.25rem] left-4 right-4 z-40 flex justify-center transition-opacity duration-500",
         memoryMode && "opacity-0",
       )}
     >
@@ -1361,19 +1540,30 @@ function ForestNodeMarker({
       {open && (
         <motion.span
           className={cn(
-            "absolute z-50 grid max-h-64 w-[min(78vw,288px)] gap-2 overflow-auto rounded-[20px] border border-[#d6c48f]/34 bg-[#101b16]/94 p-3 text-left shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl",
+            "absolute z-50 grid max-h-72 w-[min(82vw,330px)] gap-2 overflow-auto rounded-[26px] border border-[#d6c48f]/34 bg-[#101b16]/88 p-3 text-left shadow-[0_22px_58px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-2xl",
             popoverAlignClassName,
-            popoverSide === "top" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
+            popoverSide === "top" ? "bottom-[calc(100%+12px)]" : "top-[calc(100%+12px)]",
           )}
           initial={{ opacity: 0, y: -4, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, scale: 0.96 }}
           onClick={(event) => event.stopPropagation()}
         >
-          <span className="text-xs font-black text-[#fff7da]">実ったtodo</span>
+          <span
+            className={cn(
+              "absolute left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-[#d6c48f]/24 bg-[#101b16]/88",
+              popoverSide === "top" ? "-bottom-1.5 border-b border-r" : "-top-1.5 border-l border-t",
+            )}
+          />
+          <span className="flex items-center justify-between gap-3 text-xs font-black text-[#fff7da]">
+            <span>実った記録</span>
+            <span className="rounded-full border border-[#d6c48f]/18 bg-white/[0.06] px-2 py-1 text-[10px] text-[#c8bc90]">{node.fruits.length}件</span>
+          </span>
           {node.fruits.map((fruit, index) => (
-            <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 rounded-[16px] border border-[#d6c48f]/16 bg-white/[0.055] p-2 text-xs font-semibold text-[#e8dfbc]">
-              <FruitImage difficulty={fruit.difficulty} className={fruitImageSizeClassName(fruit.difficulty, true)} />
+            <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-[20px] border border-[#d6c48f]/16 bg-white/[0.065] p-2.5 text-xs font-semibold text-[#e8dfbc] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <span className="grid h-12 w-12 place-items-center rounded-full border border-[#d6c48f]/22 bg-[#fff7da]/8 shadow-[inset_0_0_0_7px_rgba(255,255,255,0.06)]">
+                <FruitImage difficulty={fruit.difficulty} className={fruitImageSizeClassName(fruit.difficulty, true)} />
+              </span>
               <span className="min-w-0">
                 <span className="block truncate font-black text-[#fff7da]">{fruit.title}</span>
                 <span className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-black text-[#c8bc90]">
@@ -3771,7 +3961,7 @@ function fruitClassName(difficulty: Difficulty) {
   if (difficulty === "medium") {
     return "h-[14%] min-h-4 w-[14%] min-w-4 border-[#f4d7a0] bg-gradient-to-br from-[#f7c86d] via-[#d8893d] to-[#955f2d] shadow-[0_5px_11px_rgba(133,82,35,0.24)]";
   }
-  return "h-[10%] min-h-3 w-[10%] min-w-3 border-[#e5b17b] bg-gradient-to-br from-[#f0bb78] via-[#cd8240] to-[#87582f] shadow-[0_3px_8px_rgba(133,82,35,0.2)]";
+  return "h-[10%] min-h-3 w-[10%] min-w-3 border-[#d7e9a7] bg-gradient-to-br from-[#dff0b2] via-[#8fb85f] to-[#4f7138] shadow-[0_3px_8px_rgba(75,113,56,0.22)]";
 }
 
 function budClassName(difficulty: Difficulty) {
@@ -3783,13 +3973,13 @@ function budClassName(difficulty: Difficulty) {
 function miniFruitClassName(difficulty: Difficulty) {
   if (difficulty === "hard") return "h-4 w-4 border-[#ffec9a] bg-gradient-to-br from-[#fff5a6] via-[#e3b43e] to-[#9f6d18]";
   if (difficulty === "medium") return "h-3 w-3 border-[#f4d7a0] bg-gradient-to-br from-[#f7c86d] via-[#d8893d] to-[#955f2d]";
-  return "h-2.5 w-2.5 border-[#e5b17b] bg-gradient-to-br from-[#f0bb78] via-[#cd8240] to-[#87582f]";
+  return "h-2.5 w-2.5 border-[#d7e9a7] bg-gradient-to-br from-[#dff0b2] via-[#8fb85f] to-[#4f7138]";
 }
 
 function fruitFlightClassName(difficulty: Difficulty) {
   if (difficulty === "hard") return "h-9 w-9 border-[#fff0a8] bg-[radial-gradient(circle_at_32%_28%,#fff8bd,#e7b842_58%,#9d6a18)]";
   if (difficulty === "medium") return "h-7 w-7 border-[#f6d49a] bg-[radial-gradient(circle_at_32%_28%,#ffe1a8,#d8893d_62%,#955f2d)]";
-  return "h-5 w-5 border-[#e5b17b] bg-[radial-gradient(circle_at_32%_28%,#f0bb78,#cd8240_62%,#87582f)]";
+  return "h-5 w-5 border-[#d7e9a7] bg-[radial-gradient(circle_at_32%_28%,#e4f4b8,#8fb85f_62%,#4f7138)]";
 }
 
 function miniBudClassName(difficulty: Difficulty) {
