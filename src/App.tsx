@@ -94,6 +94,9 @@ type FruitTodo = {
   title: string;
   difficulty: Difficulty;
   completed?: boolean;
+  completedAt?: string;
+  parentTitle?: string;
+  notes?: string;
 };
 
 type RewardToast = {
@@ -103,6 +106,8 @@ type RewardToast = {
   points: number;
   stageLabel: string;
   leveledUp: boolean;
+  completedAt?: string;
+  parentTitle?: string;
 };
 
 type ForestMapNode = {
@@ -292,6 +297,8 @@ function App() {
     if (newlyCompletedTask) {
       const beforeStage = currentStage(previousPointsRef.current);
       const afterStage = currentStage(points);
+      const completedAt = newlyCompletedTask.completedAt ?? new Date().toISOString();
+      const parentTitle = newlyCompletedTask.parentId ? tasks.find((task) => task.id === newlyCompletedTask.parentId)?.title : undefined;
       const reward: RewardToast = {
         id: `${newlyCompletedTask.id}-${Date.now()}`,
         title: newlyCompletedTask.title,
@@ -299,13 +306,15 @@ function App() {
         points: difficultyPoints[newlyCompletedTask.difficulty],
         stageLabel: afterStage.label,
         leveledUp: afterStage.index > beforeStage.index,
+        completedAt,
+        parentTitle,
       };
       if (rewardTimerRef.current) window.clearTimeout(rewardTimerRef.current);
       if (fruitFlightTimerRef.current) window.clearTimeout(fruitFlightTimerRef.current);
       setRewardToast(reward);
       setFruitFlight(reward);
       rewardTimerRef.current = window.setTimeout(() => setRewardToast(null), 2400);
-      fruitFlightTimerRef.current = window.setTimeout(() => setFruitFlight(null), 1050);
+      fruitFlightTimerRef.current = window.setTimeout(() => setFruitFlight(null), 1250);
     }
 
     knownCompletedTaskIdsRef.current = completedIds;
@@ -768,7 +777,7 @@ function FruitFlightOverlay({ reward }: { reward: RewardToast | null }) {
       return undefined;
     }
     setVisible(true);
-    const timer = window.setTimeout(() => setVisible(false), 1050);
+    const timer = window.setTimeout(() => setVisible(false), 1250);
     return () => window.clearTimeout(timer);
   }, [reward]);
 
@@ -776,13 +785,19 @@ function FruitFlightOverlay({ reward }: { reward: RewardToast | null }) {
     <AnimatePresence>
       {reward && visible && (
         <motion.div className="pointer-events-none fixed inset-0 z-[118] overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div
+            className="absolute left-[24%] top-[64%] h-px w-[42vw] origin-left bg-[linear-gradient(90deg,rgba(255,244,188,0),rgba(255,244,188,0.78),rgba(255,244,188,0))] shadow-[0_0_18px_rgba(238,224,145,0.35)]"
+            initial={{ opacity: 0, rotate: -27, scaleX: 0 }}
+            animate={{ opacity: [0, 0.75, 0], rotate: -27, scaleX: [0, 1, 1] }}
+            transition={{ duration: 1.05, ease: "easeOut" }}
+          />
           <motion.img
             src={questAssets.fruit[reward.difficulty]}
             alt=""
             className={cn("absolute left-[30%] top-[58%] object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.34)]", fruitFlightImageClassName(reward.difficulty))}
             initial={{ x: "-22vw", y: "12vh", scale: 0.62, opacity: 0, rotate: -22 }}
-            animate={{ x: ["-22vw", "-5vw", "28vw"], y: ["12vh", "-6vh", "-18vh"], scale: [0.62, 1.22, 0.82], opacity: [0, 1, 0], rotate: 180 }}
-            transition={{ duration: 0.95, ease: "easeOut" }}
+            animate={{ x: ["-22vw", "-5vw", "28vw"], y: ["12vh", "-6vh", "-18vh"], scale: [0.62, 1.22, 0.82], opacity: [0, 1, 1, 0], rotate: 180 }}
+            transition={{ duration: 1.1, ease: "easeOut" }}
           />
           {[0, 1, 2].map((index) => (
             <motion.span
@@ -795,7 +810,7 @@ function FruitFlightOverlay({ reward }: { reward: RewardToast | null }) {
                 opacity: [0, 0.8, 0],
                 rotate: [0, 80, 160],
               }}
-              transition={{ delay: index * 0.08, duration: 0.9, ease: "easeOut" }}
+              transition={{ delay: index * 0.08, duration: 1.02, ease: "easeOut" }}
             >
               <Leaf className="h-4 w-4 fill-current" />
             </motion.span>
@@ -807,12 +822,13 @@ function FruitFlightOverlay({ reward }: { reward: RewardToast | null }) {
             transition={{ delay: 0.42, duration: 0.68, ease: "easeOut" }}
           />
           <motion.div
-            className="absolute left-[calc(58%-56px)] top-[calc(30%+44px)] rounded-full border border-[#fff0b4]/40 bg-[#111c17]/72 px-3 py-1 text-xs font-black text-[#fff7da] shadow-[0_10px_28px_rgba(0,0,0,0.25)] backdrop-blur"
+            className="absolute left-[calc(58%-74px)] top-[calc(30%+44px)] grid max-w-[180px] gap-0.5 rounded-2xl border border-[#fff0b4]/40 bg-[#111c17]/78 px-3 py-2 text-xs font-black text-[#fff7da] shadow-[0_10px_28px_rgba(0,0,0,0.25)] backdrop-blur"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: [0, 1, 0], y: [10, 0, -8] }}
-            transition={{ delay: 0.38, duration: 0.8, ease: "easeOut" }}
+            transition={{ delay: 0.38, duration: 0.95, ease: "easeOut" }}
           >
-            実った +{reward.points}XP
+            <span>木に実りました +{reward.points}XP</span>
+            <span className="truncate text-[10px] text-[#d8cc9c]">{reward.parentTitle ? `${reward.parentTitle} / ` : ""}{reward.title}</span>
           </motion.div>
         </motion.div>
       )}
@@ -894,6 +910,9 @@ function GameRewardOverlay({ reward }: { reward: RewardToast | null }) {
                 {reward.leveledUp ? "Tree Evolution" : "Task Complete"}
               </p>
               <h2 className="mt-1 truncate text-xl font-black text-[#263126] dark:text-[#f4f8ee]">{reward.title}</h2>
+              <p className="mx-auto mt-2 max-w-[280px] truncate text-xs font-black text-[#788270] dark:text-[#bfcba9]">
+                {reward.parentTitle ? `幹: ${reward.parentTitle}` : "幹から実りました"} ・ {formatCompletedTime(reward.completedAt)}
+              </p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <RewardMetric label="XP" value={`+${reward.points}`} />
                 <RewardMetric label="実" value={difficultyMeta[reward.difficulty].label} />
@@ -1336,12 +1355,14 @@ function ForestNodeMarker({
   const fruits = node.fruits.slice(0, 5);
   const buds = node.buds.slice(0, Math.max(0, 5 - fruits.length));
   const hasFruits = node.fruits.length > 0;
+  const popoverAlignClassName = node.x > 68 ? "right-0 left-auto translate-x-0" : node.x < 32 ? "left-0 translate-x-0" : "left-1/2 -translate-x-1/2";
   const popover = (
     <AnimatePresence>
       {open && (
         <motion.span
           className={cn(
-            "absolute left-1/2 z-50 grid max-h-44 w-60 -translate-x-1/2 gap-2 overflow-auto rounded-[20px] border border-[#d6c48f]/34 bg-[#101b16]/94 p-3 text-left shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl",
+            "absolute z-50 grid max-h-64 w-[min(78vw,288px)] gap-2 overflow-auto rounded-[20px] border border-[#d6c48f]/34 bg-[#101b16]/94 p-3 text-left shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl",
+            popoverAlignClassName,
             popoverSide === "top" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
           )}
           initial={{ opacity: 0, y: -4, scale: 0.96 }}
@@ -1351,10 +1372,17 @@ function ForestNodeMarker({
         >
           <span className="text-xs font-black text-[#fff7da]">実ったtodo</span>
           {node.fruits.map((fruit, index) => (
-            <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs font-semibold text-[#e8dfbc]">
-              <span className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
-              <span className="truncate">{fruit.title}</span>
-              <span className="text-[10px] font-black text-[#c8bc90]">{difficultyMeta[fruit.difficulty].label}</span>
+            <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 rounded-[16px] border border-[#d6c48f]/16 bg-white/[0.055] p-2 text-xs font-semibold text-[#e8dfbc]">
+              <FruitImage difficulty={fruit.difficulty} className={fruitImageSizeClassName(fruit.difficulty, true)} />
+              <span className="min-w-0">
+                <span className="block truncate font-black text-[#fff7da]">{fruit.title}</span>
+                <span className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-black text-[#c8bc90]">
+                  <span className="truncate rounded-full border border-[#d6c48f]/16 bg-[#0c1511]/70 px-2 py-1">親: {fruit.parentTitle || node.label}</span>
+                  <span className="truncate rounded-full border border-[#d6c48f]/16 bg-[#0c1511]/70 px-2 py-1">完了: {formatCompletedTime(fruit.completedAt)}</span>
+                  <span className={cn("rounded-full border px-2 py-1", difficultyDetailClassName(fruit.difficulty))}>{difficultyMeta[fruit.difficulty].label}</span>
+                  <span className="rounded-full border border-[#d6c48f]/16 bg-[#0c1511]/70 px-2 py-1">XP +{difficultyPoints[fruit.difficulty]}</span>
+                </span>
+              </span>
             </span>
           ))}
         </motion.span>
@@ -1667,7 +1695,7 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
             whileHover={{ scale: 1.13 }}
             aria-label={`${fruit.title} の完了内容を表示`}
           >
-            <span className="h-[34%] w-[34%] rounded-full bg-white/34 shadow-[inset_0_1px_2px_rgba(255,255,255,0.65)]" />
+            <FruitImage difficulty={fruit.difficulty} className="h-[150%] max-h-10 w-[150%] max-w-10" />
           </motion.button>
         );
       })}
@@ -1693,20 +1721,37 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
       <AnimatePresence>
         {openFruit && (
           <motion.span
-            className="pointer-events-auto absolute left-1/2 top-[88%] z-50 grid max-h-44 w-56 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96"
+            className="pointer-events-auto absolute left-1/2 top-[86%] z-50 grid max-h-64 w-64 -translate-x-1/2 gap-2 overflow-auto rounded-[18px] border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96"
             initial={{ opacity: 0, y: -4, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.96 }}
             onClick={(event) => event.stopPropagation()}
           >
             <span className="text-xs font-black text-[#2f3b2f] dark:text-[#e8f5df]">実ったtodo</span>
-            {node.fruits.map((fruit, index) => (
-              <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs font-semibold text-[#566055] dark:text-[#c6d5bf]">
-                <span className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
-                <span className="truncate">{fruit.title}</span>
-                <span className="text-[10px] font-black text-[#71806d] dark:text-[#9fb19a]">{difficultyMeta[fruit.difficulty].label}</span>
+            <span className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 rounded-[14px] border border-[#d8d1bd] bg-white/62 p-2 dark:border-white/10 dark:bg-white/[0.055]">
+              <FruitImage difficulty={openFruit.difficulty} className={fruitImageSizeClassName(openFruit.difficulty, true)} />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black text-[#2f3b2f] dark:text-[#f0f7e9]">{openFruit.title}</span>
+                {openFruit.notes && <span className="mt-0.5 block line-clamp-2 text-[11px] font-bold leading-snug text-[#67715e] dark:text-[#b8c6b0]">{openFruit.notes}</span>}
               </span>
-            ))}
+              <span className="col-span-2 grid grid-cols-2 gap-1.5 text-[10px] font-black text-[#687360] dark:text-[#b8c6b0]">
+                <span className="truncate rounded-full border border-[#d8d1bd] bg-[#f7f3e8] px-2 py-1 dark:border-white/10 dark:bg-[#101b16]">親: {openFruit.parentTitle || node.label}</span>
+                <span className="truncate rounded-full border border-[#d8d1bd] bg-[#f7f3e8] px-2 py-1 dark:border-white/10 dark:bg-[#101b16]">完了: {formatCompletedTime(openFruit.completedAt)}</span>
+                <span className={cn("rounded-full border px-2 py-1", difficultyDetailClassName(openFruit.difficulty))}>{difficultyMeta[openFruit.difficulty].label}</span>
+                <span className="rounded-full border border-[#d8d1bd] bg-[#f7f3e8] px-2 py-1 dark:border-white/10 dark:bg-[#101b16]">XP +{difficultyPoints[openFruit.difficulty]}</span>
+              </span>
+            </span>
+            {node.fruits.length > 1 && (
+              <span className="grid gap-1">
+                {node.fruits.slice(0, 6).map((fruit, index) => (
+                  <span key={`${fruit.title}-${index}`} className={cn("grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-full px-2 py-1 text-xs font-semibold text-[#566055] dark:text-[#c6d5bf]", openFruitIndex === index && "bg-[#edf4e6] dark:bg-white/[0.06]")}>
+                    <span className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
+                    <span className="truncate">{fruit.title}</span>
+                    <span className="text-[10px] font-black text-[#71806d] dark:text-[#9fb19a]">{formatCompletedTime(fruit.completedAt)}</span>
+                  </span>
+                ))}
+              </span>
+            )}
           </motion.span>
         )}
       </AnimatePresence>
@@ -1786,7 +1831,7 @@ function TaskScreen({
   const scopedDisplayTasks = useMemo(() => {
     const merged = [...pendingTasks, ...completedTasks];
     if (!focusToday) return merged;
-    return merged.filter((task) => dateKey(task.createdAt) === todayKey || (task.completedAt && dateKey(task.completedAt) === todayKey));
+    return merged.filter((task) => !task.completed || dateKey(task.createdAt) === todayKey || (task.completedAt && dateKey(task.completedAt) === todayKey));
   }, [completedTasks, focusToday, pendingTasks, todayKey]);
   const displayTasks = showCompleted ? scopedDisplayTasks : scopedDisplayTasks.filter((task) => !task.completed);
   const hiddenCompletedCount = scopedDisplayTasks.filter((task) => task.completed).length;
@@ -1885,13 +1930,14 @@ function TaskScreen({
                 <span className="absolute bottom-2 text-xs font-black">水やり</span>
               </button>
 
-              <div className="mx-auto grid min-w-0 rounded-[26px] border border-[#d7c797]/34 bg-[#111914]/72 px-8 py-4 text-center shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+              <div className="mx-auto grid min-w-0 max-w-[272px] rounded-[26px] border border-[#d7c797]/34 bg-[#111914]/72 px-5 py-4 text-center shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:px-8">
                 <span className="text-xs font-black text-[#d7cfaa]">
                   今日の木 <Info className="mb-0.5 ml-1 inline h-3.5 w-3.5" />
                 </span>
                 <span className="mt-1 truncate text-xl font-black text-[#fff9df]">{activeTreeName}</span>
                 <span className="mt-1 text-sm font-black text-[#d7cfaa]">Lv. {stage.index + 1}　{todayTreeStageLabel(treeGrowthLevel(todayNode), todayNode.count, todayNode.todoCount)}</span>
                 <span className={cn("mx-auto mt-2 rounded-full border px-2.5 py-1 text-[11px] font-black", pot.className)}>{pot.label}</span>
+                <MatryoshkaTreeStatus childrenMap={children} featuredTaskId={featuredTaskId} rootTasks={rootTasks} />
                 <TreeNameDialog settings={settings} updateSettings={updateSettings} />
               </div>
 
@@ -1980,6 +2026,71 @@ function TaskScreen({
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function MatryoshkaTreeStatus({
+  childrenMap,
+  featuredTaskId,
+  rootTasks,
+}: {
+  childrenMap: Map<string, Task[]>;
+  featuredTaskId: string;
+  rootTasks: Task[];
+}) {
+  const trunk = rootTasks.find((task) => task.id === featuredTaskId) ?? rootTasks[0];
+
+  if (!trunk) {
+    return (
+      <div className="mt-3 rounded-[18px] border border-[#d7c797]/20 bg-[#0e1712]/52 px-3 py-2 text-left">
+        <p className="text-[10px] font-black text-[#c8bc90]">幹を植える準備中</p>
+        <p className="mt-0.5 truncate text-xs font-black text-[#fff6d9]">新しいクエストを追加</p>
+      </div>
+    );
+  }
+
+  const childTasks = childrenMap.get(trunk.id) ?? [];
+  const completedChildren = childTasks.filter((task) => task.completed);
+  const previewTasks = (childTasks.length ? childTasks : [trunk]).slice(0, 4);
+  const budCount = childTasks.length ? childTasks.length - completedChildren.length : Number(!trunk.completed);
+
+  return (
+    <div className="mt-3 grid gap-2 rounded-[18px] border border-[#d7c797]/20 bg-[#0e1712]/58 px-3 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+        <span className="grid h-8 w-8 place-items-center rounded-full border border-[#d4c38c]/28 bg-[#382b19]/62 text-[#f0dfad]">
+          <TreePine className="h-4 w-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[10px] font-black text-[#c8bc90]">幹</span>
+          <span className="block truncate text-xs font-black text-[#fff6d9]">{trunk.title}</span>
+        </span>
+        <span className="rounded-full border border-[#d7c797]/22 bg-white/[0.055] px-2 py-1 text-[10px] font-black text-[#d9ef9a]">
+          実 {childTasks.length ? completedChildren.length : Number(trunk.completed)}/{Math.max(childTasks.length, 1)}
+        </span>
+      </div>
+
+      <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+        {previewTasks.map((task) => (
+          <span
+            key={task.id}
+            className={cn(
+              "grid h-8 w-8 shrink-0 place-items-center rounded-full border bg-[#152118]/76",
+              task.completed ? "border-[#e6cf78]/34" : "border-dashed border-[#d1c090]/34",
+            )}
+            title={`${task.title} / ${difficultyMeta[task.difficulty].label}`}
+          >
+            {task.completed ? (
+              <FruitImage difficulty={task.difficulty} className={fruitImageSizeClassName(task.difficulty, true)} />
+            ) : (
+              <span className={cn("h-3 w-3 rounded-full", difficultyDotClassName(task.difficulty))} />
+            )}
+          </span>
+        ))}
+        <span className="min-w-0 truncate text-[10px] font-black text-[#c8bc90]">
+          {childTasks.length ? `子タスク ${childTasks.length}件 / 芽 ${Math.max(budCount, 0)}件` : trunk.completed ? "この幹が実になりました" : "まず幹を完了すると実ります"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -3465,8 +3576,8 @@ function buildForestMapNodes({
       count: group.done,
       points: group.points,
       todoCount: group.tasks.length,
-      fruits: toFruitTodos(group.tasks.filter((task) => task.completed)),
-      buds: toFruitTodos(group.tasks.filter((task) => !task.completed)),
+      fruits: toFruitTodos(group.tasks.filter((task) => task.completed), tasks),
+      buds: toFruitTodos(group.tasks.filter((task) => !task.completed), tasks),
       ...timelinePositions[index],
     }));
   }
@@ -3498,8 +3609,8 @@ function buildForestMapNodes({
       count: completedForDay.length,
       points: day.points,
       todoCount,
-      fruits: toFruitTodos(completedForDay),
-      buds: toFruitTodos(tasksForDay.filter((task) => !task.completed)),
+      fruits: toFruitTodos(completedForDay, tasks),
+      buds: toFruitTodos(tasksForDay.filter((task) => !task.completed), tasks),
       future: day.isFuture,
       ...timelinePositions[index],
       featured: isToday,
@@ -3532,19 +3643,22 @@ function buildTodayOverviewNode(tasks: Task[]): ForestMapNode {
     count: completed.length,
     points,
     todoCount: source.length,
-    fruits: toFruitTodos(completed),
-    buds: toFruitTodos(buds),
+    fruits: toFruitTodos(completed, tasks),
+    buds: toFruitTodos(buds, tasks),
     x: 53,
     y: 52,
     featured: true,
   };
 }
 
-function toFruitTodos(tasks: Task[]): FruitTodo[] {
+function toFruitTodos(tasks: Task[], allTasks: Task[] = tasks): FruitTodo[] {
   return tasks.map((task) => ({
     title: task.title,
     difficulty: task.difficulty,
     completed: task.completed,
+    completedAt: task.completedAt,
+    parentTitle: task.parentId ? allTasks.find((candidate) => candidate.id === task.parentId)?.title : undefined,
+    notes: task.notes,
   }));
 }
 
