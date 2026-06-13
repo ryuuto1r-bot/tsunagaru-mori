@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Camera,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
@@ -2025,6 +2024,16 @@ function TaskScreen({
   }, [completedTasks, focusToday, pendingTasks, todayKey]);
   const displayTasks = showCompleted ? scopedDisplayTasks : scopedDisplayTasks.filter((task) => !task.completed);
   const hiddenCompletedCount = scopedDisplayTasks.filter((task) => task.completed).length;
+  const hasNonTodayTasks = useMemo(
+    () =>
+      [...pendingTasks, ...completedTasks].some((task) => {
+        if (dateKey(task.createdAt) === todayKey) return false;
+        if (task.completedAt && dateKey(task.completedAt) === todayKey) return false;
+        return true;
+      }),
+    [completedTasks, pendingTasks, todayKey],
+  );
+  const showTaskFilters = hasNonTodayTasks || hiddenCompletedCount > 0 || showCompleted || !focusToday;
   const displayTaskIds = new Set(displayTasks.map((task) => task.id));
   const children = childrenByParent(scopedDisplayTasks);
   const rootTasks = displayTasks.filter((task) => !task.parentId || !displayTaskIds.has(task.parentId));
@@ -2073,19 +2082,11 @@ function TaskScreen({
         <AmbientHeroLeaves />
 
         <div className="relative z-10 grid min-h-[610px] content-start px-4 pb-7 pt-8 sm:min-h-[690px]">
-          <div className="flex items-start justify-between gap-3">
-            <button type="button" className="flex min-w-0 items-center gap-2 rounded-full px-1 text-left" onClick={() => setQuery(query)}>
+          <div className="flex items-start gap-3">
+            <div className="flex min-w-0 items-center gap-2 px-1">
               <span className="truncate text-[28px] font-black leading-none tracking-normal text-[#fff7da] drop-shadow-[0_5px_20px_rgba(0,0,0,0.42)]">つながる森</span>
               <Leaf className="mt-1 h-7 w-7 rotate-[-18deg] fill-[#e9e0a1] text-[#e9e0a1] drop-shadow" />
-            </button>
-            <button
-              type="button"
-              aria-label="今日の画面を共有"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#d7c797]/35 bg-[#17251d]/44 text-[#efe4bb] shadow-[0_10px_28px_rgba(0,0,0,0.28)] backdrop-blur-xl"
-              onClick={() => void shareForest(todayNode.count, questTotal)}
-            >
-              <Camera className="h-5 w-5" />
-            </button>
+            </div>
           </div>
 
           <div className="mt-8 grid grid-cols-[118px_minmax(0,1fr)] items-start gap-2">
@@ -2128,17 +2129,9 @@ function TaskScreen({
                 <span className="mt-1 text-sm font-black text-[#d7cfaa]">Lv. {stage.index + 1}　{todayTreeStageLabel(treeGrowthLevel(todayNode), todayNode.count, todayNode.todoCount)}</span>
                 <span className={cn("mx-auto mt-2 rounded-full border px-2.5 py-1 text-[11px] font-black", pot.className)}>{pot.label}</span>
                 <MatryoshkaTreeStatus childrenMap={children} featuredTaskId={featuredTaskId} rootTasks={rootTasks} />
-                <TreeNameDialog settings={settings} updateSettings={updateSettings} />
               </div>
 
-              <button
-                type="button"
-                className="grid h-[74px] w-[74px] place-items-center rounded-full border border-[#d8c691]/38 bg-[#2a301f]/56 text-[#fbf2cf] shadow-[0_16px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition active:scale-95"
-                onClick={() => void shareForest(todayNode.count, questTotal)}
-              >
-                <Camera className="h-7 w-7" />
-                <span className="absolute bottom-2 text-xs font-black">シェア</span>
-              </button>
+              <div className="h-[74px] w-[74px]" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -2152,20 +2145,26 @@ function TaskScreen({
           <QuestScopeButton label="すべて" onClick={() => openForest("all")} />
         </div>
 
-        <div className="mx-auto mt-4 grid max-w-[380px] grid-cols-2 gap-2">
-          <QuestFilterButton
-            active={focusToday}
-            icon={focusToday ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-            label={focusToday ? "今日だけ" : "全タスク"}
-            onClick={() => setFocusToday((value) => !value)}
-          />
-          <QuestFilterButton
-            active={showCompleted}
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            label={showCompleted ? "完了も表示" : `完了を畳む ${hiddenCompletedCount}`}
-            onClick={() => setShowCompleted((value) => !value)}
-          />
-        </div>
+        {showTaskFilters && (
+          <div className={cn("mx-auto mt-4 grid max-w-[380px] gap-2", hiddenCompletedCount > 0 || showCompleted ? "grid-cols-2" : "grid-cols-1")}>
+            {(hasNonTodayTasks || !focusToday) && (
+              <QuestFilterButton
+                active={focusToday}
+                icon={focusToday ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                label={focusToday ? "今日だけ" : "全タスク"}
+                onClick={() => setFocusToday((value) => !value)}
+              />
+            )}
+            {(hiddenCompletedCount > 0 || showCompleted) && (
+              <QuestFilterButton
+                active={showCompleted}
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                label={showCompleted ? "完了も表示" : `完了を畳む ${hiddenCompletedCount}`}
+                onClick={() => setShowCompleted((value) => !value)}
+              />
+            )}
+          </div>
+        )}
 
         <MonthReportCard report={monthReport} />
 
@@ -2410,9 +2409,13 @@ function QuestFilterButton({
 }
 
 function TreeNameDialog({
+  triggerChildren,
+  triggerClassName,
   settings,
   updateSettings,
 }: {
+  triggerChildren?: React.ReactNode;
+  triggerClassName?: string;
   settings: StoreSettings;
   updateSettings: (settings: Partial<StoreSettings>) => void;
 }) {
@@ -2432,8 +2435,8 @@ function TreeNameDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" className="mx-auto mt-2 text-[11px] font-black text-[#d7cfaa] underline decoration-[#d7c797]/36 underline-offset-4">
-          名前を変える
+        <button type="button" className={cn("mx-auto mt-2 text-[11px] font-black text-[#d7cfaa] underline decoration-[#d7c797]/36 underline-offset-4", triggerClassName)}>
+          {triggerChildren ?? "名前を変える"}
         </button>
       </DialogTrigger>
       <DialogContent className="rounded-[26px] border-[#d1c090]/40 bg-[#101c17]/95 text-[#fff5d7] shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-xl">
@@ -3205,19 +3208,6 @@ function timeGreeting(tone: TimeTone) {
   return "こんばんは";
 }
 
-async function shareForest(completed: number, total: number) {
-  const text = `つながる森 今日のクエスト ${completed}/${total} 完了`;
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: "つながる森", text });
-      return;
-    }
-    await navigator.clipboard?.writeText(text);
-  } catch {
-    // Sharing can be cancelled by the user.
-  }
-}
-
 function TaskOverviewBand({
   compact,
   completedCount,
@@ -3632,20 +3622,38 @@ function SettingsScreen({
           <p className="mt-1 text-xs font-black text-[#c8bc90]">表示、演出、保存データを整えます。</p>
         </div>
 
-        <section className="rounded-[28px] border border-[#c7b47e]/30 bg-[#111c17]/74 p-4 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-          <p className="mb-3 text-sm font-black text-[#fff7da]">テーマ</p>
+        <section className="rounded-[28px] border border-[#c7b47e]/30 bg-[#111c17]/74 p-3 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+          <p className="mb-3 text-sm font-black text-[#fff7da]">今日の木</p>
+          <TreeNameDialog
+            settings={settings}
+            updateSettings={updateSettings}
+            triggerClassName="mt-0 flex h-11 w-full items-center justify-between rounded-2xl border border-[#c7b47e]/24 bg-white/[0.045] px-4 text-left text-sm text-[#fff7da] no-underline shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:bg-white/[0.07]"
+            triggerChildren={
+              <>
+                <span className="flex items-center gap-2">
+                  <Leaf className="h-4 w-4 fill-[#a8cb70] text-[#a8cb70]" />
+                  木の名前
+                </span>
+                <span className="min-w-0 truncate text-[#c8bc90]">{(settings.treeName ?? "").trim() || "はじまりの木"}</span>
+              </>
+            }
+          />
+        </section>
+
+        <section className="rounded-[28px] border border-[#c7b47e]/30 bg-[#111c17]/74 p-3 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+          <p className="mb-2 text-sm font-black text-[#fff7da]">テーマ</p>
           <div className="grid grid-cols-3 gap-2">
             {(["morning", "forest", "night"] as ThemeMode[]).map((theme) => (
               <button
                 key={theme}
                 type="button"
                 className={cn(
-                  "grid h-20 place-items-center rounded-[20px] border px-2 text-xs font-black transition",
+                  "grid h-16 place-items-center rounded-[20px] border px-2 text-xs font-black transition",
                   settings.theme === theme ? "border-[#b8d57b]/56 bg-[#d9ef9a]/14 text-[#fff7da]" : "border-[#c7b47e]/20 bg-white/[0.045] text-[#c8bc90] hover:bg-white/[0.07]",
                 )}
                 onClick={() => updateSettings({ theme })}
               >
-                <span className="grid h-9 w-9 place-items-center rounded-full border border-[#d6c48f]/24 bg-[#172116]">
+                <span className="grid h-8 w-8 place-items-center rounded-full border border-[#d6c48f]/24 bg-[#172116]">
                   {theme === "night" ? <Moon className="h-5 w-5 text-[#9ec3e6]" /> : theme === "morning" ? <Sun className="h-5 w-5 text-[#f0c45f]" /> : <TreePine className="h-5 w-5 fill-[#a8cb70] text-[#a8cb70]" />}
                 </span>
                 {themeLabel(theme)}
@@ -3654,7 +3662,7 @@ function SettingsScreen({
           </div>
         </section>
 
-        <section className="grid gap-3 rounded-[28px] border border-[#c7b47e]/30 bg-[#111c17]/74 p-4 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+        <section className="grid gap-2 rounded-[28px] border border-[#c7b47e]/30 bg-[#111c17]/74 p-3 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
           <SettingsToggle
             checked={settings.showCelebration}
             icon={<Gem className="h-5 w-5 text-[#f3ce5d]" />}
@@ -3669,12 +3677,12 @@ function SettingsScreen({
           />
         </section>
 
-        <section className="rounded-[28px] border border-[#c76d5e]/28 bg-[#231713]/68 p-4 shadow-[0_18px_46px_rgba(0,0,0,0.26)] backdrop-blur-xl">
+        <section className="rounded-[28px] border border-[#c76d5e]/28 bg-[#231713]/68 p-3 shadow-[0_18px_46px_rgba(0,0,0,0.26)] backdrop-blur-xl">
           <p className="text-sm font-black text-[#ffd8c9]">データ</p>
           <p className="mt-1 text-xs font-black text-[#c8a492]">初期化すると、タスクと実った記録が消えます。</p>
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="mt-4 h-12 rounded-full border border-[#e89b8d]/30 bg-[#8f332b] px-5 font-black text-[#fff5ee] hover:bg-[#a33b31]">
+              <Button className="mt-3 h-10 rounded-full border border-[#e89b8d]/30 bg-[#8f332b] px-5 font-black text-[#fff5ee] hover:bg-[#a33b31]">
                 <RotateCcw className="h-4 w-4" />
                 初期化
               </Button>
