@@ -195,7 +195,7 @@ export default function ForestWorldLayer({
       drag.yaw += (drag.targetYaw - drag.yaw) * 0.16;
       drag.pitch += (drag.targetPitch - drag.pitch) * 0.16;
       drag.distance += (drag.targetDistance - drag.distance) * 0.18;
-      const target = scope === "today" ? new Vector3(0.8, 2.9, 0.4) : new Vector3(0, 2.6, 0);
+      const target = scope === "today" ? new Vector3(0.55, 1.75, 0.25) : new Vector3(0, 2.6, 0);
       const height = 6.5 + drag.pitch * 9;
       camera.position.set(Math.sin(drag.yaw) * drag.distance, height, Math.cos(drag.yaw) * drag.distance);
       camera.lookAt(target);
@@ -664,8 +664,8 @@ function fruitColor(difficulty: Difficulty) {
 function defaultWorldView(scope: ForestScope) {
   return {
     yaw: scope === "today" ? 0.18 : -0.38,
-    pitch: 0.18,
-    distance: scope === "today" ? 19 : 25,
+    pitch: scope === "today" ? 0.12 : 0.18,
+    distance: scope === "today" ? 13.5 : 25,
   };
 }
 

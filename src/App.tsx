@@ -1011,7 +1011,7 @@ function ForestScreen({
         <MemoryOverlay tasks={memoryTasks} visible={memoryMode} />
       </section>
 
-      <footer className={cn("grid grid-cols-3 gap-2 border-t border-[#c7b47e]/18 bg-[linear-gradient(180deg,rgba(14,31,26,0.96),#071916)] px-3 pb-28 pt-3 transition-all duration-500 sm:gap-3 md:px-8 md:pb-4", memoryMode && "pointer-events-none max-h-0 overflow-hidden border-t-0 p-0 opacity-0")}>
+      <footer className={cn("grid grid-cols-3 gap-2 border-t border-[#c7b47e]/18 bg-[linear-gradient(180deg,rgba(14,31,26,0.96),#071916)] px-3 pb-6 pt-3 transition-all duration-500 sm:gap-3 md:px-8 md:pb-4", memoryMode && "pointer-events-none max-h-0 overflow-hidden border-t-0 p-0 opacity-0")}>
         <BottomMetric label="連続日数" value={`${streak}日`} />
         <BottomMetric label="今月のタスク完了" value={`${monthCompleted}件`} />
         <BottomMetric label="成長率" value={`${Math.round(stage.progress)}%`} />
@@ -2117,10 +2117,6 @@ function TreeNameDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(settings.treeName || "");
-
-  useEffect(() => {
-    if (!(settings.treeName ?? "").trim()) setOpen(true);
-  }, [settings.treeName]);
 
   useEffect(() => {
     setName(settings.treeName || "");
