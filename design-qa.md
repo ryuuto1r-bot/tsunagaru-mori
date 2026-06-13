@@ -30,7 +30,12 @@ final result: passed
 - Connected parent tasks to quest rows and child/completed tasks to fruit slots.
 - Added add-quest dialog and verified task creation.
 - Fixed dialog overlay pointer events so completed-fruit clicks work after closing.
+- Unified Forest, History, and Settings screens with the same dark glass quest-world shell.
+- Forest view now has in-view scope controls, darker HUD contrast, non-overlapping bottom metrics, and matching memory-zoom overlay styling.
+- History was changed into `実った記録`, showing completed todo as fruits with difficulty and completion time.
+- Settings was changed from a white admin panel into an in-app forest menu with theme cards, toggles, and reset dialog styling.
 - Verified `npm run build`, task add, and task complete.
+- Verified Forest tab 3D canvas, zoom-in memory mode, History tab, Settings tab, and `390 x 844` mobile viewport in the in-app browser.
 
 ## Follow-up Polish
 

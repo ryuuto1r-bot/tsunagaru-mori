@@ -19,6 +19,7 @@ import {
   Info,
   Leaf,
   ListTodo,
+  Moon,
   Plus,
   RotateCcw,
   Search,
@@ -235,7 +236,9 @@ function App() {
   const monthCompleted = forestDays.reduce((sum, day) => sum + day.count, 0);
   const selectedParentTitle = tasks.find((task) => task.id === parentId)?.title;
   const forestImmersive = activeView === "forest" && forestMemoryMode;
-  const taskGameMode = activeView === "tasks" && !forestImmersive;
+  const forestGameMode = activeView === "forest" && !forestImmersive;
+  const taskGameMode = activeView !== "forest" && !forestImmersive;
+  const appGameMode = forestGameMode || taskGameMode;
 
   useEffect(() => {
     const timer = window.setInterval(() => setTimeTone(getTimeTone()), 60_000);
@@ -313,6 +316,7 @@ function App() {
         className={cn(
           "mx-auto min-h-screen w-full max-w-[1540px] p-2 transition-all duration-500 sm:p-4 lg:p-5",
           forestImmersive && "max-w-none p-0 sm:p-0 lg:p-0",
+          forestGameMode && "max-w-none p-0 sm:p-0 lg:p-0",
           taskGameMode && "max-w-[430px] p-0 sm:p-0 lg:p-0",
         )}
       >
@@ -320,10 +324,11 @@ function App() {
           className={cn(
             "grid min-h-[calc(100vh-1rem)] overflow-hidden rounded-lg border border-white/75 bg-[#fbfaf5]/95 shadow-[0_28px_90px_rgba(31,47,34,0.18)] ring-1 ring-[#1f2d1e]/5 backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/94 dark:shadow-[0_28px_90px_rgba(0,0,0,0.42)] lg:min-h-[calc(100vh-2.5rem)]",
             forestImmersive ? "min-h-screen rounded-none border-transparent shadow-none ring-0 lg:min-h-screen lg:grid-cols-[minmax(0,1fr)]" : "lg:grid-cols-[292px_minmax(0,1fr)]",
+            appGameMode && "min-h-screen rounded-none border-transparent bg-transparent shadow-none ring-0 lg:min-h-screen lg:grid-cols-[minmax(0,1fr)]",
             taskGameMode && "min-h-screen rounded-none border-transparent bg-transparent shadow-none ring-0 lg:min-h-screen lg:grid-cols-[minmax(0,1fr)]",
           )}
         >
-          {!forestImmersive && !taskGameMode && (
+          {!forestImmersive && !appGameMode && (
             <AppSidebar
               activeProject={activeProject}
               completionRate={completionRate}
@@ -341,12 +346,12 @@ function App() {
           <div
             className={cn(
               "min-w-0 bg-[linear-gradient(180deg,#fbfaf5_0%,#f7f6ef_100%)] pb-20 transition-all duration-500 dark:bg-[linear-gradient(180deg,#121c19_0%,#0d1413_100%)] md:pb-0",
-              !forestImmersive && !taskGameMode && "border-l border-[#e5e1d7] dark:border-white/10",
-              taskGameMode && "bg-transparent pb-0 dark:bg-transparent",
+              !forestImmersive && !appGameMode && "border-l border-[#e5e1d7] dark:border-white/10",
+              appGameMode && "bg-transparent pb-0 dark:bg-transparent",
             )}
           >
             <Tabs value={activeView} onValueChange={(value) => setActiveView(value as AppView)} className="flex min-h-full flex-col">
-              <header className={cn("flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8", (forestImmersive || taskGameMode) && "pointer-events-none max-h-0 min-h-0 overflow-hidden border-b-0 px-0 py-0 opacity-0")}>
+              <header className={cn("flex min-h-16 flex-col gap-3 border-b border-[#e8e3d9] bg-[#fffdf7]/78 px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] backdrop-blur transition-all duration-500 dark:border-white/10 dark:bg-[#101715]/76 md:flex-row md:items-center md:justify-between lg:px-8", (forestImmersive || appGameMode) && "pointer-events-none max-h-0 min-h-0 overflow-hidden border-b-0 px-0 py-0 opacity-0")}>
                 <TabsList className="hidden h-auto w-full grid-cols-4 gap-1 rounded-md border border-[#e4dfd4] bg-[#f4f3ed]/82 p-1 text-[#6d746c] shadow-inner dark:border-white/10 dark:bg-white/[0.06] dark:text-[#b9c7b4] md:flex md:w-auto md:justify-start md:gap-1.5">
                   {appTabs.map((tab) => (
                     <TabsTrigger
@@ -374,6 +379,7 @@ function App() {
                   groups={groups}
                   monthCompleted={monthCompleted}
                   onComplete={finishTask}
+                  onScope={setForestScope}
                   scope={forestScope}
                   stage={stage}
                   streak={streak}
@@ -423,7 +429,7 @@ function App() {
           </div>
         </section>
       </main>
-      <MobileTabBar activeView={activeView} hidden={forestImmersive} gameMode={taskGameMode} onView={setActiveView} />
+      <MobileTabBar activeView={activeView} hidden={forestImmersive} gameMode={appGameMode} onView={setActiveView} />
       <FruitFlightOverlay reward={fruitFlight} />
       <GameRewardOverlay reward={rewardToast} />
     </div>
@@ -661,17 +667,18 @@ function ProjectButton({
 
 function ScopeToggle({ scope, onScope }: { scope: ForestScope; onScope: (scope: ForestScope) => void }) {
   return (
-    <div className="grid w-full grid-cols-[repeat(3,minmax(0,1fr))] rounded-md border border-[#ded9cd] bg-[#fbfaf5] p-1 md:flex md:w-auto">
+    <div className="grid w-full grid-cols-[repeat(3,minmax(0,1fr))] rounded-full border border-[#c7b47e]/38 bg-[#07120f]/88 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_36px_rgba(0,0,0,0.32)] backdrop-blur-xl md:flex md:w-auto">
       {(["today", "month", "all"] as ForestScope[]).map((item) => (
         <button
           key={item}
           type="button"
           className={cn(
-            "h-9 min-w-0 rounded-md px-3 text-sm font-bold transition md:px-4",
-            scope === item ? "bg-[#4e7d45] text-white shadow-sm" : "text-[#61705e] hover:bg-[#eef0e7]",
+            "h-10 min-w-0 rounded-full px-4 text-sm font-black transition md:px-5",
+            scope === item ? "bg-[#0b1510] text-[#fff7da] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_10px_24px_rgba(0,0,0,0.24)]" : "text-[#cfc49a] hover:bg-white/[0.06]",
           )}
           onClick={() => onScope(item)}
         >
+          {scope === item && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#a9d46a] align-middle" />}
           {scopeLabel(item)}
         </button>
       ))}
@@ -859,6 +866,7 @@ function ForestScreen({
   monthCompleted,
   onComplete,
   onMemoryModeChange,
+  onScope,
   scope,
   stage,
   streak,
@@ -871,6 +879,7 @@ function ForestScreen({
   monthCompleted: number;
   onComplete: (id: string) => void;
   onMemoryModeChange?: (enabled: boolean) => void;
+  onScope: (scope: ForestScope) => void;
   scope: ForestScope;
   stage: ReturnType<typeof currentStage>;
   streak: number;
@@ -902,8 +911,8 @@ function ForestScreen({
   }
 
   return (
-    <div className={cn("grid min-h-[calc(100vh-6.5rem)] lg:grid-rows-[minmax(0,1fr)_auto]", memoryMode && "min-h-screen lg:grid-rows-[minmax(0,1fr)]")}>
-      <section className={cn("relative min-h-[620px] touch-none overflow-hidden select-none", forestSurfaceClass(timeTone), memoryMode && "min-h-screen")}>
+    <div className={cn("relative min-h-screen overflow-hidden bg-[#071916] pb-24 text-[#fff7da]", memoryMode && "pb-0")}>
+      <section className={cn("relative min-h-[calc(100vh-225px)] touch-none overflow-hidden select-none bg-[#071916] sm:min-h-[calc(100vh-205px)]", memoryMode && "min-h-screen")}>
         <Suspense fallback={<ForestWorldFallback timeTone={timeTone} />}>
           <LazyForestWorldLayer
             control={worldControl}
@@ -914,19 +923,32 @@ function ForestScreen({
             onMemoryMode={setMemoryMode}
           />
         </Suspense>
-        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(104,120,104,0.09)_1px,transparent_1px),linear-gradient(to_bottom,rgba(104,120,104,0.09)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
-        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(245,246,238,0.04)_52%,rgba(225,219,203,0.12))] transition-opacity duration-500", memoryMode && "opacity-0")} />
-        <div className={cn("pointer-events-none absolute left-4 top-4 z-40 rounded-md border border-[#e0dacd] bg-[#fbfaf5]/86 px-4 py-3 shadow-sm backdrop-blur transition-opacity duration-500", memoryMode && "opacity-0")}>
-          <p className="text-base font-black text-[#2f3b2f]">{forestScopeTitle(scope)}</p>
-          <p className="mt-1 text-xs font-semibold text-[#747a71]">{forestScopeDescription(scope)}</p>
+        <img
+          src={questAssets.bonsaiHero}
+          alt=""
+          className={cn("pointer-events-none absolute inset-0 z-[1] h-full w-full scale-110 object-cover opacity-[0.16] mix-blend-soft-light blur-[1px] transition-opacity duration-500", memoryMode && "opacity-0")}
+        />
+        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_48%_28%,rgba(221,232,151,0.1),transparent_24%),linear-gradient(180deg,rgba(5,18,15,0.38)_0%,rgba(5,18,15,0.34)_44%,rgba(5,18,15,0.88)_100%)] transition-opacity duration-500", memoryMode && "opacity-0")} />
+        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(221,205,146,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(221,205,146,0.05)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
+
+        <div className={cn("absolute left-4 right-4 top-4 z-40 grid gap-3 transition-opacity duration-500 md:grid-cols-[minmax(0,1fr)_auto] md:items-start", memoryMode && "pointer-events-none opacity-0")}>
+          <div className="min-w-0 rounded-[26px] border border-[#c7b47e]/38 bg-[#07120f]/86 px-4 py-3 shadow-[0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-xl">
+            <p className="flex min-w-0 items-center gap-2 text-xl font-black text-[#fff7da] drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]">
+              <TreePine className="h-5 w-5 fill-[#a8cb70] text-[#a8cb70]" />
+              <span className="truncate">{forestScopeTitle(scope)}</span>
+            </p>
+            <p className="mt-1 text-xs font-black text-[#e2d7aa] drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{forestScopeDescription(scope)}</p>
+          </div>
+          <ScopeToggle scope={scope} onScope={onScope} />
         </div>
-        <div className={cn("pointer-events-none absolute bottom-4 left-4 z-40 hidden rounded-md border border-white/60 bg-white/70 px-3 py-2 text-xs font-bold text-[#52624f] shadow-sm backdrop-blur transition-opacity duration-500 sm:block", memoryMode && "opacity-0")}>
+
+        <div className={cn("pointer-events-none absolute left-4 top-[8.75rem] z-40 hidden rounded-full border border-[#c7b47e]/24 bg-[#111c17]/54 px-3 py-2 text-xs font-black text-[#d7cfaa] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl transition-opacity duration-500 sm:block", memoryMode && "opacity-0")}>
           ドラッグ / ホイール / ＋で木の中へ
         </div>
-        <div className={cn("absolute bottom-4 right-4 z-[60] flex items-center gap-1 rounded-md border border-white/65 bg-white/74 p-1.5 text-[#4c5f4a] shadow-sm backdrop-blur transition-all duration-500", memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-85")}>
+        <div className={cn("absolute bottom-6 right-4 z-[60] flex items-center gap-1 rounded-full border border-[#c7b47e]/34 bg-[#111c17]/68 p-1.5 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-all duration-500", memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-85")}>
           <Button
             aria-label="木の中へ近づく"
-            className="h-9 w-9 rounded-md"
+            className="h-10 w-10 rounded-full text-[#fff7da] hover:bg-white/[0.08]"
             size="icon"
             title="木の中へ近づく"
             variant="ghost"
@@ -936,7 +958,7 @@ function ForestScreen({
           </Button>
           <Button
             aria-label="木から離れる"
-            className="h-9 w-9 rounded-md"
+            className="h-10 w-10 rounded-full text-[#fff7da] hover:bg-white/[0.08]"
             size="icon"
             title="木から離れる"
             variant="ghost"
@@ -946,7 +968,7 @@ function ForestScreen({
           </Button>
           <Button
             aria-label="森の表示を戻す"
-            className="h-9 w-9 rounded-md"
+            className="h-10 w-10 rounded-full text-[#fff7da] hover:bg-white/[0.08]"
             size="icon"
             title="森の表示を戻す"
             variant="ghost"
@@ -961,7 +983,7 @@ function ForestScreen({
         <MemoryOverlay tasks={memoryTasks} visible={memoryMode} />
       </section>
 
-      <footer className={cn("grid gap-3 border-t border-[#e8e3d9] bg-[#fbfaf5]/94 p-4 transition-all duration-500 md:grid-cols-3 lg:px-8", memoryMode && "pointer-events-none max-h-0 overflow-hidden border-t-0 p-0 opacity-0")}>
+      <footer className={cn("grid gap-3 border-t border-[#c7b47e]/18 bg-[linear-gradient(180deg,rgba(14,31,26,0.96),#071916)] p-4 transition-all duration-500 md:grid-cols-3 lg:px-8", memoryMode && "pointer-events-none max-h-0 overflow-hidden border-t-0 p-0 opacity-0")}>
         <BottomMetric label="連続日数" value={`${streak}日`} />
         <BottomMetric label="今月のタスク完了" value={`${monthCompleted}件`} />
         <BottomMetric label="成長率" value={`${Math.round(stage.progress)}%`} />
@@ -973,9 +995,9 @@ function ForestScreen({
 function ForestWorldFallback({ timeTone }: { timeTone: TimeTone }) {
   return (
     <div className={cn("absolute inset-0 z-0 grid place-items-center", forestSurfaceClass(timeTone))}>
-      <div className="grid justify-items-center gap-3 rounded-md border border-[#e0dacd] bg-[#fbfaf5]/78 px-5 py-4 text-[#41523f] shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#121c18]/76 dark:text-[#e7f1e1]">
+      <div className="grid justify-items-center gap-3 rounded-[26px] border border-[#c7b47e]/34 bg-[#111c17]/74 px-5 py-4 text-[#fff7da] shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl">
         <motion.span
-          className="grid h-12 w-12 place-items-center rounded-full border border-[#d8d2c4] bg-[#edf4e7] text-[#4e7d45] dark:border-white/10 dark:bg-white/[0.08] dark:text-[#a7df9e]"
+          className="grid h-12 w-12 place-items-center rounded-full border border-[#a8cb70]/40 bg-[#172116] text-[#a8cb70] shadow-[inset_0_0_0_6px_rgba(157,195,95,0.18)]"
           animate={{ scale: [1, 1.08, 1], rotate: [0, -2, 2, 0] }}
           transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
         >
@@ -1011,12 +1033,12 @@ function MemoryOverlay({ tasks, visible }: { tasks: Task[]; visible: boolean }) 
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="absolute left-1/2 top-1/2 w-[min(86vw,440px)] -translate-x-1/2 -translate-y-1/2 rounded-md border border-white/62 bg-[#fffdf7]/82 px-5 py-4 text-center shadow-[0_24px_70px_rgba(20,31,25,0.2)] backdrop-blur-lg"
+            className="absolute left-1/2 top-1/2 w-[min(86vw,440px)] -translate-x-1/2 -translate-y-1/2 rounded-[28px] border border-[#d6c48f]/34 bg-[#101b16]/78 px-5 py-4 text-center shadow-[0_24px_70px_rgba(0,0,0,0.36)] backdrop-blur-xl"
             initial={{ y: 12, scale: 0.96, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
           >
-            <p className="text-lg font-black text-[#213021]">木の中の記憶</p>
-            <p className="mt-1 text-xs font-bold text-[#526150]">完了したtodoが浮かびます</p>
+            <p className="text-lg font-black text-[#fff7da]">木の中の記憶</p>
+            <p className="mt-1 text-xs font-black text-[#c8bc90]">完了したtodoが浮かびます</p>
           </motion.div>
 
           {(tasks.length ? tasks : []).map((task, index) => {
@@ -1024,7 +1046,7 @@ function MemoryOverlay({ tasks, visible }: { tasks: Task[]; visible: boolean }) 
             return (
               <motion.div
                 key={task.id}
-                className="absolute max-w-[230px] rounded-full border border-white/62 bg-[#fffdf7]/72 px-4 py-2 text-xs font-black text-[#31503a] shadow-[0_12px_36px_rgba(34,49,37,0.14)] backdrop-blur-md"
+                className="absolute max-w-[230px] rounded-full border border-[#d6c48f]/34 bg-[#101b16]/66 px-4 py-2 text-xs font-black text-[#fff7da] shadow-[0_12px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl"
                 style={{ left: `${position.left}%`, top: `${position.top}%` }}
                 initial={{ opacity: 0, y: 18, scale: 0.86 }}
                 animate={{ opacity: 1, y: [0, -12, 0], scale: 1 }}
@@ -1034,7 +1056,7 @@ function MemoryOverlay({ tasks, visible }: { tasks: Task[]; visible: boolean }) 
                   <span className={cn("inline-block rounded-full border align-middle", miniFruitClassName(task.difficulty))} />
                 </span>
                 <span className="align-middle">{shortTitle(task.title, 18)}</span>
-                {task.completedAt && <span className="ml-2 align-middle text-[10px] text-[#6c7868]">{formatMonthDay(new Date(task.completedAt))}</span>}
+                {task.completedAt && <span className="ml-2 align-middle text-[10px] text-[#c8bc90]">{formatMonthDay(new Date(task.completedAt))}</span>}
               </motion.div>
             );
           })}
@@ -1076,7 +1098,7 @@ function ForestNodeTray({
     >
       <div
         className={cn(
-          "pointer-events-auto max-w-[min(100%,920px)] rounded-md border border-white/62 bg-[#fffdf7]/54 px-2 py-1.5 shadow-[0_14px_36px_rgba(38,49,38,0.1)] backdrop-blur-md dark:border-white/10 dark:bg-[#13201c]/66",
+          "pointer-events-auto max-w-[min(100%,920px)] rounded-[24px] border border-[#c7b47e]/28 bg-[#111c17]/58 px-2 py-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.26)] backdrop-blur-xl",
           scope === "today" && "max-w-[280px]",
         )}
       >
@@ -1127,7 +1149,7 @@ function ForestNodeMarker({
       {open && (
         <motion.span
           className={cn(
-            "absolute left-1/2 z-50 grid max-h-44 w-60 -translate-x-1/2 gap-2 overflow-auto rounded-md border border-[#ded8c8] bg-[#fffdf7]/96 p-3 text-left shadow-[0_14px_32px_rgba(38,49,38,0.16)] backdrop-blur dark:border-white/10 dark:bg-[#13201c]/96",
+            "absolute left-1/2 z-50 grid max-h-44 w-60 -translate-x-1/2 gap-2 overflow-auto rounded-[20px] border border-[#d6c48f]/34 bg-[#101b16]/94 p-3 text-left shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl",
             popoverSide === "top" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
           )}
           initial={{ opacity: 0, y: -4, scale: 0.96 }}
@@ -1135,12 +1157,12 @@ function ForestNodeMarker({
           exit={{ opacity: 0, y: -4, scale: 0.96 }}
           onClick={(event) => event.stopPropagation()}
         >
-          <span className="text-xs font-black text-[#2f3b2f] dark:text-[#e8f5df]">実ったtodo</span>
+          <span className="text-xs font-black text-[#fff7da]">実ったtodo</span>
           {node.fruits.map((fruit, index) => (
-            <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs font-semibold text-[#566055] dark:text-[#c6d5bf]">
+            <span key={`${fruit.title}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs font-semibold text-[#e8dfbc]">
               <span className={cn("rounded-full border", miniFruitClassName(fruit.difficulty))} />
               <span className="truncate">{fruit.title}</span>
-              <span className="text-[10px] font-black text-[#71806d] dark:text-[#9fb19a]">{difficultyMeta[fruit.difficulty].label}</span>
+              <span className="text-[10px] font-black text-[#c8bc90]">{difficultyMeta[fruit.difficulty].label}</span>
             </span>
           ))}
         </motion.span>
@@ -1152,15 +1174,15 @@ function ForestNodeMarker({
     return (
       <span
         className={cn(
-          "pointer-events-auto relative inline-flex items-center gap-1 rounded-full border border-white/74 bg-[#fffdf7]/82 px-1 py-1 text-left shadow-[0_8px_22px_rgba(38,49,38,0.1)] backdrop-blur-md dark:border-white/10 dark:bg-[#13201c]/82",
+          "pointer-events-auto relative inline-flex items-center gap-1 rounded-full border border-[#d6c48f]/30 bg-[#101b16]/74 px-1 py-1 text-left shadow-[0_10px_26px_rgba(0,0,0,0.28)] backdrop-blur-xl",
           node.future && "opacity-60",
         )}
       >
         <button
           type="button"
           className={cn(
-            "relative grid h-8 min-w-8 place-items-center rounded-full border border-white/80 bg-[#fffdf7]/86 px-2 text-xs font-black tabular-nums text-[#4d7048] outline-none transition focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35 dark:border-white/10 dark:bg-white/[0.08] dark:text-[#c9edbd]",
-            hasFruits ? "hover:bg-white" : "cursor-default",
+            "relative grid h-8 min-w-8 place-items-center rounded-full border border-[#d6c48f]/32 bg-[#172116]/84 px-2 text-xs font-black tabular-nums text-[#dff0b2] outline-none transition focus-visible:ring-2 focus-visible:ring-[#a8cb70]/45",
+            hasFruits ? "hover:bg-white/[0.08]" : "cursor-default",
           )}
           disabled={!hasFruits}
           title={hasFruits ? "実ったtodoを見る" : "まだ実っていません"}
@@ -1179,7 +1201,7 @@ function ForestNodeMarker({
             </span>
           )}
         </button>
-        <span className="max-w-20 truncate pr-1 text-[11px] font-black text-[#52624f] dark:text-[#dbe9d5]">
+        <span className="max-w-20 truncate pr-1 text-[11px] font-black text-[#efe4bb]">
           {shortTitle(node.label, compact ? 6 : 8)}
         </span>
         {popover}
@@ -1190,8 +1212,8 @@ function ForestNodeMarker({
   return (
     <span
       className={cn(
-        "pointer-events-auto relative inline-flex max-w-full items-center gap-2 rounded-full border border-white/72 bg-[#fffdf7]/82 px-2.5 py-2 text-left shadow-[0_14px_34px_rgba(38,49,38,0.12)] backdrop-blur-md dark:border-white/10 dark:bg-[#13201c]/78",
-        node.featured && "border-[#d5dfcc] bg-[#fffdf7]/90 shadow-[0_18px_44px_rgba(38,49,38,0.15)]",
+        "pointer-events-auto relative inline-flex max-w-full items-center gap-2 rounded-full border border-[#d6c48f]/30 bg-[#101b16]/74 px-2.5 py-2 text-left shadow-[0_14px_34px_rgba(0,0,0,0.28)] backdrop-blur-xl",
+        node.featured && "border-[#d8ca92]/48 bg-[#16231b]/86 shadow-[0_20px_48px_rgba(0,0,0,0.34)]",
         node.future && "opacity-60",
       )}
     >
@@ -1202,8 +1224,8 @@ function ForestNodeMarker({
       <button
         type="button"
         className={cn(
-          "flex h-8 min-w-12 items-center justify-center gap-1 rounded-full border border-[#dcd5c7] bg-white/58 px-2 outline-none transition focus-visible:ring-2 focus-visible:ring-[#4e7d45]/35 dark:border-white/10 dark:bg-white/[0.06]",
-          hasFruits ? "hover:bg-white" : "cursor-default",
+          "flex h-8 min-w-12 items-center justify-center gap-1 rounded-full border border-[#d6c48f]/30 bg-white/[0.06] px-2 outline-none transition focus-visible:ring-2 focus-visible:ring-[#a8cb70]/45",
+          hasFruits ? "hover:bg-white/[0.1]" : "cursor-default",
         )}
         disabled={!hasFruits}
         title={hasFruits ? "実ったtodoを見る" : "まだ実っていません"}
@@ -1228,10 +1250,10 @@ function ForestNodeMarker({
       </button>
 
       <span className="grid min-w-0 flex-1">
-        <span className={cn("truncate text-sm font-black leading-tight text-[#354336] dark:text-[#eff8e8]", node.featured && "text-[#416c3a] dark:text-[#b8edaa]")}>
+        <span className={cn("truncate text-sm font-black leading-tight text-[#fff7da]", node.featured && "text-[#dff0b2]")}>
           {node.label}
         </span>
-        {showSublabel && <span className="truncate text-[10px] font-bold leading-tight text-[#71806d] dark:text-[#a6b89e]">{node.sublabel}</span>}
+        {showSublabel && <span className="truncate text-[10px] font-bold leading-tight text-[#c8bc90]">{node.sublabel}</span>}
       </span>
 
       {onComplete && (
@@ -1503,9 +1525,9 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
 
 function BottomMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-[#e4dfd4] bg-white/60 px-5 py-4 text-center">
-      <p className="text-xs font-bold text-[#767d73]">{label}</p>
-      <p className="mt-1 text-2xl font-black tabular-nums text-[#445341]">{value}</p>
+    <div className="rounded-[24px] border border-[#c7b47e]/28 bg-[#111c17]/64 px-5 py-4 text-center shadow-[0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+      <p className="text-xs font-black text-[#c8bc90]">{label}</p>
+      <p className="mt-1 text-2xl font-black tabular-nums text-[#fff7da]">{value}</p>
     </div>
   );
 }
@@ -2474,29 +2496,61 @@ function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
 function HistoryScreen({ history }: { history: Record<string, Task[]> }) {
   const days = Object.entries(history);
   return (
-    <div className="grid gap-4 p-4 lg:p-8">
-      <div>
-        <h2 className="text-2xl font-black dark:text-[#eef4e8]">履歴</h2>
-        <p className="text-sm font-medium text-[#747a71] dark:text-[#a8b8a2]">完了したタスク</p>
-      </div>
-      <div className="grid gap-3">
-        {days.map(([day, tasks]) => (
-          <Card key={day} className="border-[#e4dfd4] bg-white/72 shadow-none dark:border-white/10 dark:bg-white/[0.055]">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle>{day}</CardTitle>
-              <Badge variant="outline">{tasks.length}件</Badge>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              {tasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between gap-3 rounded-md bg-[#f4f3ed] px-3 py-2 text-sm dark:bg-white/[0.06]">
-                  <span className="truncate font-semibold">{task.title}</span>
-                  <Badge className={difficultyMeta[task.difficulty].className}>{difficultyMeta[task.difficulty].hint}</Badge>
+    <div className="relative min-h-screen overflow-hidden bg-[#071916] pb-28 text-[#fff7da]">
+      <img src={questAssets.bonsaiHero} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-[0.18] mix-blend-soft-light blur-[1px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(223,230,151,0.16),transparent_28%),linear-gradient(180deg,rgba(7,25,22,0.5),#071916_46%,#071916_100%)]" />
+
+      <div className="relative z-10 mx-auto grid max-w-[430px] gap-4 px-4 pt-8">
+        <div className="rounded-[28px] border border-[#c7b47e]/32 bg-[#111c17]/66 px-5 py-4 shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+          <p className="flex items-center gap-2 text-2xl font-black">
+            <Archive className="h-6 w-6 text-[#d9ef6c]" />
+            実った記録
+          </p>
+          <p className="mt-1 text-xs font-black text-[#c8bc90]">完了したtodoが、日ごとの実として残ります。</p>
+        </div>
+
+        <div className="grid gap-3">
+          {days.map(([day, tasks]) => {
+            const score = tasks.reduce((sum, task) => sum + difficultyPoints[task.difficulty], 0);
+            return (
+              <motion.article
+                key={day}
+                className="overflow-hidden rounded-[28px] border border-[#c7b47e]/30 bg-[#111c17]/74 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 170, damping: 20 }}
+              >
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-[#c7b47e]/18 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-black text-[#fff7da]">{day}</p>
+                    <p className="text-xs font-black text-[#c8bc90]">成長スコア {score}</p>
+                  </div>
+                  <span className="rounded-full border border-[#a9cf6a]/36 bg-[#d9ef9a]/12 px-3 py-1 text-xs font-black text-[#dff0b2]">
+                    {tasks.length}個
+                  </span>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
-        {!days.length && <EmptyState text="履歴はまだありません" />}
+                <div className="grid gap-2 px-3 py-3">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border border-[#c7b47e]/14 bg-white/[0.045] px-3 py-2">
+                      <FruitImage difficulty={task.difficulty} className="h-10 w-10" />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-black text-[#fff7da]">{task.title}</span>
+                        <span className={cn("text-xs font-black", difficultyTextClassName(task.difficulty))}>{difficultyMeta[task.difficulty].label}</span>
+                      </span>
+                      <span className="text-xs font-black tabular-nums text-[#c8bc90]">{formatCompletedTime(task.completedAt)}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.article>
+            );
+          })}
+          {!days.length && (
+            <div className="rounded-[28px] border border-dashed border-[#c7b47e]/30 bg-[#111c17]/62 p-8 text-center shadow-[0_18px_44px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+              <Sprout className="mx-auto mb-2 h-7 w-7 text-[#a8cb70]" />
+              <p className="text-sm font-black text-[#c8bc90]">履歴はまだありません</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -2512,59 +2566,112 @@ function SettingsScreen({
   updateSettings: (settings: Partial<StoreSettings>) => void;
 }) {
   return (
-    <div className="grid max-w-3xl gap-5 p-4 lg:p-8">
-      <div>
-        <h2 className="text-2xl font-black dark:text-[#eef4e8]">設定</h2>
-        <p className="text-sm font-medium text-[#747a71] dark:text-[#a8b8a2]">表示と保存データ</p>
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-[#071916] pb-28 text-[#fff7da]">
+      <img src={questAssets.bonsaiHero} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-[0.16] mix-blend-soft-light blur-[1px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(223,230,151,0.14),transparent_28%),linear-gradient(180deg,rgba(7,25,22,0.42),#071916_48%,#071916_100%)]" />
 
-      <Card className="border-[#e4dfd4] bg-white/72 shadow-none dark:border-white/10 dark:bg-white/[0.055]">
-        <CardContent className="grid gap-5 p-5">
-          <div className="grid gap-2">
-            <p className="text-sm font-bold">テーマ</p>
-            <div className="flex flex-wrap gap-2">
-              {(["morning", "forest", "night"] as ThemeMode[]).map((theme) => (
-                <Button key={theme} variant={settings.theme === theme ? "default" : "outline"} size="sm" onClick={() => updateSettings({ theme })}>
-                  {themeLabel(theme)}
-                </Button>
-              ))}
-            </div>
+      <div className="relative z-10 mx-auto grid max-w-[430px] gap-4 px-4 pt-8">
+        <div className="rounded-[28px] border border-[#c7b47e]/32 bg-[#111c17]/66 px-5 py-4 shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+          <p className="flex items-center gap-2 text-2xl font-black">
+            <Settings className="h-6 w-6 text-[#d9ef6c]" />
+            森の設定
+          </p>
+          <p className="mt-1 text-xs font-black text-[#c8bc90]">表示、演出、保存データを整えます。</p>
+        </div>
+
+        <section className="rounded-[28px] border border-[#c7b47e]/30 bg-[#111c17]/74 p-4 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+          <p className="mb-3 text-sm font-black text-[#fff7da]">テーマ</p>
+          <div className="grid grid-cols-3 gap-2">
+            {(["morning", "forest", "night"] as ThemeMode[]).map((theme) => (
+              <button
+                key={theme}
+                type="button"
+                className={cn(
+                  "grid h-20 place-items-center rounded-[20px] border px-2 text-xs font-black transition",
+                  settings.theme === theme ? "border-[#b8d57b]/56 bg-[#d9ef9a]/14 text-[#fff7da]" : "border-[#c7b47e]/20 bg-white/[0.045] text-[#c8bc90] hover:bg-white/[0.07]",
+                )}
+                onClick={() => updateSettings({ theme })}
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-full border border-[#d6c48f]/24 bg-[#172116]">
+                  {theme === "night" ? <Moon className="h-5 w-5 text-[#9ec3e6]" /> : theme === "morning" ? <Sun className="h-5 w-5 text-[#f0c45f]" /> : <TreePine className="h-5 w-5 fill-[#a8cb70] text-[#a8cb70]" />}
+                </span>
+                {themeLabel(theme)}
+              </button>
+            ))}
           </div>
-          <label className="flex items-center gap-3 rounded-md border border-[#e4dfd4] p-3 dark:border-white/10 dark:bg-white/[0.035]">
-            <Checkbox checked={settings.showCelebration} onCheckedChange={(checked) => updateSettings({ showCelebration: Boolean(checked) })} />
-            <span className="font-semibold">完了時の光</span>
-          </label>
-          <label className="flex items-center gap-3 rounded-md border border-[#e4dfd4] p-3 dark:border-white/10 dark:bg-white/[0.035]">
-            <Checkbox checked={settings.compact} onCheckedChange={(checked) => updateSettings({ compact: Boolean(checked) })} />
-            <span className="font-semibold">コンパクト</span>
-          </label>
+        </section>
+
+        <section className="grid gap-3 rounded-[28px] border border-[#c7b47e]/30 bg-[#111c17]/74 p-4 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+          <SettingsToggle
+            checked={settings.showCelebration}
+            icon={<Gem className="h-5 w-5 text-[#f3ce5d]" />}
+            label="完了時の光"
+            onCheckedChange={(checked) => updateSettings({ showCelebration: checked })}
+          />
+          <SettingsToggle
+            checked={settings.compact}
+            icon={<ListTodo className="h-5 w-5 text-[#a8cb70]" />}
+            label="コンパクト表示"
+            onCheckedChange={(checked) => updateSettings({ compact: checked })}
+          />
+        </section>
+
+        <section className="rounded-[28px] border border-[#c76d5e]/28 bg-[#231713]/68 p-4 shadow-[0_18px_46px_rgba(0,0,0,0.26)] backdrop-blur-xl">
+          <p className="text-sm font-black text-[#ffd8c9]">データ</p>
+          <p className="mt-1 text-xs font-black text-[#c8a492]">初期化すると、タスクと実った記録が消えます。</p>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="destructive" className="w-fit">
+              <Button className="mt-4 h-12 rounded-full border border-[#e89b8d]/30 bg-[#8f332b] px-5 font-black text-[#fff5ee] hover:bg-[#a33b31]">
                 <RotateCcw className="h-4 w-4" />
                 初期化
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="rounded-[26px] border-[#d1c090]/40 bg-[#101c17]/95 text-[#fff5d7] shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-xl">
               <DialogHeader>
                 <DialogTitle>すべて初期化しますか？</DialogTitle>
-                <DialogDescription>タスクと履歴が消え、localStorageも空の状態に戻ります。</DialogDescription>
+                <DialogDescription className="text-[#bfb58d]">タスクと履歴が消え、localStorageも空の状態に戻ります。</DialogDescription>
               </DialogHeader>
               <div className="flex justify-end gap-2">
                 <DialogClose asChild>
-                  <Button variant="outline">キャンセル</Button>
+                  <Button variant="outline" className="rounded-full border-[#d1c090]/30 bg-white/[0.04] text-[#fff5d7] hover:bg-white/[0.08]">
+                    キャンセル
+                  </Button>
                 </DialogClose>
                 <DialogClose asChild>
-                  <Button variant="destructive" onClick={resetAll}>
+                  <Button className="rounded-full bg-[#8f332b] text-[#fff5ee] hover:bg-[#a33b31]" onClick={resetAll}>
                     初期化
                   </Button>
                 </DialogClose>
               </div>
             </DialogContent>
           </Dialog>
-        </CardContent>
-      </Card>
+        </section>
+      </div>
     </div>
+  );
+}
+
+function SettingsToggle({
+  checked,
+  icon,
+  label,
+  onCheckedChange,
+}: {
+  checked: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="grid min-h-16 cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[20px] border border-[#c7b47e]/18 bg-white/[0.045] px-3 py-2 transition hover:bg-white/[0.07]">
+      <span className="grid h-10 w-10 place-items-center rounded-full border border-[#d6c48f]/24 bg-[#172116]">{icon}</span>
+      <span className="min-w-0 truncate text-sm font-black text-[#fff7da]">{label}</span>
+      <Checkbox
+        checked={checked}
+        className="border-[#d6c48f]/42 data-[state=checked]:border-[#a8cb70] data-[state=checked]:bg-[#6f984c] data-[state=checked]:text-[#fff7da]"
+        onCheckedChange={(value) => onCheckedChange(Boolean(value))}
+      />
+    </label>
   );
 }
 
