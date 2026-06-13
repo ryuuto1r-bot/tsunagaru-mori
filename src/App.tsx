@@ -2129,10 +2129,12 @@ function TaskScreen({
                 type="button"
                 className="relative grid h-[74px] w-[74px] place-items-center rounded-full border border-[#d8c691]/38 bg-[#2a301f]/56 text-[#fbf2cf] shadow-[0_16px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition active:scale-95"
                 onClick={waterNextTask}
+                title="次の未完了タスクを完了"
+                aria-label="未完了タスクを1つ完了する"
               >
                 <Droplets className="h-7 w-7" />
                 <span className="absolute -right-0.5 -top-1 grid h-7 min-w-7 place-items-center rounded-full border border-[#e4efbd] bg-[#97bf55] px-1 text-sm font-black text-white shadow">{pendingTasks.length}</span>
-                <span className="absolute bottom-2 text-xs font-black">水やり</span>
+                <span className="absolute bottom-2 text-xs font-black">次を完了</span>
               </button>
 
               <div className="mx-auto grid min-w-0 max-w-[272px] rounded-[26px] border border-[#d7c797]/34 bg-[#111914]/72 px-5 py-4 text-center shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:px-8">
@@ -2234,8 +2236,8 @@ function MatryoshkaTreeStatus({
   if (!trunk) {
     return (
       <div className="mt-3 rounded-[18px] border border-[#d7c797]/20 bg-[#0e1712]/52 px-3 py-2 text-left">
-        <p className="text-[10px] font-black text-[#c8bc90]">幹を植える準備中</p>
-        <p className="mt-0.5 truncate text-xs font-black text-[#fff6d9]">新しいクエストを追加</p>
+        <p className="text-[10px] font-black text-[#c8bc90]">親todoを作る準備中</p>
+        <p className="mt-0.5 truncate text-xs font-black text-[#fff6d9]">今日のtodoを追加</p>
       </div>
     );
   }
@@ -2252,11 +2254,11 @@ function MatryoshkaTreeStatus({
           <TreePine className="h-4 w-4" />
         </span>
         <span className="min-w-0">
-          <span className="block text-[10px] font-black text-[#c8bc90]">幹</span>
+          <span className="block text-[10px] font-black text-[#c8bc90]">親todo</span>
           <span className="block truncate text-xs font-black text-[#fff6d9]">{trunk.title}</span>
         </span>
         <span className="rounded-full border border-[#d7c797]/22 bg-white/[0.055] px-2 py-1 text-[10px] font-black text-[#d9ef9a]">
-          実 {childTasks.length ? completedChildren.length : Number(trunk.completed)}/{Math.max(childTasks.length, 1)}
+          {childTasks.length ? `子todo ${completedChildren.length}/${childTasks.length}` : `完了 ${Number(trunk.completed)}/1`}
         </span>
       </div>
 
@@ -2278,7 +2280,7 @@ function MatryoshkaTreeStatus({
           </span>
         ))}
         <span className="min-w-0 truncate text-[10px] font-black text-[#c8bc90]">
-          {childTasks.length ? `子タスク ${childTasks.length}件 / 芽 ${Math.max(budCount, 0)}件` : trunk.completed ? "この幹が実になりました" : "まず幹を完了すると実ります"}
+          {childTasks.length ? `子todo ${childTasks.length}件 / 未完了 ${Math.max(budCount, 0)}件` : trunk.completed ? "この親todoが実になりました" : "子todoを追加するか、このtodoを完了できます"}
         </span>
       </div>
     </div>
@@ -2296,7 +2298,7 @@ function QuestProgressPanel({
 }) {
   return (
     <div className="grid h-[118px] w-[118px] place-items-center rounded-[26px] border border-[#e0cf98]/38 bg-[#20291d]/54 p-3 text-center shadow-[0_22px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-      <p className="text-xs font-black text-[#fff4cf]">今日のクエスト</p>
+      <p className="text-xs font-black text-[#fff4cf]">今日のタスク</p>
       <div
         className="mt-1 grid h-[76px] w-[76px] place-items-center rounded-full p-1 shadow-[inset_0_0_18px_rgba(0,0,0,0.32)]"
         style={{ background: `conic-gradient(#9fc766 ${progress * 3.6}deg, rgba(227,214,155,0.2) 0deg)` }}
@@ -2564,10 +2566,10 @@ function QuestEmptyState({ completedCount, showCompleted }: { completedCount: nu
         <Sprout className="h-7 w-7" />
       </motion.div>
       <p className="relative mt-3 text-sm font-black text-[#fff7da]">
-        {completedCount && !showCompleted ? "今日の未完了は空です" : "まだクエストがありません"}
+        {completedCount && !showCompleted ? "今日の未完了は空です" : "まだtodoがありません"}
       </p>
       <p className="relative mt-1 text-xs font-black leading-relaxed text-[#c8bc90]">
-        {completedCount && !showCompleted ? "完了済みを表示すると、実った記録を確認できます。" : "最初のクエストを植えると、ここに幹と実が育ちます。"}
+        {completedCount && !showCompleted ? "完了済みを表示すると、実った記録を確認できます。" : "最初のtodoを追加すると、ここに親todoと実が育ちます。"}
       </p>
     </div>
   );
@@ -2639,9 +2641,15 @@ function QuestTaskCard({
             <div className="flex min-w-0 items-center gap-2">
               <h3 className="truncate text-lg font-black text-[#fff7dc]">{task.title}</h3>
               <span className={cn("hidden rounded-full border px-2 py-0.5 text-[10px] font-black sm:inline-flex", complete ? "border-[#ffe88a]/30 bg-[#fff0a8]/10 text-[#ffe88a]" : "border-[#b8d57b]/24 bg-[#a8cb70]/10 text-[#dff0b2]")}>
-                {complete ? "実り済み" : childTasks.length ? "入れ子" : "幹"}
+                {complete ? "完了済み" : task.parentId ? "子todo" : childTasks.length ? "親todo" : "単独todo"}
               </span>
-              <button type="button" className="rounded-full p-1 text-[#cfc397] hover:bg-white/5" onClick={(event) => { event.stopPropagation(); onParent(task.id); }}>
+              <button
+                type="button"
+                className="rounded-full p-1 text-[#cfc397] hover:bg-white/5"
+                title="このtodoに子todoを追加"
+                aria-label={`${task.title}に子todoを追加`}
+                onClick={(event) => { event.stopPropagation(); onParent(task.id); }}
+              >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
@@ -2839,8 +2847,8 @@ function TaskEditDialog({
       </DialogTrigger>
       <DialogContent className="rounded-[26px] border-[#d1c090]/40 bg-[#101c17]/95 text-[#fff5d7] shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle>クエストを整える</DialogTitle>
-          <DialogDescription className="text-[#bfb58d]">幹にするか、実にするかをここで変えられます。</DialogDescription>
+          <DialogTitle>todoを整える</DialogTitle>
+          <DialogDescription className="text-[#bfb58d]">親todoの中に入れると、子todoとして実ります。</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <Input
@@ -2848,7 +2856,7 @@ function TaskEditDialog({
             onChange={(event) => setTitle(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && save()}
             className="h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
-            placeholder="タスク名"
+            placeholder="todo名"
           />
           <Textarea
             value={notes}
@@ -2861,7 +2869,7 @@ function TaskEditDialog({
             value={parentId}
             onChange={(event) => setParentId(event.target.value)}
           >
-            <option value="">親タスクなし（幹）</option>
+            <option value="">親todoなし（外側に追加）</option>
             {tasks
               .filter((candidate) => candidate.id !== task.id && !excludedParents.has(candidate.id))
               .map((candidate) => (
@@ -2959,7 +2967,7 @@ function QuestFruit({
             <p className="text-lg font-black text-[#fff8dd]">{task.title}</p>
             {task.notes && <p className="text-sm font-bold leading-relaxed text-[#d9d0a7]">{task.notes}</p>}
             <div className="grid grid-cols-2 gap-2 text-xs font-black text-[#c8bc90]">
-              <span className="rounded-2xl border border-[#d1c090]/16 bg-[#101b16]/70 px-3 py-2">親: {parentTitle || "親タスクなし"}</span>
+              <span className="rounded-2xl border border-[#d1c090]/16 bg-[#101b16]/70 px-3 py-2">親todo: {parentTitle || "なし"}</span>
               <span className="rounded-2xl border border-[#d1c090]/16 bg-[#101b16]/70 px-3 py-2">完了: {formatCompletedTime(task.completedAt)}</span>
               <span className={cn("rounded-2xl border px-3 py-2", difficultyDetailClassName(task.difficulty))}>質感: {difficultyMeta[task.difficulty].label}</span>
               <span className="rounded-2xl border border-[#d1c090]/16 bg-[#101b16]/70 px-3 py-2">XP +{difficultyPoints[task.difficulty]}</span>
@@ -3022,16 +3030,21 @@ function QuestQuickAddPanel({
 
   return (
     <section className="mt-4 rounded-[28px] border border-[#e5d5a3]/34 bg-[#111914]/72 p-3 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
-      <div className="flex items-center justify-between gap-3">
-        <p className="flex min-w-0 items-center gap-2 text-sm font-black text-[#fff7da]">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#5f9448] text-[#fff8dd] shadow-[0_10px_22px_rgba(65,108,50,0.35)]">
-            <Plus className="h-4 w-4" />
+      <div className="grid gap-1">
+        <div className="flex items-center justify-between gap-3">
+          <p className="flex min-w-0 items-center gap-2 text-sm font-black text-[#fff7da]">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#5f9448] text-[#fff8dd] shadow-[0_10px_22px_rgba(65,108,50,0.35)]">
+              <Plus className="h-4 w-4" />
+            </span>
+            今日のtodoを追加
+          </p>
+          <span className="shrink-0 rounded-full border border-[#d7c797]/26 bg-white/[0.06] px-2.5 py-1 text-[11px] font-black text-[#d7cfaa]">
+            {isFruitMode ? "子todo" : "親todo"}
           </span>
-          今日やることを追加
+        </div>
+        <p className="pl-10 text-[11px] font-black leading-relaxed text-[#c8bc90]">
+          親todoは幹、子todoは実として育ちます。
         </p>
-        <span className="shrink-0 rounded-full border border-[#d7c797]/26 bg-white/[0.06] px-2.5 py-1 text-[11px] font-black text-[#d7cfaa]">
-          {isFruitMode ? "実を追加" : "幹を追加"}
-        </span>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -3045,9 +3058,9 @@ function QuestQuickAddPanel({
         >
           <span className="flex items-center gap-2 text-xs font-black">
             <TreePine className="h-4 w-4 fill-current" />
-            幹として追加
+            親todoとして追加
           </span>
-          <span className="mt-1 truncate text-[10px] font-bold opacity-75">親todoになる</span>
+          <span className="mt-1 truncate text-[10px] font-bold opacity-75">外側のtodo / 幹</span>
         </button>
         <button
           type="button"
@@ -3060,9 +3073,9 @@ function QuestQuickAddPanel({
         >
           <span className="flex items-center gap-2 text-xs font-black">
             <Gem className="h-4 w-4" />
-            実として追加
+            子todoとして追加
           </span>
-          <span className="mt-1 truncate text-[10px] font-bold opacity-75">親todoの中へ</span>
+          <span className="mt-1 truncate text-[10px] font-bold opacity-75">選んだtodoの中へ</span>
         </button>
       </div>
 
@@ -3070,7 +3083,7 @@ function QuestQuickAddPanel({
         <div className="mt-2 grid gap-1.5 rounded-2xl border border-[#d1c090]/18 bg-[#0b130f]/40 p-2">
           <label className="flex items-center gap-1.5 text-[10px] font-black text-[#d7cfaa]">
             <ChevronRight className="h-3.5 w-3.5" />
-            入れ子にする親todo
+            どのtodoの中に入れる？
           </label>
           <select
             className="h-10 rounded-xl border border-[#d1c090]/24 bg-[#17241d] px-3 text-sm font-black text-[#fff7da] outline-none focus:ring-2 focus:ring-[#d9ef6c]/35"
@@ -3084,7 +3097,7 @@ function QuestQuickAddPanel({
             ))}
           </select>
           <p className="text-[10px] font-bold text-[#aebc8f]">
-            ここで選んだ親todoの中に、今のtodoが実として入ります。
+            選んだtodoの中に、今のtodoを子todoとして追加します。
           </p>
         </div>
       )}
@@ -3100,14 +3113,14 @@ function QuestQuickAddPanel({
           value={title}
           onChange={(event) => onTitle(event.target.value)}
           className="h-12 rounded-2xl border-[#d1c090]/34 bg-[#fff9e8]/12 text-base font-black text-[#fff8dd] placeholder:text-[#d4caa2]/70 focus-visible:ring-[#d9ef6c]/40"
-          placeholder={isFruitMode ? `${selectedParentTitle ?? "親todo"}の中に入れるtodo` : "例: 英単語を10分やる"}
+          placeholder={isFruitMode ? `${selectedParentTitle ?? "親todo"}に入れる子todo` : "例: 英単語を10分やる"}
         />
         <Button
           type="submit"
           disabled={!canSubmit}
           className="h-12 rounded-2xl bg-[#6ba64d] px-4 font-black text-[#fff8dd] shadow-[0_12px_24px_rgba(63,112,45,0.28)] hover:bg-[#5d9544] disabled:opacity-45"
         >
-          {isFruitMode ? "実を追加" : "幹を追加"}
+          {isFruitMode ? "子todoを追加" : "親todoを追加"}
         </Button>
       </form>
 
@@ -3141,7 +3154,7 @@ function QuestQuickAddPanel({
           triggerChildren={
             <>
               <Pencil className="h-4 w-4" />
-              詳細
+              詳細設定
             </>
           }
           triggerClassName="ml-auto flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-[#d1c090]/22 bg-white/[0.045] px-3 text-xs font-black text-[#c8bc90] transition hover:bg-white/[0.07]"
@@ -3201,7 +3214,7 @@ function QuestAddDialog({
           {triggerChildren ?? (
             <span className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
-              新しいクエストを追加
+              新しいtodoを追加
               <Sprout className="h-5 w-5 text-[#d7f4aa]" />
             </span>
           )}
@@ -3209,8 +3222,8 @@ function QuestAddDialog({
       </DialogTrigger>
       <DialogContent className="rounded-[26px] border-[#d1c090]/40 bg-[#101c17]/95 text-[#fff5d7] shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle>クエストを植える</DialogTitle>
-          <DialogDescription className="text-[#bfb58d]">{selectedParentTitle ? `親: ${selectedParentTitle}` : "親タスクなし"}</DialogDescription>
+          <DialogTitle>todoを追加</DialogTitle>
+          <DialogDescription className="text-[#bfb58d]">{selectedParentTitle ? `親todo: ${selectedParentTitle}` : "親todoなし"}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <Input
@@ -3218,7 +3231,7 @@ function QuestAddDialog({
             onChange={(event) => onTitle(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && submit()}
             className="h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
-            placeholder="クエスト名"
+            placeholder="todo名"
           />
           <Textarea
             value={notes}
@@ -3231,7 +3244,7 @@ function QuestAddDialog({
             value={parentId}
             onChange={(event) => onParent(event.target.value)}
           >
-            <option value="">親タスクなし</option>
+            <option value="">親todoなし（外側に追加）</option>
             {tasks.map((task) => (
               <option key={task.id} value={task.id}>
                 {task.title}
