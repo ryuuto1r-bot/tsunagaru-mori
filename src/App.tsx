@@ -3009,10 +3009,15 @@ function QuestQuickAddPanel({
   title: string;
 }) {
   const canSubmit = title.trim().length > 0;
+  const parentOptions = useMemo(() => buildNestedTaskOptions(tasks), [tasks]);
+  const isFruitMode = Boolean(parentId);
+  const firstParentId = parentOptions[0]?.task.id ?? "";
 
   function submit() {
     if (!canSubmit) return;
+    const activeParentId = parentId;
     onSubmit();
+    if (activeParentId) onParent(activeParentId);
   }
 
   return (
@@ -3024,12 +3029,65 @@ function QuestQuickAddPanel({
           </span>
           今日やることを追加
         </p>
-        {selectedParentTitle && (
-          <span className="max-w-[42%] truncate rounded-full border border-[#d7c797]/26 bg-white/[0.06] px-2.5 py-1 text-[11px] font-black text-[#d7cfaa]">
-            親: {selectedParentTitle}
-          </span>
-        )}
+        <span className="shrink-0 rounded-full border border-[#d7c797]/26 bg-white/[0.06] px-2.5 py-1 text-[11px] font-black text-[#d7cfaa]">
+          {isFruitMode ? "実を追加" : "幹を追加"}
+        </span>
       </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          className={cn(
+            "grid min-w-0 rounded-2xl border px-3 py-2 text-left transition",
+            !isFruitMode ? "border-[#d9ef9a]/62 bg-[#d9ef9a]/16 text-[#fff8dd]" : "border-[#d1c090]/22 bg-white/[0.045] text-[#c8bc90] hover:bg-white/[0.07]",
+          )}
+          onClick={() => onParent("")}
+        >
+          <span className="flex items-center gap-2 text-xs font-black">
+            <TreePine className="h-4 w-4 fill-current" />
+            幹として追加
+          </span>
+          <span className="mt-1 truncate text-[10px] font-bold opacity-75">親todoになる</span>
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "grid min-w-0 rounded-2xl border px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-45",
+            isFruitMode ? "border-[#d9ef9a]/62 bg-[#d9ef9a]/16 text-[#fff8dd]" : "border-[#d1c090]/22 bg-white/[0.045] text-[#c8bc90] hover:bg-white/[0.07]",
+          )}
+          disabled={!firstParentId}
+          onClick={() => onParent(parentId || firstParentId)}
+        >
+          <span className="flex items-center gap-2 text-xs font-black">
+            <Gem className="h-4 w-4" />
+            実として追加
+          </span>
+          <span className="mt-1 truncate text-[10px] font-bold opacity-75">親todoの中へ</span>
+        </button>
+      </div>
+
+      {isFruitMode && (
+        <div className="mt-2 grid gap-1.5 rounded-2xl border border-[#d1c090]/18 bg-[#0b130f]/40 p-2">
+          <label className="flex items-center gap-1.5 text-[10px] font-black text-[#d7cfaa]">
+            <ChevronRight className="h-3.5 w-3.5" />
+            入れ子にする親todo
+          </label>
+          <select
+            className="h-10 rounded-xl border border-[#d1c090]/24 bg-[#17241d] px-3 text-sm font-black text-[#fff7da] outline-none focus:ring-2 focus:ring-[#d9ef6c]/35"
+            value={parentId}
+            onChange={(event) => onParent(event.target.value)}
+          >
+            {parentOptions.map(({ depth, task }) => (
+              <option key={task.id} value={task.id}>
+                {`${"・".repeat(Math.min(depth, 3))}${depth ? " " : ""}${task.title}`}
+              </option>
+            ))}
+          </select>
+          <p className="text-[10px] font-bold text-[#aebc8f]">
+            ここで選んだ親todoの中に、今のtodoが実として入ります。
+          </p>
+        </div>
+      )}
 
       <form
         className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2"
@@ -3042,14 +3100,14 @@ function QuestQuickAddPanel({
           value={title}
           onChange={(event) => onTitle(event.target.value)}
           className="h-12 rounded-2xl border-[#d1c090]/34 bg-[#fff9e8]/12 text-base font-black text-[#fff8dd] placeholder:text-[#d4caa2]/70 focus-visible:ring-[#d9ef6c]/40"
-          placeholder="例: 英単語を10分やる"
+          placeholder={isFruitMode ? `${selectedParentTitle ?? "親todo"}の中に入れるtodo` : "例: 英単語を10分やる"}
         />
         <Button
           type="submit"
           disabled={!canSubmit}
           className="h-12 rounded-2xl bg-[#6ba64d] px-4 font-black text-[#fff8dd] shadow-[0_12px_24px_rgba(63,112,45,0.28)] hover:bg-[#5d9544] disabled:opacity-45"
         >
-          追加
+          {isFruitMode ? "実を追加" : "幹を追加"}
         </Button>
       </form>
 
@@ -4011,6 +4069,27 @@ function childrenByParent(tasks: Task[]) {
     map.set(task.parentId, [...(map.get(task.parentId) ?? []), task]);
   });
   return map;
+}
+
+function buildNestedTaskOptions(tasks: Task[]) {
+  const children = childrenByParent(tasks);
+  const visited = new Set<string>();
+  const options: Array<{ depth: number; task: Task }> = [];
+
+  function visit(task: Task, depth: number) {
+    if (visited.has(task.id)) return;
+    visited.add(task.id);
+    options.push({ depth, task });
+    (children.get(task.id) ?? []).forEach((child) => visit(child, depth + 1));
+  }
+
+  tasks
+    .filter((task) => !task.parentId || !tasks.some((candidate) => candidate.id === task.parentId))
+    .forEach((task) => visit(task, 0));
+
+  tasks.forEach((task) => visit(task, 0));
+
+  return options;
 }
 
 function deriveTaskGroup(task: Task) {
