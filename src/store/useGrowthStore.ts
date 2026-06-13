@@ -19,6 +19,7 @@ export type Settings = {
   theme: ThemeMode;
   compact: boolean;
   showCelebration: boolean;
+  treeName: string;
 };
 
 type GrowthStore = {
@@ -27,7 +28,9 @@ type GrowthStore = {
   addTask: (task: NewTaskInput) => void;
   completeTask: (id: string) => void;
   deleteTask: (id: string) => void;
+  reorderTask: (id: string, direction: "up" | "down") => void;
   resetAll: () => void;
+  updateTask: (id: string, task: Partial<Pick<Task, "title" | "notes" | "difficulty" | "parentId">>) => void;
   updateSettings: (settings: Partial<Settings>) => void;
 };
 
@@ -67,15 +70,18 @@ const sampleTasks: Task[] = [
   },
 ];
 
+const defaultSettings: Settings = {
+  theme: "morning",
+  compact: false,
+  showCelebration: true,
+  treeName: "",
+};
+
 export const useGrowthStore = create<GrowthStore>()(
   persist(
     (set) => ({
       tasks: sampleTasks,
-      settings: {
-        theme: "morning",
-        compact: false,
-        showCelebration: true,
-      },
+      settings: defaultSettings,
       addTask: (task) =>
         set((state) => ({
           tasks: [
@@ -114,12 +120,46 @@ export const useGrowthStore = create<GrowthStore>()(
           }
           return { tasks: state.tasks.filter((task) => !deleting.has(task.id)) };
         }),
-      resetAll: () => set({ tasks: [], settings: { theme: "morning", compact: false, showCelebration: true } }),
+      reorderTask: (id, direction) =>
+        set((state) => {
+          const index = state.tasks.findIndex((task) => task.id === id);
+          if (index < 0) return state;
+          const nextIndex = direction === "up" ? index - 1 : index + 1;
+          if (nextIndex < 0 || nextIndex >= state.tasks.length) return state;
+          const tasks = [...state.tasks];
+          [tasks[index], tasks[nextIndex]] = [tasks[nextIndex], tasks[index]];
+          return { tasks };
+        }),
+      resetAll: () => set({ tasks: [], settings: defaultSettings }),
+      updateTask: (id, task) =>
+        set((state) => ({
+          tasks: state.tasks.map((current) => {
+            if (current.id !== id) return current;
+            return {
+              ...current,
+              ...task,
+              parentId: task.parentId === current.id ? undefined : task.parentId || undefined,
+              title: task.title !== undefined ? task.title.trim() : current.title,
+              notes: task.notes !== undefined ? task.notes.trim() : current.notes,
+            };
+          }),
+        })),
       updateSettings: (settings) => set((state) => ({ settings: { ...state.settings, ...settings } })),
     }),
     {
       name: "tsunagaru-mori-store",
-      version: 1,
+      version: 2,
+      migrate: (persisted) => {
+        const state = persisted as Partial<GrowthStore> | undefined;
+        return {
+          ...state,
+          tasks: state?.tasks ?? sampleTasks,
+          settings: {
+            ...defaultSettings,
+            ...(state?.settings ?? {}),
+          },
+        } as GrowthStore;
+      },
     },
   ),
 );
