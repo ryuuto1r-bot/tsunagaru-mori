@@ -131,6 +131,14 @@ type MonthReport = {
   points: number;
 };
 
+type ForestViewStats = {
+  activeTrees: number;
+  budCount: number;
+  fruitCount: number;
+  rareFruitCount: number;
+  score: number;
+};
+
 const difficultyMeta: Record<Difficulty, { label: string; hint: string; className: string }> = {
   easy: { label: "軽め", hint: "+8", className: "bg-emerald-100 text-emerald-800" },
   medium: { label: "集中", hint: "+14", className: "bg-amber-100 text-amber-800" },
@@ -936,6 +944,7 @@ function ForestScreen({
   todayCount: number;
 }) {
   const mapNodes = useMemo(() => buildForestMapNodes({ groups, scope, tasks, todayCount }), [groups, scope, tasks, todayCount]);
+  const forestStats = useMemo(() => buildForestViewStats(mapNodes), [mapNodes]);
   const [memoryMode, setMemoryMode] = useState(false);
   const [worldControl, setWorldControl] = useState<WorldControl | null>(null);
   const [worldControlNonce, setWorldControlNonce] = useState(0);
@@ -978,6 +987,7 @@ function ForestScreen({
         />
         <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_48%_28%,rgba(221,232,151,0.1),transparent_24%),linear-gradient(180deg,rgba(5,18,15,0.38)_0%,rgba(5,18,15,0.34)_44%,rgba(5,18,15,0.88)_100%)] transition-opacity duration-500", memoryMode && "opacity-0")} />
         <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(221,205,146,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(221,205,146,0.05)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
+        <ForestSceneGlow memoryMode={memoryMode} timeTone={timeTone} />
 
         <div className={cn("absolute left-4 right-4 top-4 z-40 grid gap-3 transition-opacity duration-500 md:grid-cols-[minmax(0,1fr)_auto] md:items-start", memoryMode && "pointer-events-none opacity-0")}>
           <div className="min-w-0 rounded-[26px] border border-[#c7b47e]/38 bg-[#07120f]/86 px-4 py-3 shadow-[0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur-xl">
@@ -986,6 +996,7 @@ function ForestScreen({
               <span className="truncate">{forestScopeTitle(scope)}</span>
             </p>
             <p className="mt-1 text-xs font-black text-[#e2d7aa] drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{forestScopeDescription(scope)}</p>
+            <ForestScopeDashboard stats={forestStats} />
           </div>
           <ScopeToggle scope={scope} onScope={onScope} />
         </div>
@@ -1000,7 +1011,7 @@ function ForestScreen({
         <MemoryOverlay tasks={memoryTasks} visible={memoryMode} />
       </section>
 
-      <footer className={cn("grid gap-3 border-t border-[#c7b47e]/18 bg-[linear-gradient(180deg,rgba(14,31,26,0.96),#071916)] p-4 transition-all duration-500 md:grid-cols-3 lg:px-8", memoryMode && "pointer-events-none max-h-0 overflow-hidden border-t-0 p-0 opacity-0")}>
+      <footer className={cn("grid grid-cols-3 gap-2 border-t border-[#c7b47e]/18 bg-[linear-gradient(180deg,rgba(14,31,26,0.96),#071916)] px-3 pb-28 pt-3 transition-all duration-500 sm:gap-3 md:px-8 md:pb-4", memoryMode && "pointer-events-none max-h-0 overflow-hidden border-t-0 p-0 opacity-0")}>
         <BottomMetric label="連続日数" value={`${streak}日`} />
         <BottomMetric label="今月のタスク完了" value={`${monthCompleted}件`} />
         <BottomMetric label="成長率" value={`${Math.round(stage.progress)}%`} />
@@ -1017,59 +1028,93 @@ function ForestOrbitControls({
   onControl: (control: WorldControl) => void;
 }) {
   return (
-    <div
-      className={cn(
-        "absolute bottom-5 right-4 z-[60] grid gap-2 rounded-[24px] border border-[#c7b47e]/34 bg-[#111c17]/72 p-2 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-all duration-500",
-        memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-90",
-      )}
-      aria-label="3D森ビュー操作"
-    >
-      <div className="grid grid-cols-3 gap-1">
-        <span />
-        <ForestControlButton label="上から見る" onClick={() => onControl("tilt-up")}>
-          <ArrowUp className="h-4 w-4" />
-        </ForestControlButton>
-        <span />
-        <ForestControlButton label="左へ回す" onClick={() => onControl("orbit-left")}>
+    <>
+      <div
+        className={cn(
+          "absolute bottom-4 right-3 z-[60] flex max-w-[calc(100vw-24px)] gap-1 rounded-[24px] border border-[#c7b47e]/34 bg-[#111c17]/74 p-1.5 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-all duration-500 md:hidden",
+          memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-90",
+        )}
+        aria-label="3D森ビュー操作"
+      >
+        <ForestControlButton compact label="左へ回す" onClick={() => onControl("orbit-left")}>
           <ArrowLeft className="h-4 w-4" />
         </ForestControlButton>
-        <ForestControlButton label="表示を戻す" onClick={() => onControl("reset")}>
+        <ForestControlButton compact label="上から見る" onClick={() => onControl("tilt-up")}>
+          <ArrowUp className="h-4 w-4" />
+        </ForestControlButton>
+        <ForestControlButton compact label="表示を戻す" onClick={() => onControl("reset")}>
           <RotateCcw className="h-4 w-4" />
         </ForestControlButton>
-        <ForestControlButton label="右へ回す" onClick={() => onControl("orbit-right")}>
-          <ArrowRight className="h-4 w-4" />
-        </ForestControlButton>
-        <span />
-        <ForestControlButton label="低く見る" onClick={() => onControl("tilt-down")}>
+        <ForestControlButton compact label="低く見る" onClick={() => onControl("tilt-down")}>
           <ArrowDown className="h-4 w-4" />
         </ForestControlButton>
-        <span />
-      </div>
-      <div className="grid grid-cols-2 gap-1 border-t border-[#c7b47e]/18 pt-2">
-        <ForestControlButton label="木の中へ近づく" onClick={() => onControl("zoom-in")}>
+        <ForestControlButton compact label="右へ回す" onClick={() => onControl("orbit-right")}>
+          <ArrowRight className="h-4 w-4" />
+        </ForestControlButton>
+        <ForestControlButton compact label="木の中へ近づく" onClick={() => onControl("zoom-in")}>
           <ZoomIn className="h-4 w-4" />
         </ForestControlButton>
-        <ForestControlButton label="木から離れる" onClick={() => onControl("zoom-out")}>
+        <ForestControlButton compact label="木から離れる" onClick={() => onControl("zoom-out")}>
           <ZoomOut className="h-4 w-4" />
         </ForestControlButton>
       </div>
-    </div>
+
+      <div
+        className={cn(
+          "absolute bottom-5 right-4 z-[60] hidden gap-2 rounded-[24px] border border-[#c7b47e]/34 bg-[#111c17]/72 p-2 text-[#fff7da] shadow-[0_18px_42px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-all duration-500 md:grid",
+          memoryMode && "border-white/20 bg-[#12251b]/62 text-white opacity-90",
+        )}
+        aria-label="3D森ビュー操作"
+      >
+        <div className="grid grid-cols-3 gap-1">
+          <span />
+          <ForestControlButton label="上から見る" onClick={() => onControl("tilt-up")}>
+            <ArrowUp className="h-4 w-4" />
+          </ForestControlButton>
+          <span />
+          <ForestControlButton label="左へ回す" onClick={() => onControl("orbit-left")}>
+            <ArrowLeft className="h-4 w-4" />
+          </ForestControlButton>
+          <ForestControlButton label="表示を戻す" onClick={() => onControl("reset")}>
+            <RotateCcw className="h-4 w-4" />
+          </ForestControlButton>
+          <ForestControlButton label="右へ回す" onClick={() => onControl("orbit-right")}>
+            <ArrowRight className="h-4 w-4" />
+          </ForestControlButton>
+          <span />
+          <ForestControlButton label="低く見る" onClick={() => onControl("tilt-down")}>
+            <ArrowDown className="h-4 w-4" />
+          </ForestControlButton>
+          <span />
+        </div>
+        <div className="grid grid-cols-2 gap-1 border-t border-[#c7b47e]/18 pt-2">
+          <ForestControlButton label="木の中へ近づく" onClick={() => onControl("zoom-in")}>
+            <ZoomIn className="h-4 w-4" />
+          </ForestControlButton>
+          <ForestControlButton label="木から離れる" onClick={() => onControl("zoom-out")}>
+            <ZoomOut className="h-4 w-4" />
+          </ForestControlButton>
+        </div>
+      </div>
+    </>
   );
 }
 
 function ForestControlButton({
   children,
+  compact = false,
   label,
   onClick,
 }: {
   children: React.ReactNode;
+  compact?: boolean;
   label: string;
   onClick: () => void;
 }) {
   return (
     <Button
       aria-label={label}
-      className="h-9 w-9 rounded-full text-[#fff7da] shadow-none hover:bg-white/[0.08] focus-visible:ring-[#d9ef6c]/45"
+      className={cn("rounded-full text-[#fff7da] shadow-none hover:bg-white/[0.08] focus-visible:ring-[#d9ef6c]/45", compact ? "h-8 w-8" : "h-9 w-9")}
       size="icon"
       title={label}
       variant="ghost"
@@ -1077,6 +1122,64 @@ function ForestControlButton({
     >
       {children}
     </Button>
+  );
+}
+
+function ForestScopeDashboard({ stats }: { stats: ForestViewStats }) {
+  return (
+    <div className="mt-3 grid grid-cols-4 gap-1.5">
+      <ForestScopeStat icon={<TreePine className="h-3.5 w-3.5 fill-current" />} label="木" value={stats.activeTrees} />
+      <ForestScopeStat icon={<Leaf className="h-3.5 w-3.5 fill-current" />} label="芽" value={stats.budCount} />
+      <ForestScopeStat icon={<Gem className="h-3.5 w-3.5" />} label="実" value={stats.fruitCount} />
+      <ForestScopeStat icon={<Sparkles className="h-3.5 w-3.5" />} label="深い" value={stats.rareFruitCount} />
+    </div>
+  );
+}
+
+function ForestScopeStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-[#d6c48f]/18 bg-white/[0.055] px-2 py-1.5 text-[#dff0b2] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <span className="flex items-center justify-center gap-1 text-[10px] font-black text-[#c8bc90]">
+        {icon}
+        {label}
+      </span>
+      <span className="mt-0.5 block text-center text-sm font-black tabular-nums text-[#fff7da]">{value}</span>
+    </div>
+  );
+}
+
+function ForestSceneGlow({ memoryMode, timeTone }: { memoryMode: boolean; timeTone: TimeTone }) {
+  const warmth =
+    timeTone === "night"
+      ? "rgba(148,185,255,0.16)"
+      : timeTone === "evening"
+        ? "rgba(255,196,118,0.16)"
+        : "rgba(217,239,154,0.16)";
+  return (
+    <div className={cn("pointer-events-none absolute inset-0 z-20 overflow-hidden transition-opacity duration-500", memoryMode && "opacity-0")}>
+      <motion.span
+        className="absolute -left-[20%] top-[12%] h-28 w-[78%] -rotate-12 blur-2xl"
+        style={{ background: `linear-gradient(90deg, transparent, ${warmth}, transparent)` }}
+        animate={{ opacity: [0.14, 0.36, 0.14], x: [0, 28, 0], y: [0, -8, 0] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.span
+        className="absolute right-[-24%] top-[40%] h-32 w-[82%] rotate-6 bg-[linear-gradient(90deg,transparent,rgba(158,201,102,0.13),transparent)] blur-2xl"
+        animate={{ opacity: [0.08, 0.24, 0.08], x: [0, -24, 0], y: [0, 10, 0] }}
+        transition={{ duration: 10.5, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {[0, 1, 2, 3].map((index) => (
+        <motion.span
+          key={index}
+          className="absolute text-[#d9ef9a]/25 drop-shadow"
+          style={{ left: `${18 + index * 18}%`, top: `${22 + (index % 2) * 36}%` }}
+          animate={{ opacity: [0, 0.38, 0], y: [0, 24, 38], rotate: [-12, 8, 20] }}
+          transition={{ delay: index * 1.4, duration: 8.5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Leaf className="h-4 w-4 fill-current" />
+        </motion.span>
+      ))}
+    </div>
   );
 }
 
@@ -1186,10 +1289,11 @@ function ForestNodeTray({
     >
       <div
         className={cn(
-          "pointer-events-auto max-w-[min(100%,920px)] rounded-[24px] border border-[#c7b47e]/28 bg-[#111c17]/58 px-2 py-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.26)] backdrop-blur-xl",
+          "pointer-events-auto relative max-w-[min(100%,920px)] overflow-hidden rounded-[24px] border border-[#c7b47e]/28 bg-[#111c17]/62 px-2 py-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.26)] backdrop-blur-xl",
           scope === "today" && "max-w-[280px]",
         )}
       >
+        <div className="pointer-events-none absolute inset-x-2 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,246,198,0.5),transparent)]" />
         <div className="flex flex-wrap items-end justify-center gap-1.5">
           {mapNodes.map((node) => (
             <motion.span
@@ -1613,9 +1717,9 @@ function TodoFruitTree({ celebrate, node }: { celebrate?: boolean; node: ForestM
 
 function BottomMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[24px] border border-[#c7b47e]/28 bg-[#111c17]/64 px-5 py-4 text-center shadow-[0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-      <p className="text-xs font-black text-[#c8bc90]">{label}</p>
-      <p className="mt-1 text-2xl font-black tabular-nums text-[#fff7da]">{value}</p>
+    <div className="rounded-[18px] border border-[#c7b47e]/28 bg-[#111c17]/64 px-2 py-2.5 text-center shadow-[0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:rounded-[24px] sm:px-5 sm:py-4">
+      <p className="truncate text-[10px] font-black text-[#c8bc90] sm:text-xs">{label}</p>
+      <p className="mt-0.5 truncate text-lg font-black tabular-nums text-[#fff7da] sm:mt-1 sm:text-2xl">{value}</p>
     </div>
   );
 }
@@ -3405,6 +3509,16 @@ function buildForestMapNodes({
       featured: isToday,
     };
   });
+}
+
+function buildForestViewStats(nodes: ForestMapNode[]): ForestViewStats {
+  return {
+    activeTrees: nodes.filter((node) => !node.future && (node.todoCount > 0 || node.count > 0)).length,
+    budCount: nodes.reduce((sum, node) => sum + node.buds.length, 0),
+    fruitCount: nodes.reduce((sum, node) => sum + node.fruits.length, 0),
+    rareFruitCount: nodes.reduce((sum, node) => sum + node.fruits.filter((fruit) => fruit.difficulty === "hard").length, 0),
+    score: nodes.reduce((sum, node) => sum + node.points, 0),
+  };
 }
 
 function buildTodayOverviewNode(tasks: Task[]): ForestMapNode {
