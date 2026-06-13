@@ -2062,7 +2062,7 @@ function TaskScreen({
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#071916] pb-24 text-[#f7f1d7]">
-      <section className="relative min-h-[690px] overflow-hidden">
+      <section className="relative min-h-[610px] overflow-hidden sm:min-h-[690px]">
         <img
           src={questAssets.bonsaiHero}
           alt=""
@@ -2072,7 +2072,7 @@ function TaskScreen({
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,20,16,0.16)_0%,rgba(6,20,16,0.05)_35%,rgba(7,25,22,0.88)_100%)]" />
         <AmbientHeroLeaves />
 
-        <div className="relative z-10 grid min-h-[690px] content-start px-4 pb-7 pt-8">
+        <div className="relative z-10 grid min-h-[610px] content-start px-4 pb-7 pt-8 sm:min-h-[690px]">
           <div className="flex items-start justify-between gap-3">
             <button type="button" className="flex min-w-0 items-center gap-2 rounded-full px-1 text-left" onClick={() => setQuery(query)}>
               <span className="truncate text-[28px] font-black leading-none tracking-normal text-[#fff7da] drop-shadow-[0_5px_20px_rgba(0,0,0,0.42)]">つながる森</span>
