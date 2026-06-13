@@ -1,4 +1,4 @@
-const CACHE_NAME = "tsunagaru-mori-pwa-v1";
+const CACHE_NAME = "tsunagaru-mori-pwa-v2";
 
 function scopedUrl(path) {
   return new URL(path, self.registration.scope).href;

@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "node:path";
 
 export default defineConfig({
-  base: process.env.CAPACITOR ? "./" : process.env.GITHUB_ACTIONS ? "/tsunagaru-mori/" : "/",
+  base: process.env.CAPACITOR ? "./" : process.env.VITE_BASE_PATH || (process.env.GITHUB_ACTIONS ? "/tsunagaru-mori/" : "/"),
   plugins: [react()],
   build: {
     chunkSizeWarningLimit: 540,

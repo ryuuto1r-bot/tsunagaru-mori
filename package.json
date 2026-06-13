@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -p tsconfig.json && vite build",
+    "build:pages": "VITE_BASE_PATH=/tsunagaru-mori/ npm run build",
     "build:ios": "CAPACITOR=true npm run build",
     "ios:assets": "node scripts/generate-ios-assets.mjs",
     "pwa:assets": "node scripts/generate-ios-assets.mjs",
