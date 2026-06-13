@@ -32,6 +32,7 @@ import {
   RotateCcw,
   Search,
   Settings,
+  Sparkles,
   Sprout,
   Sun,
   Target,
@@ -123,7 +124,10 @@ type MonthReport = {
   activeDays: number;
   bestDayLabel: string;
   completed: number;
+  days: Array<{ count: number; day: number; isToday: boolean; points: number }>;
+  easyCount: number;
   hardCount: number;
+  mediumCount: number;
   points: number;
 };
 
@@ -764,23 +768,44 @@ function FruitFlightOverlay({ reward }: { reward: RewardToast | null }) {
     <AnimatePresence>
       {reward && visible && (
         <motion.div className="pointer-events-none fixed inset-0 z-[118] overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <motion.div
-            className={cn(
-              "absolute left-[30%] top-[58%] rounded-full border shadow-[0_16px_32px_rgba(120,83,28,0.24)]",
-              fruitFlightClassName(reward.difficulty),
-            )}
+          <motion.img
+            src={questAssets.fruit[reward.difficulty]}
+            alt=""
+            className={cn("absolute left-[30%] top-[58%] object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.34)]", fruitFlightImageClassName(reward.difficulty))}
             initial={{ x: "-22vw", y: "12vh", scale: 0.62, opacity: 0, rotate: -22 }}
             animate={{ x: ["-22vw", "-5vw", "28vw"], y: ["12vh", "-6vh", "-18vh"], scale: [0.62, 1.22, 0.82], opacity: [0, 1, 0], rotate: 180 }}
             transition={{ duration: 0.95, ease: "easeOut" }}
-          >
-            <span className="absolute -right-1 -top-1 h-2 w-3 rounded-full bg-[#7da66d] shadow-sm" />
-          </motion.div>
+          />
+          {[0, 1, 2].map((index) => (
+            <motion.span
+              key={index}
+              className="absolute left-[30%] top-[58%] text-[#d9ef9a]/70 drop-shadow"
+              initial={{ x: "-22vw", y: "14vh", opacity: 0, scale: 0.7, rotate: -12 }}
+              animate={{
+                x: [`${-22 + index * 2}vw`, `${-9 + index * 4}vw`, `${20 + index * 5}vw`],
+                y: [`${14 + index * 2}vh`, `${-2 - index * 2}vh`, `${-15 - index * 2}vh`],
+                opacity: [0, 0.8, 0],
+                rotate: [0, 80, 160],
+              }}
+              transition={{ delay: index * 0.08, duration: 0.9, ease: "easeOut" }}
+            >
+              <Leaf className="h-4 w-4 fill-current" />
+            </motion.span>
+          ))}
           <motion.div
             className="absolute left-[58%] top-[30%] h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#fff0b4]/70 bg-[radial-gradient(circle,rgba(255,239,173,0.7),transparent_64%)]"
             initial={{ opacity: 0, scale: 0.25 }}
             animate={{ opacity: [0, 0.85, 0], scale: [0.25, 1.15, 1.65] }}
             transition={{ delay: 0.42, duration: 0.68, ease: "easeOut" }}
           />
+          <motion.div
+            className="absolute left-[calc(58%-56px)] top-[calc(30%+44px)] rounded-full border border-[#fff0b4]/40 bg-[#111c17]/72 px-3 py-1 text-xs font-black text-[#fff7da] shadow-[0_10px_28px_rgba(0,0,0,0.25)] backdrop-blur"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: [0, 1, 0], y: [10, 0, -8] }}
+            transition={{ delay: 0.38, duration: 0.8, ease: "easeOut" }}
+          >
+            実った +{reward.points}XP
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -829,19 +854,18 @@ function GameRewardOverlay({ reward }: { reward: RewardToast | null }) {
             {burst.map((particle, index) => (
               <motion.span
                 key={index}
-                className={cn(
-                  "absolute left-1/2 top-1/2 rounded-full border shadow-[0_10px_22px_rgba(130,91,26,0.18)]",
-                  reward.difficulty === "hard" ? "border-[#fff0a8] bg-[#e7b842]" : reward.difficulty === "medium" ? "border-[#f6d49a] bg-[#d8893d]" : "border-[#cfe2b8] bg-[#78a462]",
-                )}
-                style={{ height: particle.size, width: particle.size }}
+                className="absolute left-1/2 top-1/2 text-[#d9ef9a] drop-shadow-[0_8px_18px_rgba(217,239,154,0.28)]"
+                style={{ height: particle.size * 1.4, width: particle.size * 1.4 }}
                 initial={{ x: 0, y: 0, opacity: 0, scale: 0.35 }}
                 animate={{ x: particle.x, y: particle.y, opacity: [0, 1, 0], rotate: 180, scale: [0.35, 1, 0.72] }}
                 transition={{ delay: particle.delay, duration: 1.15, ease: "easeOut" }}
-              />
+              >
+                {index % 3 === 0 ? <Sparkles className="h-full w-full" /> : <Leaf className="h-full w-full fill-current" />}
+              </motion.span>
             ))}
 
             <motion.div
-              className="relative w-[min(92vw,380px)] overflow-hidden rounded-lg border border-[#f3ddb1] bg-[#fffdf7]/94 p-5 text-center shadow-[0_34px_110px_rgba(54,46,26,0.26)] ring-1 ring-white/80 backdrop-blur-xl dark:border-[#6d5b34] dark:bg-[#12201a]/94 dark:ring-white/10"
+              className="relative w-[min(92vw,380px)] overflow-hidden rounded-[30px] border border-[#f3ddb1]/70 bg-[#fffdf7]/94 p-5 text-center shadow-[0_34px_110px_rgba(54,46,26,0.26)] ring-1 ring-white/80 backdrop-blur-xl dark:border-[#6d5b34] dark:bg-[#12201a]/94 dark:ring-white/10"
               initial={{ y: 26, scale: 0.86, opacity: 0 }}
               animate={{ y: 0, scale: 1, opacity: 1 }}
               exit={{ y: -12, scale: 0.94, opacity: 0 }}
@@ -849,11 +873,14 @@ function GameRewardOverlay({ reward }: { reward: RewardToast | null }) {
             >
               <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#73a86a] via-[#f5d36b] to-[#a6c786]" />
               <motion.div
-                className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-[#ffedaf] bg-[radial-gradient(circle_at_35%_25%,#fff8bf,#e8b941_58%,#9c6a18)] text-white shadow-[0_16px_42px_rgba(168,116,25,0.32)]"
+                className="relative mx-auto grid h-20 w-20 place-items-center rounded-full border border-[#ffedaf]/64 bg-[#121d17]/82 shadow-[0_16px_42px_rgba(168,116,25,0.32)]"
                 animate={{ rotate: reward.leveledUp ? [0, -8, 8, 0] : [0, 4, -4, 0], scale: reward.leveledUp ? [1, 1.16, 1] : [1, 1.08, 1] }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               >
-                {reward.leveledUp ? <Trophy className="h-8 w-8" /> : <Gem className="h-8 w-8" />}
+                <FruitImage difficulty={reward.difficulty} className={fruitImageSizeClassName(reward.difficulty)} />
+                <span className="absolute -right-1 -top-1 grid h-7 w-7 place-items-center rounded-full border border-[#fff0a8]/70 bg-[#3a3218] text-[#fff0a8]">
+                  {reward.leveledUp ? <Trophy className="h-4 w-4" /> : <Gem className="h-4 w-4" />}
+                </span>
               </motion.div>
               <p className="mt-3 text-xs font-black uppercase tracking-[0.18em] text-[#8d6c2c] dark:text-[#f0d47b]">
                 {reward.leveledUp ? "Tree Evolution" : "Task Complete"}
@@ -1704,6 +1731,7 @@ function TaskScreen({
         />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_47%_42%,transparent_0%,transparent_32%,rgba(5,19,16,0.18)_55%,rgba(5,19,16,0.76)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,20,16,0.16)_0%,rgba(6,20,16,0.05)_35%,rgba(7,25,22,0.88)_100%)]" />
+        <AmbientHeroLeaves />
 
         <div className="relative z-10 grid min-h-[690px] content-start px-4 pb-7 pt-8">
           <div className="flex items-start justify-between gap-3">
@@ -1829,9 +1857,7 @@ function TaskScreen({
             </AnimatePresence>
 
             {!rootTasks.length && (
-              <div className="relative ml-[72px] rounded-[24px] border border-[#d0c091]/28 bg-[#17251d]/72 px-4 py-8 text-center text-sm font-black text-[#d9d0a7]">
-                まだクエストがありません
-              </div>
+              <QuestEmptyState completedCount={hiddenCompletedCount} showCompleted={showCompleted} />
             )}
 
             <QuestAddDialog
@@ -2034,20 +2060,110 @@ function TreeNameDialog({
 }
 
 function MonthReportCard({ report }: { report: MonthReport }) {
+  const maxCount = Math.max(1, ...report.days.map((day) => day.count));
   return (
-    <div className="mx-auto mt-4 grid max-w-[390px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[22px] border border-[#a7986c]/30 bg-[#111c17]/60 px-4 py-3 text-[#fff7da] shadow-[0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-      <span className="grid h-10 w-10 place-items-center rounded-full border border-[#d6c48f]/28 bg-[#172116]">
-        <CalendarDays className="h-5 w-5 text-[#d9ef6c]" />
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-black">今月育った森</span>
-        <span className="block truncate text-xs font-black text-[#c8bc90]">
-          {report.completed}個完了 / ベスト {report.bestDayLabel} / 深い実 {report.hardCount}
+    <div className="mx-auto mt-4 overflow-hidden rounded-[24px] border border-[#a7986c]/34 bg-[#111c17]/66 text-[#fff7da] shadow-[0_18px_44px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
+        <span className="grid h-11 w-11 place-items-center rounded-full border border-[#d6c48f]/28 bg-[#172116] shadow-[inset_0_0_0_5px_rgba(216,196,143,0.06)]">
+          <CalendarDays className="h-5 w-5 text-[#d9ef6c]" />
         </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-black">今月育った森</span>
+          <span className="block truncate text-xs font-black text-[#c8bc90]">
+            {report.completed}個完了 / {report.activeDays}日活動 / ベスト {report.bestDayLabel}
+          </span>
+        </span>
+        <span className="rounded-full border border-[#b8d57b]/30 bg-[#d9ef9a]/10 px-3 py-1 text-xs font-black text-[#dff0b2]">
+          {report.points} XP
+        </span>
+      </div>
+      <div className="border-t border-[#d1c090]/14 px-4 pb-3 pt-2">
+        <div className="grid grid-cols-7 items-end gap-1.5">
+          {report.days.map((day) => (
+            <span key={day.day} className="grid h-9 items-end rounded-full bg-white/[0.035] p-0.5" title={`${day.day}日 ${day.count}個`}>
+              <motion.span
+                className={cn(
+                  "min-h-1 rounded-full border border-[#d6c48f]/20",
+                  day.count > 0 ? "bg-[linear-gradient(180deg,#d9ef9a,#6f984c)] shadow-[0_0_12px_rgba(169,207,106,0.24)]" : "bg-[#243027]",
+                  day.isToday && "border-[#fff2b5]/70 shadow-[0_0_18px_rgba(255,242,181,0.32)]",
+                )}
+                initial={false}
+                animate={{ height: `${Math.max(day.count ? 24 : 4, (day.count / maxCount) * 32)}px` }}
+                transition={{ type: "spring", stiffness: 140, damping: 22 }}
+              />
+            </span>
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <MonthFruitMetric difficulty="easy" label="軽め" value={report.easyCount} />
+          <MonthFruitMetric difficulty="medium" label="集中" value={report.mediumCount} />
+          <MonthFruitMetric difficulty="hard" label="深い" value={report.hardCount} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MonthFruitMetric({ difficulty, label, value }: { difficulty: Difficulty; label: string; value: number }) {
+  return (
+    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-2xl border border-[#d1c090]/14 bg-white/[0.04] px-2.5 py-2">
+      <FruitImage difficulty={difficulty} className={fruitImageSizeClassName(difficulty, true)} />
+      <span className="min-w-0">
+        <span className={cn("block truncate text-[11px] font-black", difficultyTextClassName(difficulty))}>{label}</span>
+        <span className="block text-xs font-black text-[#fff7da]">{value}個</span>
       </span>
-      <span className="rounded-full border border-[#b8d57b]/30 bg-[#d9ef9a]/10 px-3 py-1 text-xs font-black text-[#dff0b2]">
-        {report.points} XP
-      </span>
+    </div>
+  );
+}
+
+function AmbientHeroLeaves() {
+  const leaves = [
+    { delay: 0, left: "12%", top: "18%", size: "h-4 w-4", travel: 22 },
+    { delay: 1.1, left: "82%", top: "13%", size: "h-5 w-5", travel: 28 },
+    { delay: 2.2, left: "68%", top: "36%", size: "h-3.5 w-3.5", travel: 18 },
+    { delay: 3.3, left: "20%", top: "48%", size: "h-4 w-4", travel: 24 },
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
+      {leaves.map((leaf, index) => (
+        <motion.span
+          key={index}
+          className="absolute text-[#e8dda0]/42 drop-shadow-[0_6px_18px_rgba(255,242,181,0.22)]"
+          style={{ left: leaf.left, top: leaf.top }}
+          animate={{
+            opacity: [0, 0.42, 0],
+            rotate: [-18, 8, 24],
+            x: [0, 14, -8],
+            y: [0, leaf.travel, leaf.travel + 12],
+          }}
+          transition={{ delay: leaf.delay, duration: 7.4, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Leaf className={cn("fill-current", leaf.size)} />
+        </motion.span>
+      ))}
+    </div>
+  );
+}
+
+function QuestEmptyState({ completedCount, showCompleted }: { completedCount: number; showCompleted: boolean }) {
+  return (
+    <div className="relative ml-[72px] overflow-hidden rounded-[24px] border border-[#d0c091]/30 bg-[#14211a]/80 px-4 py-6 text-center shadow-[0_16px_38px_rgba(0,0,0,0.2)]">
+      <img src={questAssets.barkPanel} alt="" className="absolute inset-y-0 left-0 w-24 object-cover opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_26%,rgba(217,239,154,0.12),transparent_36%)]" />
+      <motion.div
+        className="relative mx-auto grid h-14 w-14 place-items-center rounded-full border border-[#d6c48f]/28 bg-[#172116]/84 text-[#d9ef9a] shadow-[0_12px_28px_rgba(0,0,0,0.2)]"
+        animate={{ y: [0, -4, 0], scale: [1, 1.04, 1] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <Sprout className="h-7 w-7" />
+      </motion.div>
+      <p className="relative mt-3 text-sm font-black text-[#fff7da]">
+        {completedCount && !showCompleted ? "今日の未完了は空です" : "まだクエストがありません"}
+      </p>
+      <p className="relative mt-1 text-xs font-black leading-relaxed text-[#c8bc90]">
+        {completedCount && !showCompleted ? "完了済みを表示すると、実った記録を確認できます。" : "最初のクエストを植えると、ここに幹と実が育ちます。"}
+      </p>
     </div>
   );
 }
@@ -2083,6 +2199,7 @@ function QuestTaskCard({
   const visibleChildTasks = showCompleted ? childTasks : childTasks.filter((child) => !child.completed);
   const taskFruits = childTasks.length ? childTasks : [task];
   const progress = questTaskProgress(task, childTasks);
+  const complete = progress.done >= progress.total;
 
   return (
     <motion.article
@@ -2091,18 +2208,34 @@ function QuestTaskCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 180, damping: 20 }}
     >
-      <div className="absolute left-4 top-5 z-10 grid h-[58px] w-[58px] place-items-center rounded-full border border-[#dccb94]/45 bg-[#638850] shadow-[0_12px_28px_rgba(0,0,0,0.32),inset_0_0_0_5px_rgba(255,255,255,0.07)]">
-        <Leaf className="h-7 w-7 fill-[#eef4cf] text-[#eef4cf]" />
+      <div className={cn("absolute left-4 top-5 z-10 grid h-[58px] w-[58px] place-items-center rounded-full border shadow-[0_12px_28px_rgba(0,0,0,0.32),inset_0_0_0_5px_rgba(255,255,255,0.07)]", complete ? "border-[#ffe88a]/54 bg-[#8a7c36]" : "border-[#dccb94]/45 bg-[#638850]")}>
+        {complete ? <Sparkles className="h-7 w-7 text-[#fff0a8]" /> : <Leaf className="h-7 w-7 fill-[#eef4cf] text-[#eef4cf]" />}
       </div>
-      <div className="absolute left-[43px] top-[80px] h-[calc(100%-52px)] w-px border-l border-dashed border-[#d8c895]/44" />
+      <div className={cn("absolute left-[43px] top-[80px] h-[calc(100%-52px)] w-px border-l border-dashed", complete ? "border-[#ffe88a]/44" : "border-[#d8c895]/44")} />
 
-      <div className={cn("overflow-hidden rounded-[26px] border border-[#d1c090]/25 bg-[#17241d]/78 shadow-[0_16px_42px_rgba(0,0,0,0.25)] backdrop-blur-xl", expanded && "border-[#d9c38b]/48 bg-[#1a261d]/86")}>
+      <div className={cn(
+        "relative overflow-hidden rounded-[26px] border border-[#d1c090]/25 bg-[#17241d]/78 shadow-[0_16px_42px_rgba(0,0,0,0.25)] backdrop-blur-xl",
+        expanded && "border-[#d9c38b]/48 bg-[#1a261d]/86",
+        complete && "border-[#e8d380]/42 bg-[#1e261a]/88 shadow-[0_18px_50px_rgba(149,105,23,0.18)]",
+      )}>
+        <div className={cn("pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,246,198,0.55),transparent)]", complete ? "opacity-100" : "opacity-45")} />
+        {complete && (
+          <motion.div
+            className="pointer-events-none absolute -right-20 -top-20 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(255,232,138,0.16),transparent_64%)]"
+            animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.08, 0.9] }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+          />
+        )}
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4">
           <div className="min-w-0 text-left" onClick={onExpand}>
             <div className="flex min-w-0 items-center gap-2">
               <h3 className="truncate text-lg font-black text-[#fff7dc]">{task.title}</h3>
+              <span className={cn("hidden rounded-full border px-2 py-0.5 text-[10px] font-black sm:inline-flex", complete ? "border-[#ffe88a]/30 bg-[#fff0a8]/10 text-[#ffe88a]" : "border-[#b8d57b]/24 bg-[#a8cb70]/10 text-[#dff0b2]")}>
+                {complete ? "実り済み" : childTasks.length ? "入れ子" : "幹"}
+              </span>
               <button type="button" className="rounded-full p-1 text-[#cfc397] hover:bg-white/5" onClick={(event) => { event.stopPropagation(); onParent(task.id); }}>
                 <Plus className="h-4 w-4" />
               </button>
@@ -2110,7 +2243,12 @@ function QuestTaskCard({
             <div className="mt-2 flex items-center gap-1.5">
               {Array.from({ length: Math.max(progress.total, 2) }).slice(0, 4).map((_, index) => (
                 <span key={index} className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#8b835b]/52">
-                  <span className="block h-full rounded-full bg-[#a8cd67]" style={{ width: index < progress.done ? "100%" : index === progress.done ? `${progress.partial}%` : "0%" }} />
+                  <motion.span
+                    className={cn("block h-full rounded-full", complete ? "bg-[linear-gradient(90deg,#fff2a8,#d9ef9a)]" : "bg-[#a8cd67]")}
+                    initial={false}
+                    animate={{ width: index < progress.done ? "100%" : index === progress.done ? `${progress.partial}%` : "0%" }}
+                    transition={{ type: "spring", stiffness: 140, damping: 24 }}
+                  />
                 </span>
               ))}
             </div>
@@ -2573,6 +2711,12 @@ function fruitImageSizeClassName(difficulty: Difficulty, small = false) {
   return small ? "h-7 w-7" : "h-10 w-10";
 }
 
+function fruitFlightImageClassName(difficulty: Difficulty) {
+  if (difficulty === "hard") return "h-14 w-14";
+  if (difficulty === "medium") return "h-11 w-11";
+  return "h-9 w-9";
+}
+
 function difficultyDetailClassName(difficulty: Difficulty) {
   if (difficulty === "hard") return "border-[#ffe88a]/34 bg-[#fff0a8]/10 text-[#ffe88a]";
   if (difficulty === "medium") return "border-[#f0b967]/30 bg-[#d8893d]/12 text-[#ffc477]";
@@ -2612,7 +2756,10 @@ function buildMonthReport(tasks: Task[]): MonthReport {
     activeDays: days.filter((day) => day.count > 0).length,
     bestDayLabel: bestDay && bestDay.count ? `${bestDay.day}日` : "-",
     completed: completedThisMonth.length,
+    days: days.map((day) => ({ count: day.count, day: day.day, isToday: day.isToday, points: day.points })),
+    easyCount: completedThisMonth.filter((task) => task.difficulty === "easy").length,
     hardCount: completedThisMonth.filter((task) => task.difficulty === "hard").length,
+    mediumCount: completedThisMonth.filter((task) => task.difficulty === "medium").length,
     points: completedThisMonth.reduce((sum, task) => sum + difficultyPoints[task.difficulty], 0),
   };
 }
