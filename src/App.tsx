@@ -2097,6 +2097,20 @@ function TaskScreen({
             </div>
           </div>
 
+          <QuestQuickAddPanel
+            difficulty={difficulty}
+            notes={notes}
+            onDifficulty={onDifficulty}
+            onNotes={onNotes}
+            onParent={onParent}
+            onSubmit={onSubmit}
+            onTitle={onTitle}
+            parentId={parentId}
+            selectedParentTitle={selectedParentTitle}
+            tasks={tasks}
+            title={title}
+          />
+
           <div className="mt-auto grid min-h-[280px] content-end">
             <AnimatePresence>
               {treeCelebrate && (
@@ -2199,19 +2213,6 @@ function TaskScreen({
               <QuestEmptyState completedCount={hiddenCompletedCount} showCompleted={showCompleted} />
             )}
 
-            <QuestAddDialog
-              difficulty={difficulty}
-              notes={notes}
-              onDifficulty={onDifficulty}
-              onNotes={onNotes}
-              onParent={onParent}
-              onSubmit={onSubmit}
-              onTitle={onTitle}
-              parentId={parentId}
-              selectedParentTitle={selectedParentTitle}
-              tasks={tasks}
-              title={title}
-            />
           </div>
         </div>
       </section>
@@ -2982,7 +2983,7 @@ function QuestFruit({
   );
 }
 
-function QuestAddDialog({
+function QuestQuickAddPanel({
   difficulty,
   notes,
   onDifficulty,
@@ -3007,6 +3008,120 @@ function QuestAddDialog({
   tasks: Task[];
   title: string;
 }) {
+  const canSubmit = title.trim().length > 0;
+
+  function submit() {
+    if (!canSubmit) return;
+    onSubmit();
+  }
+
+  return (
+    <section className="mt-4 rounded-[28px] border border-[#e5d5a3]/34 bg-[#111914]/72 p-3 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex min-w-0 items-center gap-2 text-sm font-black text-[#fff7da]">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#5f9448] text-[#fff8dd] shadow-[0_10px_22px_rgba(65,108,50,0.35)]">
+            <Plus className="h-4 w-4" />
+          </span>
+          今日やることを追加
+        </p>
+        {selectedParentTitle && (
+          <span className="max-w-[42%] truncate rounded-full border border-[#d7c797]/26 bg-white/[0.06] px-2.5 py-1 text-[11px] font-black text-[#d7cfaa]">
+            親: {selectedParentTitle}
+          </span>
+        )}
+      </div>
+
+      <form
+        className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submit();
+        }}
+      >
+        <Input
+          value={title}
+          onChange={(event) => onTitle(event.target.value)}
+          className="h-12 rounded-2xl border-[#d1c090]/34 bg-[#fff9e8]/12 text-base font-black text-[#fff8dd] placeholder:text-[#d4caa2]/70 focus-visible:ring-[#d9ef6c]/40"
+          placeholder="例: 英単語を10分やる"
+        />
+        <Button
+          type="submit"
+          disabled={!canSubmit}
+          className="h-12 rounded-2xl bg-[#6ba64d] px-4 font-black text-[#fff8dd] shadow-[0_12px_24px_rgba(63,112,45,0.28)] hover:bg-[#5d9544] disabled:opacity-45"
+        >
+          追加
+        </Button>
+      </form>
+
+      <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-0.5">
+        {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={cn(
+              "flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-black transition",
+              difficulty === key ? "border-[#d9ef9a]/70 bg-[#d9ef9a]/16 text-[#fff8dd]" : "border-[#d1c090]/22 bg-white/[0.045] text-[#c8bc90] hover:bg-white/[0.07]",
+            )}
+            onClick={() => onDifficulty(key)}
+          >
+            <FruitImage difficulty={key} className="h-6 w-6" />
+            {difficultyMeta[key].label}
+          </button>
+        ))}
+        <QuestAddDialog
+          difficulty={difficulty}
+          notes={notes}
+          onDifficulty={onDifficulty}
+          onNotes={onNotes}
+          onParent={onParent}
+          onSubmit={onSubmit}
+          onTitle={onTitle}
+          parentId={parentId}
+          selectedParentTitle={selectedParentTitle}
+          tasks={tasks}
+          title={title}
+          triggerChildren={
+            <>
+              <Pencil className="h-4 w-4" />
+              詳細
+            </>
+          }
+          triggerClassName="ml-auto flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-[#d1c090]/22 bg-white/[0.045] px-3 text-xs font-black text-[#c8bc90] transition hover:bg-white/[0.07]"
+        />
+      </div>
+    </section>
+  );
+}
+
+function QuestAddDialog({
+  difficulty,
+  notes,
+  onDifficulty,
+  onNotes,
+  onParent,
+  onSubmit,
+  onTitle,
+  parentId,
+  selectedParentTitle,
+  tasks,
+  title,
+  triggerChildren,
+  triggerClassName,
+}: {
+  difficulty: Difficulty;
+  notes: string;
+  onDifficulty: (difficulty: Difficulty) => void;
+  onNotes: (notes: string) => void;
+  onParent: (parentId: string) => void;
+  onSubmit: () => void;
+  onTitle: (title: string) => void;
+  parentId: string;
+  selectedParentTitle?: string;
+  tasks: Task[];
+  title: string;
+  triggerChildren?: React.ReactNode;
+  triggerClassName?: string;
+}) {
   const [open, setOpen] = useState(false);
 
   function submit() {
@@ -3020,13 +3135,18 @@ function QuestAddDialog({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="relative ml-[60px] mt-2 grid h-14 place-items-center rounded-full border border-[#b8d57b]/38 bg-[linear-gradient(180deg,#5b8f44,#386f32)] px-5 text-base font-black text-[#fff8dd] shadow-[0_18px_44px_rgba(44,88,39,0.28)] transition active:scale-[0.99]"
+          className={cn(
+            "relative ml-[60px] mt-2 grid h-14 place-items-center rounded-full border border-[#b8d57b]/38 bg-[linear-gradient(180deg,#5b8f44,#386f32)] px-5 text-base font-black text-[#fff8dd] shadow-[0_18px_44px_rgba(44,88,39,0.28)] transition active:scale-[0.99]",
+            triggerClassName,
+          )}
         >
-          <span className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            新しいクエストを追加
-            <Sprout className="h-5 w-5 text-[#d7f4aa]" />
-          </span>
+          {triggerChildren ?? (
+            <span className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              新しいクエストを追加
+              <Sprout className="h-5 w-5 text-[#d7f4aa]" />
+            </span>
+          )}
         </button>
       </DialogTrigger>
       <DialogContent className="rounded-[26px] border-[#d1c090]/40 bg-[#101c17]/95 text-[#fff5d7] shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-xl">
