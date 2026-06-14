@@ -100,6 +100,7 @@ type FruitTodo = {
 
 type RewardToast = {
   id: string;
+  taskId: string;
   title: string;
   difficulty: Difficulty;
   points: number;
@@ -232,7 +233,7 @@ const bonsaiLeafParticles = [
 ] as const;
 
 function App() {
-  const { tasks, settings, addTask, completeTask, deleteTask, reorderTask, resetAll, updateSettings, updateTask } = useGrowthStore();
+  const { tasks, settings, addTask, completeTask, deleteTask, reorderTask, resetAll, undoCompleteTask, updateSettings, updateTask } = useGrowthStore();
   const [timeTone, setTimeTone] = useState<TimeTone>(() => getTimeTone());
   const [activeView, setActiveView] = useState<AppView>("tasks");
   const [activeProject, setActiveProject] = useState("all");
@@ -245,11 +246,13 @@ function App() {
   const [celebrateId, setCelebrateId] = useState<string | null>(null);
   const [rewardToast, setRewardToast] = useState<RewardToast | null>(null);
   const [fruitFlight, setFruitFlight] = useState<RewardToast | null>(null);
+  const [undoToast, setUndoToast] = useState<RewardToast | null>(null);
   const [forestMemoryMode, setForestMemoryMode] = useState(false);
   const knownCompletedTaskIdsRef = useRef<Set<string> | null>(null);
   const previousPointsRef = useRef(0);
   const rewardTimerRef = useRef<number | null>(null);
   const fruitFlightTimerRef = useRef<number | null>(null);
+  const undoTimerRef = useRef<number | null>(null);
 
   const groups = useMemo(() => groupTasksByProject(tasks), [tasks]);
   const scopedTasks = useMemo(
@@ -281,6 +284,7 @@ function App() {
     return () => {
       if (rewardTimerRef.current) window.clearTimeout(rewardTimerRef.current);
       if (fruitFlightTimerRef.current) window.clearTimeout(fruitFlightTimerRef.current);
+      if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
     };
   }, []);
 
@@ -300,6 +304,7 @@ function App() {
       const parentTitle = newlyCompletedTask.parentId ? tasks.find((task) => task.id === newlyCompletedTask.parentId)?.title : undefined;
       const reward: RewardToast = {
         id: `${newlyCompletedTask.id}-${Date.now()}`,
+        taskId: newlyCompletedTask.id,
         title: newlyCompletedTask.title,
         difficulty: newlyCompletedTask.difficulty,
         points: difficultyPoints[newlyCompletedTask.difficulty],
@@ -310,10 +315,13 @@ function App() {
       };
       if (rewardTimerRef.current) window.clearTimeout(rewardTimerRef.current);
       if (fruitFlightTimerRef.current) window.clearTimeout(fruitFlightTimerRef.current);
+      if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
       setRewardToast(reward);
       setFruitFlight(reward);
+      setUndoToast(reward);
       rewardTimerRef.current = window.setTimeout(() => setRewardToast(null), 2400);
       fruitFlightTimerRef.current = window.setTimeout(() => setFruitFlight(null), 1600);
+      undoTimerRef.current = window.setTimeout(() => setUndoToast(null), 7000);
     }
 
     knownCompletedTaskIdsRef.current = completedIds;
@@ -339,6 +347,16 @@ function App() {
       setCelebrateId(id);
       window.setTimeout(() => setCelebrateId(null), 900);
     }
+  }
+
+  function undoCompletion(taskId: string) {
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
+    undoCompleteTask(taskId);
+    setUndoToast(null);
+    setRewardToast(null);
+    setFruitFlight(null);
+    setCelebrateId(null);
+    navigator.vibrate?.(10);
   }
 
   return (
@@ -437,6 +455,9 @@ function App() {
                   completedTasks={completedTasks}
                   difficulty={difficulty}
                   notes={notes}
+                  onAddChild={(childParentId, childTitle, childDifficulty) => {
+                    addTask({ title: childTitle, notes: "", difficulty: childDifficulty, parentId: childParentId });
+                  }}
                   onComplete={finishTask}
                   onDelete={deleteTask}
                   onDifficulty={setDifficulty}
@@ -477,6 +498,7 @@ function App() {
       <MobileTabBar activeView={activeView} hidden={forestImmersive} gameMode={appGameMode} onView={setActiveView} />
       <FruitFlightOverlay reward={fruitFlight} />
       <GameRewardOverlay reward={rewardToast} />
+      <UndoCompleteToast reward={undoToast} onUndo={undoCompletion} />
     </div>
   );
 }
@@ -937,6 +959,41 @@ function GameRewardOverlay({ reward }: { reward: RewardToast | null }) {
               </div>
             </motion.div>
           </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function UndoCompleteToast({ reward, onUndo }: { reward: RewardToast | null; onUndo: (taskId: string) => void }) {
+  return (
+    <AnimatePresence>
+      {reward && (
+        <motion.div
+          className="fixed inset-x-3 bottom-24 z-[140] mx-auto grid max-w-[390px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[22px] border border-[#d7c797]/38 bg-[#101a15]/92 px-3 py-3 text-[#fff7da] shadow-[0_20px_54px_rgba(0,0,0,0.36)] ring-1 ring-white/10 backdrop-blur-xl"
+          initial={{ opacity: 0, y: 18, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 16, scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 260, damping: 24 }}
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-full border border-[#e9da9a]/36 bg-[#d9ef9a]/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <FruitImage difficulty={reward.difficulty} className="h-8 w-8" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-black">実りました</span>
+            <span className="block truncate text-[11px] font-black text-[#c8bc90]">
+              {reward.parentTitle ? `${reward.parentTitle} / ` : ""}{reward.title}
+            </span>
+          </span>
+          <button
+            type="button"
+            className="flex h-10 items-center gap-1.5 rounded-full border border-[#d7c797]/32 bg-white/[0.06] px-3 text-xs font-black text-[#f2e9c2] transition hover:bg-white/[0.11] active:scale-95"
+            onClick={() => onUndo(reward.taskId)}
+            aria-label={`${reward.title}の完了を元に戻す`}
+          >
+            <RotateCcw className="h-4 w-4" />
+            元に戻す
+          </button>
         </motion.div>
       )}
     </AnimatePresence>
@@ -1977,6 +2034,7 @@ function TaskScreen({
   completedTasks,
   difficulty,
   notes,
+  onAddChild,
   onComplete,
   onDelete,
   onDifficulty,
@@ -2004,6 +2062,7 @@ function TaskScreen({
   completedTasks: Task[];
   difficulty: Difficulty;
   notes: string;
+  onAddChild: (parentId: string, title: string, difficulty: Difficulty) => void;
   onComplete: (id: string) => void;
   onDelete: (id: string) => void;
   onDifficulty: (difficulty: Difficulty) => void;
@@ -2091,13 +2150,10 @@ function TaskScreen({
     if (nextTask) completeTodoAndKeepVisible(nextTask.id);
   }
 
-  function startChildTodo(parentTaskId: string) {
-    onParent(parentTaskId);
+  function addInlineChild(parentTaskId: string, childTitle: string, childDifficulty: Difficulty) {
+    onAddChild(parentTaskId, childTitle, childDifficulty);
     setExpandedTaskId(parentTaskId);
-    window.setTimeout(() => {
-      quickAddRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      quickTitleInputRef.current?.focus({ preventScroll: true });
-    }, 60);
+    setShowCompleted(false);
   }
 
   function submitTodoAndRevealList() {
@@ -2119,7 +2175,7 @@ function TaskScreen({
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,20,16,0.16)_0%,rgba(6,20,16,0.05)_35%,rgba(7,25,22,0.88)_100%)]" />
         <AmbientHeroLeaves />
 
-        <div className="relative z-10 grid min-h-[610px] content-start px-4 pb-7 pt-8 sm:min-h-[690px]">
+        <div className="relative z-10 grid min-h-[610px] content-start px-4 pb-28 pt-8 sm:min-h-[690px]">
           <div className="flex items-start gap-3">
             <div className="flex min-w-0 items-center gap-2 px-1">
               <span className="truncate text-[28px] font-black leading-none tracking-normal text-[#fff7da] drop-shadow-[0_5px_20px_rgba(0,0,0,0.42)]">つながる森</span>
@@ -2182,6 +2238,12 @@ function TaskScreen({
                   今日の木 <Info className="mb-0.5 ml-1 inline h-3.5 w-3.5" />
                 </span>
                 <span className="mt-1 truncate text-xl font-black text-[#fff9df]">{activeTreeName}</span>
+                <TreeNameDialog
+                  settings={settings}
+                  updateSettings={updateSettings}
+                  triggerClassName="mt-1 rounded-full border border-[#d7c797]/24 bg-white/[0.045] px-2.5 py-1 text-[10px] text-[#e7dfbb] no-underline transition hover:bg-white/[0.075]"
+                  triggerChildren={(settings.treeName ?? "").trim() ? "名前を変える" : "木の名前を決める"}
+                />
                 <span className="mt-1 text-sm font-black text-[#d7cfaa]">Lv. {stage.index + 1}　{todayTreeStageLabel(treeGrowthLevel(todayNode), todayNode.count, todayNode.todoCount)}</span>
                 <span className={cn("mx-auto mt-2 rounded-full border px-2.5 py-1 text-[11px] font-black", pot.className)}>{pot.label}</span>
                 <MatryoshkaTreeStatus childrenMap={children} featuredTaskId={featuredTaskId} rootTasks={rootTasks} />
@@ -2233,7 +2295,7 @@ function TaskScreen({
             </span>
           </div>
           <p className="text-xs font-black leading-relaxed text-[#c8bc90]">
-            追加したtodoはここに並びます。緑の完了ボタンで、木に実がつきます。
+            親todoの中に子todoを入れると、完了した子todoが実として残ります。
           </p>
         </div>
 
@@ -2251,9 +2313,7 @@ function TaskScreen({
                   onDelete={onDelete}
                   onExpand={() => setExpandedTaskId(featuredTaskId === task.id ? null : task.id)}
                   onMove={onMove}
-                  onParent={(id) => {
-                    startChildTodo(id);
-                  }}
+                  onAddChild={addInlineChild}
                   onUpdate={onUpdate}
                   parentTitle={task.parentId ? tasks.find((candidate) => candidate.id === task.parentId)?.title : undefined}
                   showCompleted={showCompleted}
@@ -2632,11 +2692,11 @@ function QuestEmptyState({ completedCount, showCompleted }: { completedCount: nu
 function QuestTaskCard({
   childrenMap,
   expanded,
+  onAddChild,
   onComplete,
   onDelete,
   onExpand,
   onMove,
-  onParent,
   onUpdate,
   parentTitle,
   showCompleted,
@@ -2645,11 +2705,11 @@ function QuestTaskCard({
 }: {
   childrenMap: Map<string, Task[]>;
   expanded: boolean;
+  onAddChild: (parentId: string, title: string, difficulty: Difficulty) => void;
   onComplete: (id: string) => void;
   onDelete: (id: string) => void;
   onExpand: () => void;
   onMove: (id: string, direction: "up" | "down") => void;
-  onParent: (id: string) => void;
   onUpdate: (id: string, task: Partial<Pick<Task, "title" | "notes" | "difficulty" | "parentId">>) => void;
   parentTitle?: string;
   showCompleted: boolean;
@@ -2661,15 +2721,46 @@ function QuestTaskCard({
   const previewChildTasks = visibleChildTasks.slice(0, 3);
   const taskFruits = childTasks.length ? childTasks : [task];
   const progress = questTaskProgress(task, childTasks);
-  const complete = progress.done >= progress.total;
   const nextIncompleteChild = childTasks.find((child) => !child.completed);
-  const primaryCompleteTarget = childTasks.length ? nextIncompleteChild : task.completed ? undefined : task;
-  const primaryCompleteLabel = childTasks.length ? "子todoを完了" : "完了して実らせる";
+  const allChildrenDone = childTasks.length ? childTasks.every((child) => child.completed) : true;
+  const complete = childTasks.length ? task.completed && allChildrenDone : task.completed;
+  const primaryCompleteTarget = childTasks.length
+    ? nextIncompleteChild ?? (task.completed ? undefined : task)
+    : task.completed ? undefined : task;
+  const primaryCompleteLabel = childTasks.length
+    ? nextIncompleteChild ? "子todoを完了" : "親todoを完了"
+    : "完了して実らせる";
+  const [childComposerOpen, setChildComposerOpen] = useState(false);
+  const [childTitle, setChildTitle] = useState("");
+  const [childDifficulty, setChildDifficulty] = useState<Difficulty>("medium");
+  const childInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!expanded || !childComposerOpen) return;
+    const timer = window.setTimeout(() => childInputRef.current?.focus({ preventScroll: true }), 80);
+    return () => window.clearTimeout(timer);
+  }, [childComposerOpen, expanded]);
+
+  function openChildComposer(event?: React.MouseEvent<HTMLButtonElement>) {
+    event?.stopPropagation();
+    if (!expanded) onExpand();
+    setChildComposerOpen(true);
+  }
+
+  function submitChild(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextTitle = childTitle.trim();
+    if (!nextTitle) return;
+    onAddChild(task.id, nextTitle, childDifficulty);
+    setChildTitle("");
+    setChildDifficulty("medium");
+    setChildComposerOpen(true);
+  }
 
   return (
     <motion.article
       layout
-      className="relative pl-[74px]"
+      className="group relative pl-[74px]"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
@@ -2719,7 +2810,7 @@ function QuestTaskCard({
               <button
                 type="button"
                 className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#d2c394]/34 bg-[#20321f]/72 px-3 text-xs font-black text-[#dff0b2] transition hover:bg-[#2b4328] active:scale-95"
-                onClick={(event) => { event.stopPropagation(); onParent(task.id); }}
+                onClick={openChildComposer}
                 aria-label={`${task.title}に子todoを追加`}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -2755,7 +2846,7 @@ function QuestTaskCard({
               </span>
             )}
 
-            <div className="flex items-center justify-end gap-1.5">
+            <div className="flex items-center justify-end gap-1.5 opacity-70 transition group-hover:opacity-100">
               <div className="hidden grid-cols-1 gap-0.5 sm:grid">
                 <button
                   type="button"
@@ -2867,14 +2958,47 @@ function QuestTaskCard({
                   tasks={tasks}
                 />
               ))}
-              <button
-                type="button"
-                className="m-2 flex h-11 items-center justify-center gap-2 rounded-full border border-dashed border-[#d2c394]/36 bg-[#152119]/74 text-sm font-black text-[#d8c896] transition hover:bg-white/[0.06]"
-                onClick={() => onParent(task.id)}
-              >
-                <Plus className="h-4 w-4" />
-                子todoを追加
-              </button>
+              {(childComposerOpen || expanded) && (
+                <form
+                  className="m-2 grid gap-2 rounded-[18px] border border-dashed border-[#d2c394]/34 bg-[#0e1812]/72 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                  onSubmit={submitChild}
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                    <Input
+                      ref={childInputRef}
+                      value={childTitle}
+                      onChange={(event) => setChildTitle(event.target.value)}
+                      className="mori-field h-10 rounded-2xl border-[#d1c090]/26 bg-white/[0.08] text-sm font-black text-[#fff8dd] placeholder:text-[#c8bc90]/72 focus-visible:ring-[#d9ef6c]/35"
+                      placeholder={`${task.title}の中に子todo`}
+                    />
+                    <button
+                      type="submit"
+                      className="flex h-10 items-center gap-1.5 rounded-full border border-[#dff0a0]/46 bg-[linear-gradient(180deg,#6fa94d,#477b34)] px-3 text-xs font-black text-[#fffbe4] shadow-[0_10px_22px_rgba(66,126,48,0.24)] transition disabled:cursor-not-allowed disabled:opacity-45"
+                      disabled={!childTitle.trim()}
+                    >
+                      <Plus className="h-4 w-4" />
+                      追加
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {(Object.keys(difficultyMeta) as Difficulty[]).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={cn(
+                          "min-w-0 rounded-full border px-2 py-1.5 text-[10px] font-black transition",
+                          childDifficulty === key
+                            ? "border-[#d9ef9a]/58 bg-[#d9ef9a]/16 text-[#f8ffd7]"
+                            : "border-[#d1c090]/20 bg-white/[0.045] text-[#bfb58d] hover:bg-white/[0.075]",
+                        )}
+                        onClick={() => setChildDifficulty(key)}
+                      >
+                        {difficultyMeta[key].label}
+                      </button>
+                    ))}
+                  </div>
+                </form>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

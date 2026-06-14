@@ -30,6 +30,7 @@ type GrowthStore = {
   deleteTask: (id: string) => void;
   reorderTask: (id: string, direction: "up" | "down") => void;
   resetAll: () => void;
+  undoCompleteTask: (id: string) => void;
   updateTask: (id: string, task: Partial<Pick<Task, "title" | "notes" | "difficulty" | "parentId">>) => void;
   updateSettings: (settings: Partial<Settings>) => void;
 };
@@ -131,6 +132,14 @@ export const useGrowthStore = create<GrowthStore>()(
           return { tasks };
         }),
       resetAll: () => set({ tasks: [], settings: defaultSettings }),
+      undoCompleteTask: (id) =>
+        set((state) => ({
+          tasks: state.tasks.map((task) =>
+            task.id === id && task.completed
+              ? { ...task, completed: false, completedAt: undefined }
+              : task,
+          ),
+        })),
       updateTask: (id, task) =>
         set((state) => ({
           tasks: state.tasks.map((current) => {
