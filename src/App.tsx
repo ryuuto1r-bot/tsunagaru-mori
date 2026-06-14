@@ -1065,7 +1065,7 @@ function ForestScreen({
         <img
           src={questAssets.bonsaiHero}
           alt=""
-          className={cn("pointer-events-none absolute inset-0 z-[1] h-full w-full scale-110 object-cover opacity-[0.22] mix-blend-soft-light blur-[0.5px] saturate-125 transition-opacity duration-500", memoryMode && "opacity-0")}
+          className={cn("pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover opacity-[0.12] mix-blend-soft-light blur-[2px] saturate-125 transition-opacity duration-500", memoryMode && "opacity-0")}
         />
         <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_52%_32%,rgba(238,244,176,0.18),transparent_26%),radial-gradient(circle_at_24%_72%,rgba(77,105,64,0.18),transparent_24%),linear-gradient(180deg,rgba(5,18,15,0.22)_0%,rgba(5,18,15,0.18)_42%,rgba(5,18,15,0.86)_100%)] transition-opacity duration-500", memoryMode && "opacity-0")} />
         <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(221,205,146,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(221,205,146,0.03)_1px,transparent_1px)] bg-[size:96px_96px] transition-opacity duration-500", memoryMode && "opacity-0")} />

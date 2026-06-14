@@ -17,7 +17,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   Object3D,
-  PCFShadowMap,
+  PCFSoftShadowMap,
   PerspectiveCamera,
   Scene,
   SphereGeometry,
@@ -126,13 +126,17 @@ export default function ForestWorldLayer({
     scene.fog = new FogExp2(palette.fog, palette.fogDensity);
 
     const camera = new PerspectiveCamera(42, 1, 0.1, 120);
-    const renderer = new WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const isCompactViewport = window.matchMedia("(max-width: 640px)").matches;
+    const maxPixelRatio = isCompactViewport ? 2.1 : 2.5;
+    const minPixelRatio = isCompactViewport ? 1.8 : 2.2;
+    const renderPixelRatio = Math.min(Math.max(window.devicePixelRatio || 1, minPixelRatio), maxPixelRatio);
+    const renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
+    renderer.setPixelRatio(renderPixelRatio);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.toneMappingExposure = timeTone === "night" ? 1.18 : timeTone === "morning" ? 1.16 : 1.08;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = PCFShadowMap;
+    renderer.shadowMap.type = PCFSoftShadowMap;
     renderer.domElement.className = "h-full w-full touch-none outline-none";
     renderer.domElement.tabIndex = 0;
     renderer.domElement.setAttribute("role", "application");
@@ -143,7 +147,7 @@ export default function ForestWorldLayer({
     scene.add(world);
 
     const ground = new Mesh(
-      new CircleGeometry(34, 96),
+      new CircleGeometry(34, 160),
       new MeshStandardMaterial({ color: palette.ground, roughness: 0.9, metalness: 0.02 }),
     );
     ground.rotation.x = -Math.PI / 2;
@@ -157,8 +161,10 @@ export default function ForestWorldLayer({
     const sun = new DirectionalLight(palette.sun, palette.sunIntensity);
     sun.position.set(-10, 18, 12);
     sun.castShadow = true;
-    sun.shadow.mapSize.width = 2048;
-    sun.shadow.mapSize.height = 2048;
+    sun.shadow.mapSize.width = isCompactViewport ? 2048 : 4096;
+    sun.shadow.mapSize.height = isCompactViewport ? 2048 : 4096;
+    sun.shadow.bias = -0.00008;
+    sun.shadow.radius = 3;
     scene.add(sun);
 
     const fill = new DirectionalLight(palette.fill, 0.38);
@@ -429,7 +435,7 @@ function addGardenEnvironment(world: Group, mapNodes: ForestMapNode[], palette: 
     new MeshStandardMaterial({ color: 0x91ad72, roughness: 0.9 }),
   ];
 
-  const innerGarden = new Mesh(new CylinderGeometry(scope === "today" ? 5.6 : 15.4, scope === "today" ? 6.8 : 18.2, 0.12, 112), mossMaterial);
+  const innerGarden = new Mesh(new CylinderGeometry(scope === "today" ? 5.6 : 15.4, scope === "today" ? 6.8 : 18.2, 0.12, 160), mossMaterial);
   innerGarden.position.y = 0.018;
   innerGarden.receiveShadow = true;
   world.add(innerGarden);
@@ -437,7 +443,7 @@ function addGardenEnvironment(world: Group, mapNodes: ForestMapNode[], palette: 
   for (let index = 0; index < 18; index += 1) {
     const angle = index * 1.91;
     const radius = scope === "today" ? 2.4 + (index % 5) * 0.62 : 6.5 + (index % 7) * 1.18;
-    const patch = new Mesh(new CircleGeometry(0.48 + (index % 4) * 0.1, 28), index % 3 === 0 ? darkMossMaterial : mossMaterial);
+    const patch = new Mesh(new CircleGeometry(0.48 + (index % 4) * 0.1, 44), index % 3 === 0 ? darkMossMaterial : mossMaterial);
     patch.rotation.x = -Math.PI / 2;
     patch.rotation.z = angle * 0.4;
     patch.position.set(Math.cos(angle) * radius, 0.086 + (index % 2) * 0.004, Math.sin(angle) * radius * 0.72);
@@ -453,14 +459,14 @@ function addGardenEnvironment(world: Group, mapNodes: ForestMapNode[], palette: 
 }
 
 function addGardenWater(world: Group, waterMaterial: MeshStandardMaterial, waterRimMaterial: MeshStandardMaterial, scope: ForestScope) {
-  const pond = new Mesh(new CircleGeometry(scope === "today" ? 0.82 : 1.45, 64), waterMaterial);
+  const pond = new Mesh(new CircleGeometry(scope === "today" ? 0.82 : 1.45, 96), waterMaterial);
   pond.rotation.x = -Math.PI / 2;
   pond.position.set(scope === "today" ? 2.2 : -6.2, 0.105, scope === "today" ? 2.8 : 5.6);
   pond.scale.set(scope === "today" ? 1.6 : 1.9, scope === "today" ? 0.62 : 0.72, 1);
   pond.receiveShadow = true;
   world.add(pond);
 
-  const pondRim = new Mesh(new TorusGeometry(scope === "today" ? 0.83 : 1.45, 0.025, 8, 72), waterRimMaterial);
+  const pondRim = new Mesh(new TorusGeometry(scope === "today" ? 0.83 : 1.45, 0.025, 10, 96), waterRimMaterial);
   pondRim.rotation.x = Math.PI / 2;
   pondRim.position.copy(pond.position);
   pondRim.scale.copy(pond.scale);
@@ -468,7 +474,7 @@ function addGardenWater(world: Group, waterMaterial: MeshStandardMaterial, water
 
   for (let index = 0; index < 4; index += 1) {
     const ripple = new Mesh(
-      new TorusGeometry((scope === "today" ? 0.3 : 0.5) + index * 0.16, 0.006, 6, 42),
+      new TorusGeometry((scope === "today" ? 0.3 : 0.5) + index * 0.16, 0.006, 8, 64),
       new MeshStandardMaterial({ color: 0xf3efd9, opacity: 0.22 - index * 0.035, roughness: 0.35, transparent: true }),
     );
     ripple.rotation.x = Math.PI / 2;
@@ -501,7 +507,7 @@ function addSteppingStones(
         });
 
   positions.slice(0, scope === "today" ? 5 : 18).forEach((position, index) => {
-    const stone = new Mesh(new SphereGeometry(0.18 + (index % 3) * 0.025, 14, 8), index % 2 ? warmStoneMaterial : stoneMaterial);
+    const stone = new Mesh(new SphereGeometry(0.18 + (index % 3) * 0.025, 22, 12), index % 2 ? warmStoneMaterial : stoneMaterial);
     stone.position.set(position.x, 0.14, position.z);
     stone.scale.set(1.58, 0.26, 0.94);
     stone.rotation.y = index * 0.38;
@@ -521,7 +527,7 @@ function addGardenPlants(world: Group, materials: MeshStandardMaterial[], scope:
     plant.rotation.y = -angle + Math.PI / 2;
     const bladeCount = 3 + (index % 3);
     for (let blade = 0; blade < bladeCount; blade += 1) {
-      const leaf = new Mesh(new SphereGeometry(0.12 + blade * 0.012, 10, 8), materials[(index + blade) % materials.length]);
+      const leaf = new Mesh(new SphereGeometry(0.12 + blade * 0.012, 16, 10), materials[(index + blade) % materials.length]);
       leaf.position.set((blade - 1.5) * 0.08, 0.22 + blade * 0.045, 0.02 * blade);
       leaf.rotation.z = (blade - 1) * 0.42;
       leaf.rotation.x = 0.38;
@@ -542,10 +548,10 @@ function addDistantTreeLine(world: Group, material: MeshStandardMaterial, scope:
     tree.position.set(Math.cos(angle) * radius, 0.02, Math.sin(angle) * radius - (scope === "today" ? 2.2 : 5.5));
     tree.rotation.y = angle;
     const height = scope === "today" ? 1.25 + (index % 4) * 0.18 : 2.0 + (index % 5) * 0.22;
-    const trunk = new Mesh(new CylinderGeometry(0.035, 0.055, height * 0.65, 8), material);
+    const trunk = new Mesh(new CylinderGeometry(0.035, 0.055, height * 0.65, 12), material);
     trunk.position.y = height * 0.28;
     tree.add(trunk);
-    const crown = new Mesh(new ConeGeometry(0.32 + (index % 3) * 0.07, height, 12), material);
+    const crown = new Mesh(new ConeGeometry(0.32 + (index % 3) * 0.07, height, 18), material);
     crown.position.y = height * 0.78;
     crown.scale.set(1.05, 1, 0.72);
     tree.add(crown);
@@ -558,7 +564,7 @@ function addWorldSeeds(world: Group, color: number) {
   for (let index = 0; index < 24; index += 1) {
     const angle = index * 1.618;
     const radius = 6 + (index % 8) * 2.8;
-    const seed = new Mesh(new SphereGeometry(0.045 + (index % 3) * 0.015, 8, 8), material);
+    const seed = new Mesh(new SphereGeometry(0.045 + (index % 3) * 0.015, 12, 8), material);
     seed.position.set(Math.cos(angle) * radius, 0.08, Math.sin(angle) * radius);
     seed.castShadow = true;
     world.add(seed);
@@ -592,7 +598,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   const leafHighlightMaterial = new MeshStandardMaterial({ color: 0xb6d09c, roughness: 0.82, transparent: true, opacity: 0.88 });
 
   const contactShadow = new Mesh(
-    new CircleGeometry(1.85, 72),
+    new CircleGeometry(1.85, 112),
     new MeshStandardMaterial({ color: 0x06100c, roughness: 1, transparent: true, opacity: node.featured ? 0.24 : 0.16 }),
   );
   contactShadow.rotation.x = -Math.PI / 2;
@@ -602,7 +608,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
 
   if (node.featured) {
     const focusRing = new Mesh(
-      new TorusGeometry(1.48, 0.025, 8, 96),
+      new TorusGeometry(1.48, 0.025, 10, 128),
       new MeshStandardMaterial({ color: 0xe9dc9a, emissive: 0x6a5b1e, emissiveIntensity: 0.08, opacity: 0.74, roughness: 0.46, transparent: true }),
     );
     focusRing.rotation.x = Math.PI / 2;
@@ -611,25 +617,25 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     group.add(focusRing);
   }
 
-  const base = new Mesh(new CylinderGeometry(1.12, 1.4, 0.12, 72), baseMaterial);
+  const base = new Mesh(new CylinderGeometry(1.12, 1.4, 0.12, 112), baseMaterial);
   base.position.y = 0.06;
   base.receiveShadow = true;
   group.add(base);
 
-  const rim = new Mesh(new TorusGeometry(1.12, 0.065, 12, 72), rimMaterial);
+  const rim = new Mesh(new TorusGeometry(1.12, 0.065, 14, 112), rimMaterial);
   rim.rotation.x = Math.PI / 2;
   rim.position.y = 0.17;
   rim.castShadow = true;
   rim.receiveShadow = true;
   group.add(rim);
 
-  const lowerRim = new Mesh(new TorusGeometry(1.35, 0.035, 10, 72), rimMaterial);
+  const lowerRim = new Mesh(new TorusGeometry(1.35, 0.035, 12, 112), rimMaterial);
   lowerRim.rotation.x = Math.PI / 2;
   lowerRim.position.y = 0.08;
   lowerRim.castShadow = true;
   group.add(lowerRim);
 
-  const moss = new Mesh(new CylinderGeometry(0.78, 0.98, 0.08, 56), mossMaterial);
+  const moss = new Mesh(new CylinderGeometry(0.78, 0.98, 0.08, 88), mossMaterial);
   moss.position.y = 0.17;
   moss.receiveShadow = true;
   group.add(moss);
@@ -637,7 +643,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   for (let index = 0; index < 15; index += 1) {
     const angle = index * 2.17;
     const radius = 0.14 + (index % 6) * 0.105;
-    const tuft = new Mesh(new SphereGeometry(0.055 + (index % 3) * 0.018, 10, 8), index % 3 === 0 ? mossHighlightMaterial : mossMaterial);
+    const tuft = new Mesh(new SphereGeometry(0.055 + (index % 3) * 0.018, 16, 10), index % 3 === 0 ? mossHighlightMaterial : mossMaterial);
     tuft.position.set(Math.cos(angle) * radius, 0.23 + (index % 2) * 0.012, Math.sin(angle) * radius * 0.82);
     tuft.scale.set(1.42, 0.42, 1.04);
     tuft.castShadow = true;
@@ -647,7 +653,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
 
   for (let index = 0; index < 5; index += 1) {
     const angle = index * 1.34 + 0.2;
-    const stone = new Mesh(new SphereGeometry(0.055 + (index % 2) * 0.025, 10, 8), stoneMaterial);
+    const stone = new Mesh(new SphereGeometry(0.055 + (index % 2) * 0.025, 16, 10), stoneMaterial);
     stone.position.set(Math.cos(angle) * (0.55 + index * 0.035), 0.2, Math.sin(angle) * (0.38 + index * 0.03));
     stone.scale.set(1.25, 0.42, 0.92);
     stone.receiveShadow = true;
@@ -656,14 +662,14 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
 
   if (growthLevel <= 1 && node.count === 0) {
     const seedMaterial = new MeshStandardMaterial({ color: 0xa97b4b, roughness: 0.72, emissive: 0x241505, emissiveIntensity: 0.06 });
-    const seed = new Mesh(new SphereGeometry(0.2, 18, 14), seedMaterial);
+    const seed = new Mesh(new SphereGeometry(0.2, 28, 18), seedMaterial);
     seed.position.set(0.04, 0.33, 0.02);
     seed.scale.set(1.12, 0.72, 0.9);
     seed.castShadow = true;
     group.add(seed);
 
     const sproutStemMaterial = new MeshStandardMaterial({ color: 0x87aa5d, roughness: 0.82, emissive: 0x14240d, emissiveIntensity: 0.08 });
-    const sproutStem = new Mesh(new CylinderGeometry(0.024, 0.04, 0.42, 10), sproutStemMaterial);
+    const sproutStem = new Mesh(new CylinderGeometry(0.024, 0.04, 0.42, 14), sproutStemMaterial);
     sproutStem.position.set(0.02, 0.58, 0.02);
     sproutStem.rotation.z = -0.08;
     sproutStem.castShadow = true;
@@ -676,7 +682,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
         { x: -0.08, y: 0.86, z: -0.02, rz: 0.34, ry: -0.12, color: 0xb8d897, sx: 1.3 },
         { x: 0.1, y: 0.9, z: 0.04, rz: -0.3, ry: 0.14, color: 0x8ebd68, sx: 1.28 },
       ].forEach((leaf) => {
-        const mesh = new Mesh(new SphereGeometry(0.17, 18, 12), new MeshStandardMaterial({ color: leaf.color, roughness: 0.82, emissive: 0x10230a, emissiveIntensity: 0.05 }));
+        const mesh = new Mesh(new SphereGeometry(0.17, 24, 14), new MeshStandardMaterial({ color: leaf.color, roughness: 0.82, emissive: 0x10230a, emissiveIntensity: 0.05 }));
         mesh.position.set(leaf.x, leaf.y, leaf.z);
         mesh.rotation.z = leaf.rz;
         mesh.rotation.y = leaf.ry;
@@ -685,7 +691,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
         group.add(mesh);
       });
 
-      const dew = new Mesh(new SphereGeometry(0.035, 10, 8), new MeshStandardMaterial({ color: 0xf7ffe7, roughness: 0.2, transparent: true, opacity: 0.78 }));
+      const dew = new Mesh(new SphereGeometry(0.035, 14, 10), new MeshStandardMaterial({ color: 0xf7ffe7, roughness: 0.2, transparent: true, opacity: 0.78 }));
       dew.position.set(-0.16, 0.75, 0.17);
       group.add(dew);
     }
@@ -694,7 +700,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   }
 
   const trunkHeight = 1.22 + Math.min(5, growthLevel) * 0.28 + Math.min(3, node.count) * 0.06;
-  const trunk = new Mesh(new CylinderGeometry(0.115, 0.265, trunkHeight, 18), trunkMaterial);
+  const trunk = new Mesh(new CylinderGeometry(0.115, 0.265, trunkHeight, 28), trunkMaterial);
   trunk.position.y = 0.18 + trunkHeight / 2;
   trunk.rotation.z = -0.045;
   trunk.castShadow = true;
@@ -706,7 +712,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     { x: 0.02, z: 0.27, rz: 0.18, rx: -0.72, length: 0.54, base: 0.048, tip: 0.022 },
     { x: -0.04, z: -0.28, rz: -0.16, rx: 0.72, length: 0.52, base: 0.046, tip: 0.02 },
   ].forEach((root) => {
-    const mesh = new Mesh(new CylinderGeometry(root.tip, root.base, root.length, 12), rootMaterial);
+    const mesh = new Mesh(new CylinderGeometry(root.tip, root.base, root.length, 18), rootMaterial);
     mesh.position.set(root.x, 0.37, root.z);
     mesh.rotation.z = root.rz;
     mesh.rotation.x = root.rx;
@@ -730,7 +736,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     { x: 0.08, y: trunkHeight * 0.92, z: -0.26, rz: -0.32, rx: 0.22, length: 0.76 },
     { x: -0.12, y: trunkHeight * 0.86, z: 0.28, rz: 0.34, rx: -0.22, length: 0.7 },
   ].forEach((branch) => {
-    const mesh = new Mesh(new CylinderGeometry(0.028, 0.082, branch.length, 12), branchMaterial);
+    const mesh = new Mesh(new CylinderGeometry(0.028, 0.082, branch.length, 18), branchMaterial);
     mesh.position.set(branch.x, branch.y, branch.z);
     mesh.rotation.z = branch.rz;
     mesh.rotation.x = branch.rx;
@@ -759,7 +765,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
       const ry = seedB - Math.floor(seedB);
       const rz = seedC - Math.floor(seedC);
       const radius = leaf.size * (0.16 + (particle % 4) * 0.018);
-      const mesh = new Mesh(new SphereGeometry(radius, 12, 10), leafMaterials[(index + particle) % leafMaterials.length]);
+      const mesh = new Mesh(new SphereGeometry(radius, 18, 14), leafMaterials[(index + particle) % leafMaterials.length]);
       mesh.position.set(
         leaf.x + (rx - 0.5) * leaf.size * leaf.sx * 1.25,
         leaf.y + (ry - 0.5) * leaf.size * leaf.sy * 0.78,
@@ -773,7 +779,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     }
 
     if (index < 4) {
-      const highlight = new Mesh(new SphereGeometry(leaf.size * 0.12, 12, 8), leafHighlightMaterial);
+      const highlight = new Mesh(new SphereGeometry(leaf.size * 0.12, 18, 12), leafHighlightMaterial);
       highlight.position.set(leaf.x - leaf.size * 0.15, leaf.y + leaf.size * 0.18, leaf.z + leaf.size * 0.32);
       highlight.scale.set(1.8, 0.42, 0.72);
       group.add(highlight);
@@ -784,7 +790,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     const fruitPosition = fruitWorldPosition(index, trunkHeight);
     const radius = fruitRadius(fruit.difficulty);
     const mesh = new Mesh(
-      new SphereGeometry(radius, 20, 16),
+      new SphereGeometry(radius, 32, 24),
       new MeshStandardMaterial({
         color: fruitColor(fruit.difficulty),
         roughness: fruit.difficulty === "hard" ? 0.34 : fruit.difficulty === "medium" ? 0.58 : 0.72,
@@ -797,19 +803,19 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     mesh.castShadow = true;
     group.add(mesh);
 
-    const stem = new Mesh(new CylinderGeometry(0.012, 0.018, radius * 0.72, 8), branchMaterial);
+    const stem = new Mesh(new CylinderGeometry(0.012, 0.018, radius * 0.72, 10), branchMaterial);
     stem.position.set(fruitPosition.x, fruitPosition.y + radius * 0.92, fruitPosition.z);
     stem.rotation.z = 0.24;
     stem.castShadow = true;
     group.add(stem);
 
-    const shine = new Mesh(new SphereGeometry(radius * 0.22, 10, 8), new MeshStandardMaterial({ color: 0xfff6d0, roughness: 0.45, transparent: true, opacity: 0.76 }));
+    const shine = new Mesh(new SphereGeometry(radius * 0.22, 16, 10), new MeshStandardMaterial({ color: 0xfff6d0, roughness: 0.45, transparent: true, opacity: 0.76 }));
     shine.position.set(fruitPosition.x - radius * 0.34, fruitPosition.y + radius * 0.28, fruitPosition.z + radius * 0.42);
     group.add(shine);
 
     if (fruit.difficulty === "hard") {
       const glow = new Mesh(
-        new TorusGeometry(radius * 1.18, radius * 0.05, 8, 28),
+        new TorusGeometry(radius * 1.18, radius * 0.05, 10, 44),
         new MeshStandardMaterial({ color: 0xffe88a, roughness: 0.36, transparent: true, opacity: 0.54, emissive: 0x5c3f08, emissiveIntensity: 0.08 }),
       );
       glow.position.set(fruitPosition.x, fruitPosition.y, fruitPosition.z);
@@ -821,7 +827,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   node.buds.slice(0, 8).forEach((bud, index) => {
     const budPosition = fruitWorldPosition(index + node.fruits.length, trunkHeight);
     const mesh = new Mesh(
-      new SphereGeometry(fruitRadius(bud.difficulty) * 0.72, 14, 12),
+      new SphereGeometry(fruitRadius(bud.difficulty) * 0.72, 20, 14),
       new MeshStandardMaterial({ color: 0xddebd4, roughness: 0.88 }),
     );
     mesh.position.set(budPosition.x, budPosition.y, budPosition.z);
@@ -836,7 +842,7 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
     ];
     for (let index = 0; index < 10; index += 1) {
       const flowerPosition = fruitWorldPosition(index + 2, trunkHeight + 0.12);
-      const flower = new Mesh(new SphereGeometry(0.055, 12, 10), flowerMaterials[index % flowerMaterials.length]);
+      const flower = new Mesh(new SphereGeometry(0.055, 18, 12), flowerMaterials[index % flowerMaterials.length]);
       flower.position.set(flowerPosition.x * 1.12, flowerPosition.y + 0.18, flowerPosition.z * 1.14);
       flower.scale.set(1.4, 0.62, 1);
       flower.castShadow = true;
