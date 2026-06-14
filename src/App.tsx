@@ -2032,6 +2032,7 @@ function TaskScreen({
   const [showCompleted, setShowCompleted] = useState(false);
   const quickAddRef = useRef<HTMLElement | null>(null);
   const quickTitleInputRef = useRef<HTMLInputElement | null>(null);
+  const taskListRef = useRef<HTMLDivElement | null>(null);
   const todayKey = dateKey(new Date());
   const scopedDisplayTasks = useMemo(() => {
     const merged = [...pendingTasks, ...completedTasks];
@@ -2080,9 +2081,14 @@ function TaskScreen({
     setActiveView("forest");
   }
 
+  function completeTodoAndKeepVisible(id: string) {
+    onComplete(id);
+    setShowCompleted(true);
+  }
+
   function waterNextTask() {
     const nextTask = scopedDisplayTasks.find((task) => !task.completed);
-    if (nextTask) onComplete(nextTask.id);
+    if (nextTask) completeTodoAndKeepVisible(nextTask.id);
   }
 
   function startChildTodo(parentTaskId: string) {
@@ -2092,6 +2098,13 @@ function TaskScreen({
       quickAddRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       quickTitleInputRef.current?.focus({ preventScroll: true });
     }, 60);
+  }
+
+  function submitTodoAndRevealList() {
+    onSubmit();
+    window.setTimeout(() => {
+      taskListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
   }
 
   return (
@@ -2129,7 +2142,7 @@ function TaskScreen({
             onDifficulty={onDifficulty}
             onNotes={onNotes}
             onParent={onParent}
-            onSubmit={onSubmit}
+            onSubmit={submitTodoAndRevealList}
             onTitle={onTitle}
             parentId={parentId}
             selectedParentTitle={selectedParentTitle}
@@ -2202,16 +2215,29 @@ function TaskScreen({
               <QuestFilterButton
                 active={showCompleted}
                 icon={<CheckCircle2 className="h-4 w-4" />}
-                label={showCompleted ? "完了も表示" : `完了を畳む ${hiddenCompletedCount}`}
+                label={showCompleted ? `完了を隠す ${hiddenCompletedCount}` : `完了を表示 ${hiddenCompletedCount}`}
                 onClick={() => setShowCompleted((value) => !value)}
               />
             )}
           </div>
         )}
 
-        <MonthReportCard report={monthReport} />
+        <div ref={taskListRef} className="mx-auto mt-5 grid scroll-mt-5 gap-1 rounded-[22px] border border-[#d1c090]/24 bg-[#111c17]/62 px-4 py-3 text-[#fff7da] shadow-[0_14px_34px_rgba(0,0,0,0.2)] backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <p className="flex min-w-0 items-center gap-2 text-base font-black">
+              <ListTodo className="h-5 w-5 text-[#d9ef9a]" />
+              <span className="truncate">今日やるtodo</span>
+            </p>
+            <span className="shrink-0 rounded-full border border-[#b8d57b]/32 bg-[#d9ef9a]/12 px-3 py-1 text-xs font-black text-[#dff0b2]">
+              未完了 {displayTasks.filter((task) => !task.completed).length}
+            </span>
+          </div>
+          <p className="text-xs font-black leading-relaxed text-[#c8bc90]">
+            追加したtodoはここに並びます。緑の完了ボタンで、木に実がつきます。
+          </p>
+        </div>
 
-        <div className="relative mt-5 overflow-hidden rounded-[30px] border border-[#a28f62]/54 bg-[#14221c]/82 p-3 shadow-[0_22px_60px_rgba(0,0,0,0.34)] ring-1 ring-white/5 backdrop-blur-xl">
+        <div className="relative mt-2 overflow-hidden rounded-[30px] border border-[#a28f62]/54 bg-[#14221c]/82 p-3 shadow-[0_22px_60px_rgba(0,0,0,0.34)] ring-1 ring-white/5 backdrop-blur-xl">
           <img src={questAssets.barkPanel} alt="" className="absolute inset-y-0 left-0 h-full w-[116px] object-cover opacity-90" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,18,14,0.04)_0%,rgba(9,18,14,0.18)_24%,rgba(9,18,14,0.72)_50%,rgba(9,18,14,0.78)_100%)]" />
           <div className="relative grid gap-3">
@@ -2221,7 +2247,7 @@ function TaskScreen({
                   key={task.id}
                   childrenMap={children}
                   expanded={featuredTaskId === task.id}
-                  onComplete={onComplete}
+                  onComplete={completeTodoAndKeepVisible}
                   onDelete={onDelete}
                   onExpand={() => setExpandedTaskId(featuredTaskId === task.id ? null : task.id)}
                   onMove={onMove}
@@ -2243,6 +2269,8 @@ function TaskScreen({
 
           </div>
         </div>
+
+        <MonthReportCard report={monthReport} />
       </section>
     </div>
   );
@@ -2634,6 +2662,9 @@ function QuestTaskCard({
   const taskFruits = childTasks.length ? childTasks : [task];
   const progress = questTaskProgress(task, childTasks);
   const complete = progress.done >= progress.total;
+  const nextIncompleteChild = childTasks.find((child) => !child.completed);
+  const primaryCompleteTarget = childTasks.length ? nextIncompleteChild : task.completed ? undefined : task;
+  const primaryCompleteLabel = childTasks.length ? "子todoを完了" : "完了して実らせる";
 
   return (
     <motion.article
@@ -2663,7 +2694,7 @@ function QuestTaskCard({
             transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
           />
         )}
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4">
+        <div className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
           <div className="min-w-0 text-left" onClick={onExpand}>
             <div className="flex min-w-0 items-center gap-2">
               <h3 className="truncate text-lg font-black text-[#fff7dc]">{task.title}</h3>
@@ -2697,45 +2728,73 @@ function QuestTaskCard({
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="hidden grid-cols-1 gap-0.5 sm:grid">
+          <div className="grid shrink-0 gap-2 sm:min-w-[180px] sm:justify-items-end">
+            {primaryCompleteTarget ? (
               <button
                 type="button"
-                className="grid h-5 w-7 place-items-center rounded-full border border-[#d1c090]/18 bg-white/[0.04] text-[#cfc397] hover:bg-white/[0.08]"
-                onClick={() => onMove(task.id, "up")}
-                aria-label={`${task.title}を上へ移動`}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#dff0a0]/55 bg-[linear-gradient(180deg,#83bd58,#4f8a3b)] px-3 text-sm font-black text-[#fffbe4] shadow-[0_14px_28px_rgba(66,126,48,0.34),inset_0_1px_0_rgba(255,255,255,0.2)] transition hover:brightness-110 active:scale-[0.98] sm:w-auto"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onComplete(primaryCompleteTarget.id);
+                }}
+                aria-label={`${primaryCompleteTarget.title}を完了して実らせる`}
               >
-                <ArrowUp className="h-3.5 w-3.5" />
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="truncate">{primaryCompleteLabel}</span>
+              </button>
+            ) : (
+              <div className="flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#ffe88a]/32 bg-[#fff0a8]/10 px-3 text-xs font-black text-[#ffe88a] sm:w-auto">
+                <CheckCircle2 className="h-4 w-4" />
+                実りました
+              </div>
+            )}
+
+            {primaryCompleteTarget && childTasks.length > 0 && (
+              <span className="block max-w-full truncate px-2 text-center text-[10px] font-black text-[#c8bc90] sm:max-w-[180px]">
+                次: {primaryCompleteTarget.title}
+              </span>
+            )}
+
+            <div className="flex items-center justify-end gap-1.5">
+              <div className="hidden grid-cols-1 gap-0.5 sm:grid">
+                <button
+                  type="button"
+                  className="grid h-5 w-7 place-items-center rounded-full border border-[#d1c090]/18 bg-white/[0.04] text-[#cfc397] hover:bg-white/[0.08]"
+                  onClick={() => onMove(task.id, "up")}
+                  aria-label={`${task.title}を上へ移動`}
+                >
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  className="grid h-5 w-7 place-items-center rounded-full border border-[#d1c090]/18 bg-white/[0.04] text-[#cfc397] hover:bg-white/[0.08]"
+                  onClick={() => onMove(task.id, "down")}
+                  aria-label={`${task.title}を下へ移動`}
+                >
+                  <ArrowDown className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {taskFruits.slice(0, 3).map((fruitTask) => (
+                <QuestFruit key={fruitTask.id} parentTitle={fruitTask.parentId ? task.title : parentTitle} task={fruitTask} onComplete={onComplete} />
+              ))}
+              <TaskEditDialog onUpdate={onUpdate} task={task} tasks={tasks} />
+              <button
+                type="button"
+                className="grid h-9 w-9 place-items-center rounded-full text-[#cfc397] transition hover:bg-white/5 hover:text-[#f5b0a5]"
+                onClick={() => onDelete(task.id)}
+                aria-label={`${task.title}を削除`}
+              >
+                <Trash2 className="h-4 w-4" />
               </button>
               <button
                 type="button"
-                className="grid h-5 w-7 place-items-center rounded-full border border-[#d1c090]/18 bg-white/[0.04] text-[#cfc397] hover:bg-white/[0.08]"
-                onClick={() => onMove(task.id, "down")}
-                aria-label={`${task.title}を下へ移動`}
+                className="grid h-9 w-9 place-items-center rounded-full text-[#f4e9bd] transition hover:bg-white/5"
+                onClick={onExpand}
+                aria-label={expanded ? `${task.title}を閉じる` : `${task.title}を開く`}
               >
-                <ArrowDown className="h-3.5 w-3.5" />
+                <ChevronDown className={cn("h-5 w-5 transition", expanded && "rotate-180")} />
               </button>
             </div>
-            {taskFruits.slice(0, 3).map((fruitTask) => (
-              <QuestFruit key={fruitTask.id} parentTitle={fruitTask.parentId ? task.title : parentTitle} task={fruitTask} onComplete={onComplete} />
-            ))}
-            <TaskEditDialog onUpdate={onUpdate} task={task} tasks={tasks} />
-            <button
-              type="button"
-              className="grid h-9 w-9 place-items-center rounded-full text-[#cfc397] transition hover:bg-white/5 hover:text-[#f5b0a5]"
-              onClick={() => onDelete(task.id)}
-              aria-label={`${task.title}を削除`}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="grid h-9 w-9 place-items-center rounded-full text-[#f4e9bd] transition hover:bg-white/5"
-              onClick={onExpand}
-              aria-label={expanded ? `${task.title}を閉じる` : `${task.title}を開く`}
-            >
-              <ChevronDown className={cn("h-5 w-5 transition", expanded && "rotate-180")} />
-            </button>
           </div>
         </div>
 
@@ -2757,13 +2816,21 @@ function QuestTaskCard({
               <button
                 key={child.id}
                 type="button"
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-full border border-[#d1c090]/14 bg-white/[0.045] px-2.5 py-1.5 text-left transition hover:bg-white/[0.07]"
+                className={cn(
+                  "grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-full border px-2.5 py-1.5 text-left transition",
+                  child.completed
+                    ? "border-[#d1c090]/14 bg-white/[0.045] hover:bg-white/[0.07]"
+                    : "border-[#b8d57b]/28 bg-[#21351f]/68 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-[#2b4328]",
+                )}
                 onClick={() => !child.completed && onComplete(child.id)}
                 aria-label={child.completed ? `${child.title}は完了済み` : `${child.title}を完了`}
               >
                 <span className={cn("rounded-full border", child.completed ? miniFruitClassName(child.difficulty) : miniBudClassName(child.difficulty))} />
                 <span className={cn("truncate text-xs font-black text-[#fff5d7]", child.completed && "text-[#d7c797] line-through")}>{child.title}</span>
                 <span className={cn("text-[10px] font-black", difficultyTextClassName(child.difficulty))}>{difficultyMeta[child.difficulty].label}</span>
+                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-black", child.completed ? "bg-[#fff0a8]/10 text-[#ffe88a]" : "bg-[#d9ef9a]/18 text-[#edffd0]")}>
+                  {child.completed ? "済" : "完了"}
+                </span>
               </button>
             ))}
             {visibleChildTasks.length > previewChildTasks.length && (
@@ -2834,34 +2901,55 @@ function QuestChildRow({
   tasks: Task[];
 }) {
   return (
-    <div className="relative grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 border-b border-[#d1c090]/18 px-3 py-2 pl-6 last:border-b-0">
+    <div className="relative grid gap-2 border-b border-[#d1c090]/18 px-3 py-2 pl-6 last:border-b-0">
       <span className="absolute left-3 top-0 h-full w-px bg-[#d1c090]/18" aria-hidden="true" />
-      <span className="absolute left-3 top-1/2 h-px w-3 bg-[#d1c090]/24" aria-hidden="true" />
-      <span className={cn("z-10 rounded-full border", task.completed ? miniFruitClassName(task.difficulty) : miniBudClassName(task.difficulty))} />
-      <button
-        type="button"
-        className={cn("min-w-0 truncate text-left text-sm font-black text-[#fff5d7]", task.completed && "text-[#d7c797] line-through")}
-        onClick={() => !task.completed && onComplete(task.id)}
-      >
-        {task.title}
-      </button>
-      <QuestFruit parentTitle={parentTitle} task={task} onComplete={onComplete} small />
-      <span className={cn("min-w-12 text-xs font-black", difficultyTextClassName(task.difficulty))}>{difficultyMeta[task.difficulty].label}</span>
-      <div className="hidden items-center gap-0.5 sm:flex">
-        <button type="button" className="grid h-7 w-7 place-items-center rounded-full text-[#a99772] hover:bg-white/5 hover:text-[#f5ddb0]" onClick={() => onMove(task.id, "up")} aria-label={`${task.title}を上へ移動`}>
-          <ArrowUp className="h-3.5 w-3.5" />
-        </button>
-        <button type="button" className="grid h-7 w-7 place-items-center rounded-full text-[#a99772] hover:bg-white/5 hover:text-[#f5ddb0]" onClick={() => onMove(task.id, "down")} aria-label={`${task.title}を下へ移動`}>
-          <ArrowDown className="h-3.5 w-3.5" />
-        </button>
+      <span className="absolute left-3 top-6 h-px w-3 bg-[#d1c090]/24" aria-hidden="true" />
+
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+        <span className={cn("z-10 rounded-full border", task.completed ? miniFruitClassName(task.difficulty) : miniBudClassName(task.difficulty))} />
+        <span className={cn("min-w-0 truncate text-left text-sm font-black text-[#fff5d7]", task.completed && "text-[#d7c797] line-through")}>
+          {task.title}
+        </span>
+        {!task.completed ? (
+          <button
+            type="button"
+            className="flex h-9 items-center gap-1.5 rounded-full border border-[#dff0a0]/50 bg-[linear-gradient(180deg,#83bd58,#4f8a3b)] px-3 text-xs font-black text-[#fffbe4] shadow-[0_10px_20px_rgba(66,126,48,0.26)] transition hover:brightness-110 active:scale-[0.98]"
+            onClick={() => onComplete(task.id)}
+            aria-label={`${task.title}を完了して実らせる`}
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            完了
+          </button>
+        ) : (
+          <span className="flex h-9 items-center gap-1.5 rounded-full border border-[#ffe88a]/28 bg-[#fff0a8]/10 px-3 text-xs font-black text-[#ffe88a]">
+            <CheckCircle2 className="h-4 w-4" />
+            済
+          </span>
+        )}
       </div>
-      <TaskEditDialog onUpdate={onUpdate} task={task} tasks={tasks} small />
-      <button type="button" className="hidden text-[#a99772] hover:text-[#f5ddb0] sm:block" onClick={() => onDelete(task.id)} aria-label={`${task.title}を削除`}>
-        <Trash2 className="h-4 w-4" />
-      </button>
-      <span className="col-span-6 -mt-1 pl-8 text-right text-[11px] font-black text-[#b4aa85]">
-        {task.completed ? `完了 ${formatCompletedTime(task.completedAt)}` : "-"}
-      </span>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 pl-8">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className={cn("text-xs font-black", difficultyTextClassName(task.difficulty))}>{difficultyMeta[task.difficulty].label}</span>
+          <QuestFruit parentTitle={parentTitle} task={task} onComplete={onComplete} small />
+          <span className="text-[11px] font-black text-[#b4aa85]">
+            {task.completed ? `完了 ${formatCompletedTime(task.completedAt)}` : "未完了"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-0.5">
+          <button type="button" className="hidden h-8 w-8 place-items-center rounded-full text-[#a99772] hover:bg-white/5 hover:text-[#f5ddb0] sm:grid" onClick={() => onMove(task.id, "up")} aria-label={`${task.title}を上へ移動`}>
+            <ArrowUp className="h-3.5 w-3.5" />
+          </button>
+          <button type="button" className="hidden h-8 w-8 place-items-center rounded-full text-[#a99772] hover:bg-white/5 hover:text-[#f5ddb0] sm:grid" onClick={() => onMove(task.id, "down")} aria-label={`${task.title}を下へ移動`}>
+            <ArrowDown className="h-3.5 w-3.5" />
+          </button>
+          <TaskEditDialog onUpdate={onUpdate} task={task} tasks={tasks} small />
+          <button type="button" className="grid h-8 w-8 place-items-center rounded-full text-[#a99772] hover:bg-white/5 hover:text-[#f5ddb0]" onClick={() => onDelete(task.id)} aria-label={`${task.title}を削除`}>
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -3046,15 +3134,13 @@ function QuestFruit({
   }
 
   return (
-    <button
-      type="button"
-      className={buttonClassName}
-      onClick={() => onComplete(task.id)}
-      title={task.title}
-      aria-label={`${task.title}を完了`}
+    <span
+      className={cn(buttonClassName, "pointer-events-none")}
+      title={`${task.title}の芽`}
+      aria-hidden="true"
     >
       {fruit}
-    </button>
+    </span>
   );
 }
 
