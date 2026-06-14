@@ -2479,7 +2479,7 @@ function TreeNameDialog({
             value={name}
             onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && save()}
-            className="h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
+            className="mori-field h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
             placeholder="例: ケヤキ"
           />
           <Button className="h-12 rounded-full bg-[#5d9544] font-black text-[#fff8dd] hover:bg-[#4a8039]" onClick={save}>
@@ -2922,17 +2922,17 @@ function TaskEditDialog({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && save()}
-            className="h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
+            className="mori-field h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
             placeholder="todo名"
           />
           <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="min-h-20 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-medium text-[#fff5d7] placeholder:text-[#8f876b]"
+            className="mori-field min-h-20 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-medium text-[#fff5d7] placeholder:text-[#8f876b]"
             placeholder="メモ"
           />
           <select
-            className="h-12 rounded-2xl border border-[#d1c090]/30 bg-[#17241d] px-3 text-sm font-bold text-[#fff5d7] outline-none"
+            className="mori-field h-12 rounded-2xl border border-[#d1c090]/30 bg-[#17241d] px-3 text-sm font-bold text-[#fff5d7] outline-none"
             value={parentId}
             onChange={(event) => setParentId(event.target.value)}
           >
@@ -3157,7 +3157,7 @@ function QuestQuickAddPanel({
             どのtodoの中に入れる？
           </label>
           <select
-            className="h-10 rounded-xl border border-[#d1c090]/24 bg-[#17241d] px-3 text-sm font-black text-[#fff7da] outline-none focus:ring-2 focus:ring-[#d9ef6c]/35"
+            className="mori-field h-10 rounded-xl border border-[#d1c090]/24 bg-[#17241d] px-3 text-sm font-black text-[#fff7da] outline-none focus:ring-2 focus:ring-[#d9ef6c]/35"
             value={parentId}
             onChange={(event) => onParent(event.target.value)}
           >
@@ -3184,7 +3184,7 @@ function QuestQuickAddPanel({
           ref={inputRef}
           value={title}
           onChange={(event) => onTitle(event.target.value)}
-          className="h-12 rounded-2xl border-[#d1c090]/34 bg-[#fff9e8]/12 text-base font-black text-[#fff8dd] placeholder:text-[#d4caa2]/70 focus-visible:ring-[#d9ef6c]/40"
+          className="mori-field h-12 rounded-2xl border-[#d1c090]/34 bg-[#fff9e8]/12 text-base font-black text-[#fff8dd] placeholder:text-[#d4caa2]/70 focus-visible:ring-[#d9ef6c]/40"
           placeholder={isFruitMode ? `${selectedParentTitle ?? "親todo"}に入れる子todo` : "例: 英単語を10分やる"}
         />
         <Button
@@ -3302,17 +3302,17 @@ function QuestAddDialog({
             value={title}
             onChange={(event) => onTitle(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && submit()}
-            className="h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
+            className="mori-field h-12 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-bold text-[#fff5d7] placeholder:text-[#8f876b]"
             placeholder="todo名"
           />
           <Textarea
             value={notes}
             onChange={(event) => onNotes(event.target.value)}
-            className="min-h-20 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-medium text-[#fff5d7] placeholder:text-[#8f876b]"
+            className="mori-field min-h-20 rounded-2xl border-[#d1c090]/30 bg-white/[0.08] font-medium text-[#fff5d7] placeholder:text-[#8f876b]"
             placeholder="メモ"
           />
           <select
-            className="h-12 rounded-2xl border border-[#d1c090]/30 bg-[#17241d] px-3 text-sm font-bold text-[#fff5d7] outline-none"
+            className="mori-field h-12 rounded-2xl border border-[#d1c090]/30 bg-[#17241d] px-3 text-sm font-bold text-[#fff5d7] outline-none"
             value={parentId}
             onChange={(event) => onParent(event.target.value)}
           >
