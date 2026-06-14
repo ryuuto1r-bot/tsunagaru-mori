@@ -6,8 +6,10 @@ import {
   BufferGeometry,
   CatmullRomCurve3,
   CircleGeometry,
+  ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
+  DoubleSide,
   FogExp2,
   Group,
   Line,
@@ -148,6 +150,7 @@ export default function ForestWorldLayer({
     ground.receiveShadow = true;
     world.add(ground);
 
+    addGardenEnvironment(world, mapNodes, palette, scope);
     const ambientLight = new AmbientLight(palette.ambient, palette.ambientIntensity);
     scene.add(ambientLight);
 
@@ -388,7 +391,7 @@ export default function ForestWorldLayer({
 
 function addWorldPaths(world: Group, mapNodes: ForestMapNode[], color: number) {
   if (mapNodes.length < 2) return;
-  const material = new LineBasicMaterial({ color, transparent: true, opacity: 0.34 });
+  const material = new LineBasicMaterial({ color, transparent: true, opacity: 0.46 });
   mapNodes.slice(1).forEach((node, index) => {
     const from = nodeToWorldPosition(mapNodes[index]);
     const to = nodeToWorldPosition(node);
@@ -401,6 +404,153 @@ function addWorldPaths(world: Group, mapNodes: ForestMapNode[], color: number) {
     const line = new Line(geometry, material);
     world.add(line);
   });
+}
+
+function addGardenEnvironment(world: Group, mapNodes: ForestMapNode[], palette: ReturnType<typeof worldPalette>, scope: ForestScope) {
+  const stoneMaterial = new MeshStandardMaterial({ color: 0xd6d0c0, roughness: 0.82, metalness: 0.02 });
+  const warmStoneMaterial = new MeshStandardMaterial({ color: 0xb8ad93, roughness: 0.88 });
+  const mossMaterial = new MeshStandardMaterial({ color: palette.ground, roughness: 0.98, metalness: 0.01 });
+  const darkMossMaterial = new MeshStandardMaterial({ color: scope === "today" ? 0x5f7846 : 0x4a6541, roughness: 0.98 });
+  const waterMaterial = new MeshStandardMaterial({
+    color: timeAdjustedWaterColor(palette.fog),
+    emissive: timeAdjustedWaterColor(palette.fog),
+    emissiveIntensity: 0.04,
+    metalness: 0.16,
+    opacity: 0.46,
+    roughness: 0.18,
+    side: DoubleSide,
+    transparent: true,
+  });
+  const waterRimMaterial = new MeshStandardMaterial({ color: 0xe6ddbe, opacity: 0.42, roughness: 0.64, transparent: true });
+  const silhouetteMaterial = new MeshStandardMaterial({ color: scope === "today" ? 0x314934 : 0x263d30, opacity: 0.42, roughness: 0.96, transparent: true });
+  const plantMaterials = [
+    new MeshStandardMaterial({ color: 0x6f9657, roughness: 0.92 }),
+    new MeshStandardMaterial({ color: 0x496d3d, roughness: 0.95 }),
+    new MeshStandardMaterial({ color: 0x91ad72, roughness: 0.9 }),
+  ];
+
+  const innerGarden = new Mesh(new CylinderGeometry(scope === "today" ? 5.6 : 15.4, scope === "today" ? 6.8 : 18.2, 0.12, 112), mossMaterial);
+  innerGarden.position.y = 0.018;
+  innerGarden.receiveShadow = true;
+  world.add(innerGarden);
+
+  for (let index = 0; index < 18; index += 1) {
+    const angle = index * 1.91;
+    const radius = scope === "today" ? 2.4 + (index % 5) * 0.62 : 6.5 + (index % 7) * 1.18;
+    const patch = new Mesh(new CircleGeometry(0.48 + (index % 4) * 0.1, 28), index % 3 === 0 ? darkMossMaterial : mossMaterial);
+    patch.rotation.x = -Math.PI / 2;
+    patch.rotation.z = angle * 0.4;
+    patch.position.set(Math.cos(angle) * radius, 0.086 + (index % 2) * 0.004, Math.sin(angle) * radius * 0.72);
+    patch.scale.set(1.65, 0.74, 1);
+    patch.receiveShadow = true;
+    world.add(patch);
+  }
+
+  addGardenWater(world, waterMaterial, waterRimMaterial, scope);
+  addSteppingStones(world, mapNodes, stoneMaterial, warmStoneMaterial, scope);
+  addGardenPlants(world, plantMaterials, scope);
+  addDistantTreeLine(world, silhouetteMaterial, scope);
+}
+
+function addGardenWater(world: Group, waterMaterial: MeshStandardMaterial, waterRimMaterial: MeshStandardMaterial, scope: ForestScope) {
+  const pond = new Mesh(new CircleGeometry(scope === "today" ? 0.82 : 1.45, 64), waterMaterial);
+  pond.rotation.x = -Math.PI / 2;
+  pond.position.set(scope === "today" ? 2.2 : -6.2, 0.105, scope === "today" ? 2.8 : 5.6);
+  pond.scale.set(scope === "today" ? 1.6 : 1.9, scope === "today" ? 0.62 : 0.72, 1);
+  pond.receiveShadow = true;
+  world.add(pond);
+
+  const pondRim = new Mesh(new TorusGeometry(scope === "today" ? 0.83 : 1.45, 0.025, 8, 72), waterRimMaterial);
+  pondRim.rotation.x = Math.PI / 2;
+  pondRim.position.copy(pond.position);
+  pondRim.scale.copy(pond.scale);
+  world.add(pondRim);
+
+  for (let index = 0; index < 4; index += 1) {
+    const ripple = new Mesh(
+      new TorusGeometry((scope === "today" ? 0.3 : 0.5) + index * 0.16, 0.006, 6, 42),
+      new MeshStandardMaterial({ color: 0xf3efd9, opacity: 0.22 - index * 0.035, roughness: 0.35, transparent: true }),
+    );
+    ripple.rotation.x = Math.PI / 2;
+    ripple.position.set(pond.position.x - 0.15 + index * 0.08, pond.position.y + 0.012 + index * 0.003, pond.position.z + 0.02);
+    ripple.scale.set(1.42, 0.58, 1);
+    world.add(ripple);
+  }
+}
+
+function addSteppingStones(
+  world: Group,
+  mapNodes: ForestMapNode[],
+  stoneMaterial: MeshStandardMaterial,
+  warmStoneMaterial: MeshStandardMaterial,
+  scope: ForestScope,
+) {
+  const positions =
+    scope === "today" || mapNodes.length < 2
+      ? [
+          { x: -1.8, z: 2.55 },
+          { x: -0.92, z: 2.25 },
+          { x: -0.08, z: 2.0 },
+          { x: 0.82, z: 1.76 },
+          { x: 1.65, z: 1.52 },
+        ]
+      : mapNodes.slice(1).flatMap((node, index) => {
+          const from = nodeToWorldPosition(mapNodes[index]);
+          const to = nodeToWorldPosition(node);
+          return [0.33, 0.66].map((t) => ({ x: from.x + (to.x - from.x) * t, z: from.z + (to.z - from.z) * t }));
+        });
+
+  positions.slice(0, scope === "today" ? 5 : 18).forEach((position, index) => {
+    const stone = new Mesh(new SphereGeometry(0.18 + (index % 3) * 0.025, 14, 8), index % 2 ? warmStoneMaterial : stoneMaterial);
+    stone.position.set(position.x, 0.14, position.z);
+    stone.scale.set(1.58, 0.26, 0.94);
+    stone.rotation.y = index * 0.38;
+    stone.castShadow = true;
+    stone.receiveShadow = true;
+    world.add(stone);
+  });
+}
+
+function addGardenPlants(world: Group, materials: MeshStandardMaterial[], scope: ForestScope) {
+  const count = scope === "today" ? 22 : 38;
+  for (let index = 0; index < count; index += 1) {
+    const angle = index * 2.399;
+    const radius = scope === "today" ? 3.2 + (index % 5) * 0.52 : 10.5 + (index % 8) * 1.05;
+    const plant = new Group();
+    plant.position.set(Math.cos(angle) * radius, 0.12, Math.sin(angle) * radius);
+    plant.rotation.y = -angle + Math.PI / 2;
+    const bladeCount = 3 + (index % 3);
+    for (let blade = 0; blade < bladeCount; blade += 1) {
+      const leaf = new Mesh(new SphereGeometry(0.12 + blade * 0.012, 10, 8), materials[(index + blade) % materials.length]);
+      leaf.position.set((blade - 1.5) * 0.08, 0.22 + blade * 0.045, 0.02 * blade);
+      leaf.rotation.z = (blade - 1) * 0.42;
+      leaf.rotation.x = 0.38;
+      leaf.scale.set(0.45, 0.14, 1.35);
+      leaf.castShadow = true;
+      plant.add(leaf);
+    }
+    world.add(plant);
+  }
+}
+
+function addDistantTreeLine(world: Group, material: MeshStandardMaterial, scope: ForestScope) {
+  const count = scope === "today" ? 16 : 28;
+  for (let index = 0; index < count; index += 1) {
+    const angle = -Math.PI * 0.18 + (index / Math.max(1, count - 1)) * Math.PI * 1.36;
+    const radius = scope === "today" ? 9.5 + (index % 3) * 0.8 : 22 + (index % 4) * 1.7;
+    const tree = new Group();
+    tree.position.set(Math.cos(angle) * radius, 0.02, Math.sin(angle) * radius - (scope === "today" ? 2.2 : 5.5));
+    tree.rotation.y = angle;
+    const height = scope === "today" ? 1.25 + (index % 4) * 0.18 : 2.0 + (index % 5) * 0.22;
+    const trunk = new Mesh(new CylinderGeometry(0.035, 0.055, height * 0.65, 8), material);
+    trunk.position.y = height * 0.28;
+    tree.add(trunk);
+    const crown = new Mesh(new ConeGeometry(0.32 + (index % 3) * 0.07, height, 12), material);
+    crown.position.y = height * 0.78;
+    crown.scale.set(1.05, 1, 0.72);
+    tree.add(crown);
+    world.add(tree);
+  }
 }
 
 function addWorldSeeds(world: Group, color: number) {
@@ -442,13 +592,24 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   const leafHighlightMaterial = new MeshStandardMaterial({ color: 0xb6d09c, roughness: 0.82, transparent: true, opacity: 0.88 });
 
   const contactShadow = new Mesh(
-    new CircleGeometry(1.7, 72),
-    new MeshStandardMaterial({ color: 0x06100c, roughness: 1, transparent: true, opacity: 0.16 }),
+    new CircleGeometry(1.85, 72),
+    new MeshStandardMaterial({ color: 0x06100c, roughness: 1, transparent: true, opacity: node.featured ? 0.24 : 0.16 }),
   );
   contactShadow.rotation.x = -Math.PI / 2;
   contactShadow.position.y = 0.018;
   contactShadow.scale.set(1.18, 0.62, 1);
   group.add(contactShadow);
+
+  if (node.featured) {
+    const focusRing = new Mesh(
+      new TorusGeometry(1.48, 0.025, 8, 96),
+      new MeshStandardMaterial({ color: 0xe9dc9a, emissive: 0x6a5b1e, emissiveIntensity: 0.08, opacity: 0.74, roughness: 0.46, transparent: true }),
+    );
+    focusRing.rotation.x = Math.PI / 2;
+    focusRing.position.y = 0.19;
+    focusRing.scale.set(1.14, 0.72, 1);
+    group.add(focusRing);
+  }
 
   const base = new Mesh(new CylinderGeometry(1.12, 1.4, 0.12, 72), baseMaterial);
   base.position.y = 0.06;
@@ -461,6 +622,12 @@ function createWorldTree(node: ForestMapNode, scope: ForestScope) {
   rim.castShadow = true;
   rim.receiveShadow = true;
   group.add(rim);
+
+  const lowerRim = new Mesh(new TorusGeometry(1.35, 0.035, 10, 72), rimMaterial);
+  lowerRim.rotation.x = Math.PI / 2;
+  lowerRim.position.y = 0.08;
+  lowerRim.castShadow = true;
+  group.add(lowerRim);
 
   const moss = new Mesh(new CylinderGeometry(0.78, 0.98, 0.08, 56), mossMaterial);
   moss.position.y = 0.17;
@@ -707,6 +874,12 @@ function fruitColor(difficulty: Difficulty) {
   if (difficulty === "hard") return 0xf3c544;
   if (difficulty === "medium") return 0xd8893d;
   return 0x8fb85f;
+}
+
+function timeAdjustedWaterColor(fogColor: number) {
+  if (fogColor === 0x17211f) return 0x587a82;
+  if (fogColor === 0xf1dfcb) return 0x9aa58d;
+  return 0x91b7a2;
 }
 
 function defaultWorldView(scope: ForestScope) {

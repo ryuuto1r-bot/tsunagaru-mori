@@ -1065,10 +1065,10 @@ function ForestScreen({
         <img
           src={questAssets.bonsaiHero}
           alt=""
-          className={cn("pointer-events-none absolute inset-0 z-[1] h-full w-full scale-110 object-cover opacity-[0.16] mix-blend-soft-light blur-[1px] transition-opacity duration-500", memoryMode && "opacity-0")}
+          className={cn("pointer-events-none absolute inset-0 z-[1] h-full w-full scale-110 object-cover opacity-[0.22] mix-blend-soft-light blur-[0.5px] saturate-125 transition-opacity duration-500", memoryMode && "opacity-0")}
         />
-        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_48%_28%,rgba(221,232,151,0.1),transparent_24%),linear-gradient(180deg,rgba(5,18,15,0.38)_0%,rgba(5,18,15,0.34)_44%,rgba(5,18,15,0.88)_100%)] transition-opacity duration-500", memoryMode && "opacity-0")} />
-        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(221,205,146,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(221,205,146,0.05)_1px,transparent_1px)] bg-[size:72px_72px] transition-opacity duration-500", memoryMode && "opacity-0")} />
+        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_52%_32%,rgba(238,244,176,0.18),transparent_26%),radial-gradient(circle_at_24%_72%,rgba(77,105,64,0.18),transparent_24%),linear-gradient(180deg,rgba(5,18,15,0.22)_0%,rgba(5,18,15,0.18)_42%,rgba(5,18,15,0.86)_100%)] transition-opacity duration-500", memoryMode && "opacity-0")} />
+        <div className={cn("pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(to_right,rgba(221,205,146,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(221,205,146,0.03)_1px,transparent_1px)] bg-[size:96px_96px] transition-opacity duration-500", memoryMode && "opacity-0")} />
         <ForestSceneGlow memoryMode={memoryMode} timeTone={timeTone} />
 
         <div className={cn("absolute left-4 right-4 top-4 z-40 flex flex-col gap-3 transition-opacity duration-500 md:flex-row md:items-start md:justify-between", memoryMode && "pointer-events-none opacity-0")}>
@@ -1168,7 +1168,7 @@ function ForestFeaturedHud({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute left-1/2 top-[9.25rem] z-30 w-[min(86vw,360px)] -translate-x-1/2 rounded-[30px] border border-[#e6d7a4]/36 bg-[#101812]/50 px-4 py-3 text-[#fff7da] shadow-[0_20px_60px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition-opacity duration-500 sm:top-[8.25rem] md:top-[7.25rem]",
+        "pointer-events-none absolute left-4 right-4 top-[5.5rem] z-30 w-auto rounded-[30px] border border-[#e6d7a4]/36 bg-[#101812]/46 px-4 py-3 text-[#fff7da] shadow-[0_20px_60px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition-opacity duration-500 sm:right-auto sm:top-[5.5rem] sm:w-[min(86vw,330px)] md:left-6 md:top-[5.8rem]",
         memoryMode && "opacity-0",
       )}
     >
@@ -1214,7 +1214,7 @@ function ForestGestureHint({ memoryMode }: { memoryMode: boolean }) {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute left-1/2 top-[14.5rem] z-30 hidden -translate-x-1/2 rounded-full border border-[#e6d7a4]/22 bg-[#101812]/34 px-3 py-1.5 text-[11px] font-black text-[#e6d7a4] shadow-[0_12px_34px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-opacity duration-500 sm:block md:top-[12.6rem]",
+        "pointer-events-none absolute right-4 top-[10.5rem] z-30 hidden rounded-full border border-[#e6d7a4]/22 bg-[#101812]/32 px-3 py-1.5 text-[11px] font-black text-[#e6d7a4] shadow-[0_12px_34px_rgba(0,0,0,0.2)] backdrop-blur-xl transition-opacity duration-500 sm:block md:right-6 md:top-[10.25rem]",
         memoryMode && "opacity-0",
       )}
     >
@@ -1500,7 +1500,7 @@ function ForestNodeTray({
     >
       <div
         className={cn(
-          "pointer-events-auto relative max-w-[min(100%,920px)] overflow-hidden rounded-[24px] border border-[#c7b47e]/28 bg-[#111c17]/62 px-2 py-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.26)] backdrop-blur-xl",
+          "pointer-events-auto relative max-w-[min(100%,920px)] overflow-hidden rounded-[24px] border border-[#c7b47e]/24 bg-[#111c17]/48 px-2 py-1.5 shadow-[0_18px_42px_rgba(0,0,0,0.2)] backdrop-blur-xl",
           scope === "today" && "max-w-[280px]",
         )}
       >
